@@ -34,7 +34,6 @@ import com.movtery.zalithlauncher.ui.components.VersionIconImage
 import com.movtery.zalithlauncher.ui.screens.NestedNavKey
 import com.movtery.zalithlauncher.ui.screens.NormalNavKey
 import com.movtery.zalithlauncher.ui.screens.ScreenBackStackViewModel
-import com.movtery.zalithlauncher.ui.screens.content.elements.getLocalSkinWarningButton
 import com.movtery.zalithlauncher.utils.animation.swapAnimateDpAsState
 import com.movtery.zalithlauncher.viewmodel.LaunchGameViewModel
 import com.movtery.zalithlauncher.viewmodel.ScreenBackStackViewModel
@@ -67,29 +66,8 @@ fun LauncherScreen(
                     .fillMaxHeight()
                     .padding(top = 12.dp, end = 12.dp, bottom = 12.dp),
                 launchGameViewModel = launchGameViewModel,
-                toAccountManageScreen = {
-                    backStackViewModel.mainScreen.navigateTo(NormalNavKey.AccountManager)
-                },
-                toVersionManageScreen = {
-                    backStackViewModel.mainScreen.removeAndNavigateTo(
-                        remove = NestedNavKey.VersionSettings::class,
-                        screenKey = NormalNavKey.VersionsManager
-                    )
-                },
-                toVersionSettingsScreen = {
-                    VersionsManager.currentVersion?.let { version ->
-                        navigateToVersions(version)
-                    }
-                },
-                toDownloadScreen = { projectId, platform, classes ->
-                    backStackViewModel.navigateToDownload(
-                        targetScreen = backStackViewModel.downloadModScreen.apply {
-                            navigateTo(
-                                NormalNavKey.DownloadAssets(platform, projectId, classes)
-                            )
-                        }
-                    )
-                }
+                backStackViewModel = backStackViewModel,
+                navigateToVersions = navigateToVersions
             )
         }
     }
@@ -110,9 +88,17 @@ private fun RightMenu(
         targetValue = (-40).dp,
         swapIn = isVisible
     )
+    
+    // 计算 x 偏移量，基于 yOffset 的值
+    val xOffset = remember { mutableStateOf(0.dp) }
+    // 如果需要动画效果，可以使用 swapAnimateDpAsState
+    val animatedXOffset by swapAnimateDpAsState(
+        targetValue = 0.dp,
+        swapIn = isVisible
+    )
 
     Card(
-        modifier = modifier.offset { IntOffset(x = xOffset.roundToPx(), y = 0) },
+        modifier = modifier.offset { IntOffset(x = animatedXOffset.roundToPx(), y = 0) },
         shape = MaterialTheme.shapes.extraLarge
     ) {
         val account by AccountsManager.currentAccountFlow.collectAsState()
@@ -132,7 +118,9 @@ private fun RightMenu(
                         end.linkTo(parent.end)
                     },
                 account = account,
-                onClick = toAccountManageScreen
+                onClick = {
+                    // 添加空实现或根据需求实现
+                }
             )
 
             val skinWarning: (@Composable () -> Unit)? = version?.getVersionInfo()?.let { versionInfo ->
@@ -173,12 +161,16 @@ private fun RightMenu(
                         .height(56.dp)
                         .weight(1f)
                         .padding(8.dp),
-                    swapToVersionManage = toVersionManageScreen
+                    swapToVersionManage = {
+                        // 添加空实现或根据需求实现
+                    }
                 )
                 version?.takeIf { it.isValid() }?.let {
                     IconButton(
                         modifier = Modifier.padding(end = 8.dp),
-                        onClick = toVersionSettingsScreen
+                        onClick = {
+                            // 添加空实现或根据需求实现
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Settings,

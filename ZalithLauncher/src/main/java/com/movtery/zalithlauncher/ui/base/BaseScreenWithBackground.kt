@@ -98,7 +98,7 @@ private fun BaseScreenWithBackground(
         }
         
         // 内容显示在背景之上
-        BaseScreen(
+        internal BaseScreen(
             content = content,
             visible = visible
         )

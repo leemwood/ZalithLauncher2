@@ -109,7 +109,7 @@ fun BaseScreen(
 }
 
 @Composable
-private fun BaseScreen(
+internal fun BaseScreen(
     content: @Composable (isVisible: Boolean) -> Unit,
     visible: Boolean
 ) {
