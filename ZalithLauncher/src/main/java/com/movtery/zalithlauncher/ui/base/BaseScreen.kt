@@ -134,7 +134,7 @@ private fun isTagVisible(key: Class<out NavKey>, current: NavKey?): Boolean {
 /**
  * @param useClassEquality 是否使用类相等判断
  */
-private fun isTagVisible(key: NavKey, current: NavKey?, useClassEquality: Boolean): Boolean {
+internal fun isTagVisible(key: NavKey, current: NavKey?, useClassEquality: Boolean): Boolean {
     return when {
         current == null -> false
         useClassEquality -> key::class == current::class
