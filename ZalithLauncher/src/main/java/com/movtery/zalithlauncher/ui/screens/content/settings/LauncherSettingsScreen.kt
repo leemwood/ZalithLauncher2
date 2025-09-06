@@ -51,8 +51,6 @@ import androidx.compose.foundation.layout.height
 import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.EnumSettingsLayout
 import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.ListSettingsLayout
 import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.ShareLogLayout
-import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.SliderSettingsLayout
-import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.SwitchSettingsLayout
 
 private sealed interface CustomColorOperation {
     data object None : CustomColorOperation
