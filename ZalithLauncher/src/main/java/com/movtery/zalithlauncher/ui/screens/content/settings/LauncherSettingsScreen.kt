@@ -239,13 +239,14 @@ fun LauncherSettingsScreen(
 @Composable
 private fun BackgroundImageSettings() {
     val context = LocalContext.current
-    var backgroundImage by AllSettings.launcherBackgroundImage.state
+    var backgroundImage by remember { mutableStateOf(AllSettings.launcherBackgroundImage.getValue()) }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { 
             // 保存图片URI到设置中
+            AllSettings.launcherBackgroundImage.save(it.toString())
             backgroundImage = it.toString()
         }
     }
