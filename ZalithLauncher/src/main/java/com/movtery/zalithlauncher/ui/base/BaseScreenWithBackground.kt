@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -60,7 +61,7 @@ fun BaseScreenWithBackground(
 
     //初始不可见，用于触发首次的 false -> true 动画
     val visibleState = remember { mutableStateOf(false) }
-
+    
     //仅在 composition 完成后，才允许更新可见状态
     LaunchedEffect(targetVisible) {
         visibleState.value = targetVisible
@@ -77,7 +78,7 @@ private fun BaseScreenWithBackground(
     content: @Composable (isVisible: Boolean) -> Unit,
     visible: Boolean
 ) {
-    val backgroundImage by AllSettings.launcherBackgroundImage.state
+    val backgroundImage = AllSettings.launcherBackgroundImage.getValue()
     
     Box(modifier = Modifier.fillMaxSize()) {
         // 显示背景图片（如果已设置）

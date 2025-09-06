@@ -2,12 +2,17 @@ package com.movtery.zalithlauncher.ui.screens.content
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,18 +20,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.navigation3.runtime.NavKey
 import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.game.version.installed.Version
 import com.movtery.zalithlauncher.ui.base.BaseScreenWithBackground
-import com.movtery.zalithlauncher.ui.components.VersionItem
+import com.movtery.zalithlauncher.ui.components.MarqueeText
+import com.movtery.zalithlauncher.ui.components.VersionIconImage
 import com.movtery.zalithlauncher.ui.screens.NestedNavKey
 import com.movtery.zalithlauncher.ui.screens.NormalNavKey
 import com.movtery.zalithlauncher.ui.screens.ScreenBackStackViewModel
+import com.movtery.zalithlauncher.ui.screens.content.elements.getLocalSkinWarningButton
+import com.movtery.zalithlauncher.utils.animation.swapAnimateDpAsState
 import com.movtery.zalithlauncher.viewmodel.LaunchGameViewModel
-import com.movtery.zalithlauncher.viewmodel.VersionListViewModel
+import com.movtery.zalithlauncher.viewmodel.ScreenBackStackViewModel
 import net.kdt.pojavlaunch.PojavLauncherActivity
 
 @Composable
@@ -35,7 +46,7 @@ fun LauncherScreen(
     navigateToVersions: (Version) -> Unit,
     launchGameViewModel: LaunchGameViewModel
 ) {
-    BaseScreen(
+    BaseScreenWithBackground(
         screenKey = NormalNavKey.LauncherMain,
         currentKey = backStackViewModel.mainScreen.currentKey
     ) { isVisible ->
@@ -44,7 +55,9 @@ fun LauncherScreen(
         ) {
             ContentMenu(
                 isVisible = isVisible,
-                modifier = Modifier.weight(7f)
+                modifier = Modifier.weight(7f),
+                backStackViewModel = backStackViewModel,
+                navigateToVersions = navigateToVersions
             )
 
             RightMenu(
@@ -88,15 +101,14 @@ private fun RightMenu(
     isVisible: Boolean,
     modifier: Modifier = Modifier,
     launchGameViewModel: LaunchGameViewModel,
-    toAccountManageScreen: () -> Unit = {},
-    toVersionManageScreen: () -> Unit = {},
-    toVersionSettingsScreen: () -> Unit = {},
-    toDownloadScreen: (id: String, Platform, classes: PlatformClasses) -> Unit = { _, _, _ -> }
+    toAccountManageScreen: () -> Unit,
+    toVersionManageScreen: () -> Unit,
+    toVersionSettingsScreen: () -> Unit,
+    toDownloadScreen: (String, Platform, PlatformClasses) -> Unit
 ) {
-    val xOffset by swapAnimateDpAsState(
-        targetValue = 40.dp,
-        swapIn = isVisible,
-        isHorizontal = true
+    val yOffset by swapAnimateDpAsState(
+        targetValue = (-40).dp,
+        swapIn = isVisible
     )
 
     Card(
