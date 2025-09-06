@@ -1,5 +1,6 @@
 package com.movtery.zalithlauncher.ui.base
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,7 +10,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.navigation3.runtime.NavKey
+import coil3.compose.AsyncImage
 
 /**
  * 单层级基础屏幕，根据 `currentKey` 判断当前屏幕是否可见

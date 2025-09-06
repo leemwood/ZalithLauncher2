@@ -1,6 +1,8 @@
 package com.movtery.zalithlauncher.ui.screens.content.settings
 
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
+import coil3.compose.AsyncImage
 import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.coroutine.Task
 import com.movtery.zalithlauncher.coroutine.TaskSystem
@@ -44,6 +47,12 @@ import com.movtery.zalithlauncher.utils.file.shareFile
 import com.movtery.zalithlauncher.utils.file.zipDirectory
 import com.movtery.zalithlauncher.utils.logging.Logger.lError
 import java.io.File
+import androidx.compose.foundation.layout.height
+import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.EnumSettingsLayout
+import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.ListSettingsLayout
+import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.ShareLogLayout
+import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.SliderSettingsLayout
+import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.SwitchSettingsLayout
 
 private sealed interface CustomColorOperation {
     data object None : CustomColorOperation
@@ -170,6 +179,9 @@ fun LauncherSettingsScreen(
             SettingsBackground(
                 modifier = Modifier.offset { IntOffset(x = 0, y = yOffset3.roundToPx()) }
             ) {
+                // 添加背景图片设置选项
+                BackgroundImageSettings()
+
                 ListSettingsLayout(
                     unit = AllSettings.fetchModLoaderSource,
                     items = MirrorSourceType.entries,
@@ -220,6 +232,47 @@ fun LauncherSettingsScreen(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun BackgroundImageSettings() {
+    val context = LocalContext.current
+    var backgroundImage by AllSettings.launcherBackgroundImage.state
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { 
+            // 保存图片URI到设置中
+            backgroundImage = it.toString()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape = RoundedCornerShape(22.0.dp))
+            .clickable { imagePicker.launch("image/*") }
+            .padding(all = 8.dp)
+            .padding(bottom = 4.dp)
+    ) {
+        TitleAndSummary(
+            title = stringResource(R.string.settings_launcher_background_image_title),
+            summary = stringResource(R.string.settings_launcher_background_image_summary)
+        )
+
+        // 显示当前选中的背景图片预览
+        if (backgroundImage.isNotEmpty()) {
+            AsyncImage(
+                model = backgroundImage,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .height(100.dp)
+            )
         }
     }
 }

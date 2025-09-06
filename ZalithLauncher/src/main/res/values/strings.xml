@@ -99,6 +99,10 @@
     <string name="splash_screen_unpack_desc">The launcher needs to install these files to ensure Minecraft runs properly. They are included in the app and must be extracted first. Click the button below to start extraction and update.</string>
     <string name="splash_screen_installing">The launcher is extracting these files. Once done, it will automatically enter the main screen. Please wait patiently.</string>
     <string name="splash_screen_agree">Install</string>
+    <!-- Background Image Settings -->
+    <string name="settings_launcher_background_image_title">Background Image</string>
+    <string name="settings_launcher_background_image_summary">Set a custom background image for the launcher</string>
+</resources>
     <!--  Notification  -->
     <string name="notification_title">Check Notification Permission</string>
     <string name="notification_request">Request Permission</string>

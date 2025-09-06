@@ -212,6 +212,11 @@ object AllSettings : SettingsRegistry() {
     val launcherLogRetentionDays = intSetting("launcherLogRetentionDays", 7)
 
     /**
+     * 自定义背景图片路径
+     */
+    val launcherBackgroundImage = stringSetting("launcherBackgroundImage", "")
+
+    /**
      * 下载版本附加内容镜像源类型
      */
     val fetchModLoaderSource = enumSetting("fetchModLoaderSource", MirrorSourceType.OFFICIAL_FIRST)
