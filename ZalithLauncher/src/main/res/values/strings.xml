@@ -102,7 +102,6 @@
     <!-- Background Image Settings -->
     <string name="settings_launcher_background_image_title">Background Image</string>
     <string name="settings_launcher_background_image_summary">Set a custom background image for the launcher</string>
-</resources>
     <!--  Notification  -->
     <string name="notification_title">Check Notification Permission</string>
     <string name="notification_request">Request Permission</string>
