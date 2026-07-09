@@ -22,6 +22,7 @@ import android.os.Bundle
 import androidx.annotation.CallSuper
 import com.movtery.zalithlauncher.context.refreshContext
 import com.movtery.zalithlauncher.game.account.AccountsManager
+import com.movtery.zalithlauncher.game.download.assets.favorites.FavoriteManager
 import com.movtery.zalithlauncher.game.path.GamePathManager
 import com.movtery.zalithlauncher.setting.loadAllSettings
 import com.movtery.zalithlauncher.utils.checkStoragePermissionsForInit
@@ -48,6 +49,7 @@ open class BaseAppCompatActivity : FullScreenAppCompatActivity() {
         AccountsManager.reloadAccounts()
         AccountsManager.reloadAuthServers()
         GamePathManager.reloadPath()
+        FavoriteManager.reload()
     }
 
     private fun checkStoragePermissions() {

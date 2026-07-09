@@ -1233,4 +1233,15 @@
     <string name="vibrate_kind_tick">Chọn</string>
     <string name="festivals_new_year">Chúc mừng năm mới!</string>
     <string name="festivals_april_fools">Chúc mừng ngày Cá tháng Tư!</string>
+    <!-- Favorites (资源收藏) -->
+    <string name="favorites_title">Yêu thích</string>
+    <string name="favorites_tab_all">Tất cả</string>
+    <string name="favorites_empty">Chưa có mục yêu thích. Chạm vào biểu tượng tim để lưu tài nguyên.</string>
+    <string name="favorites_no_version">Chưa chỉ định phiên bản</string>
+    <string name="favorites_hint_select_version">Chọn một phiên bản để hoàn tất yêu thích</string>
+    <string name="favorites_add">Thêm vào yêu thích</string>
+    <string name="favorites_remove">Xóa khỏi yêu thích</string>
+    <string name="favorites_copy_link">Sao chép liên kết tải</string>
+    <string name="favorites_link_copied">Đã sao chép liên kết tải</string>
+    <string name="favorites_search_hint">Tìm kiếm yêu thích</string>
 </resources>

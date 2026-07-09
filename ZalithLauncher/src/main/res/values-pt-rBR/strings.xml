@@ -1233,4 +1233,15 @@
     <string name="download_assets_id_not_found">Projeto não encontrado!</string>
     <string name="download_assets_id_unsupported">Projeto não suportado!</string>
     <string name="settings_launcher_color_theme_style">Estilo de paleta</string>
+    <!-- Favorites (资源收藏) -->
+    <string name="favorites_title">Favoritos</string>
+    <string name="favorites_tab_all">Tudo</string>
+    <string name="favorites_empty">Nenhum favorito ainda. Navegue e toque no ícone de coração para salvar recursos.</string>
+    <string name="favorites_no_version">Nenhuma versão especificada</string>
+    <string name="favorites_hint_select_version">Selecione uma versão para concluir o favorito</string>
+    <string name="favorites_add">Adicionar aos favoritos</string>
+    <string name="favorites_remove">Remover dos favoritos</string>
+    <string name="favorites_copy_link">Copiar link de download</string>
+    <string name="favorites_link_copied">Link de download copiado</string>
+    <string name="favorites_search_hint">Pesquisar favoritos</string>
 </resources>

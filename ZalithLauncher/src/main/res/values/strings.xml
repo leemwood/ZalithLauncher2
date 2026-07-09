@@ -1288,4 +1288,15 @@
     <string name="festivals_new_year">Happy New Year!</string>
     <string name="festivals_april_fools">Happy April Fools\' Day!</string>
     <string name="festivals_christmas">Merry Christmas!</string>
+    <!-- Favorites (资源收藏) -->
+    <string name="favorites_title">Favorites</string>
+    <string name="favorites_tab_all">All</string>
+    <string name="favorites_empty">No favorites yet. Browse and tap the heart icon to save resources.</string>
+    <string name="favorites_no_version">No version specified</string>
+    <string name="favorites_hint_select_version">Select a version to complete the favorite</string>
+    <string name="favorites_add">Add to favorites</string>
+    <string name="favorites_remove">Remove from favorites</string>
+    <string name="favorites_copy_link">Copy download link</string>
+    <string name="favorites_link_copied">Download link copied</string>
+    <string name="favorites_search_hint">Search favorites</string>
 </resources>

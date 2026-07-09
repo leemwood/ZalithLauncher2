@@ -84,6 +84,8 @@ import com.movtery.zalithlauncher.ui.components.IconTextButton
 import com.movtery.zalithlauncher.ui.components.LittleTextLabel
 import com.movtery.zalithlauncher.ui.components.ShimmerBox
 import com.movtery.zalithlauncher.ui.components.rememberMaxHeight
+import com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites.FavoriteAction
+import com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites.FavoriteToggleButton
 import com.movtery.zalithlauncher.ui.screens.content.elements.backgroundGlass
 import com.movtery.zalithlauncher.ui.theme.cardColor
 import com.movtery.zalithlauncher.ui.theme.onCardColor
@@ -227,6 +229,7 @@ fun AssetsVersionItemLayout(
     color: Color = cardColor(influencedByBackground),
     contentColor: Color = onCardColor(),
     blur: Int = AllSettings.backgroundBlur.state,
+    favoriteProvider: ((PlatformVersion) -> FavoriteAction?)? = null,
     onItemClicked: (PlatformVersion) -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -271,6 +274,7 @@ fun AssetsVersionItemLayout(
                                         .fillMaxWidth()
                                         .padding(all = 4.dp),
                                     version = version,
+                                    favoriteAction = favoriteProvider?.invoke(version),
                                     onClick = {
                                         onItemClicked(version)
                                     }
@@ -351,6 +355,7 @@ private fun AssetsVersionHeadLayout(
 private fun AssetsVersionListItem(
     modifier: Modifier = Modifier,
     version: PlatformVersion,
+    favoriteAction: FavoriteAction? = null,
     onClick: () -> Unit = {}
 ) {
     Row(
@@ -382,7 +387,7 @@ private fun AssetsVersionListItem(
 
         //版本简要信息
         Column(
-            modifier = Modifier.padding(all = 8.dp),
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
@@ -445,6 +450,14 @@ private fun AssetsVersionListItem(
                     )
                 }
             }
+        }
+
+        //收藏按钮
+        favoriteAction?.let {
+            FavoriteToggleButton(
+                modifier = Modifier.padding(end = 4.dp),
+                favoriteAction = it
+            )
         }
     }
 }

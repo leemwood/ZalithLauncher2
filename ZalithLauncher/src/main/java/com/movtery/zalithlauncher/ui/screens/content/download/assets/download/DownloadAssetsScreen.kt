@@ -61,11 +61,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.movtery.zalithlauncher.R
+import com.movtery.zalithlauncher.game.download.assets.favorites.FavoriteManager
+import com.movtery.zalithlauncher.game.download.assets.favorites.toFavorite
 import com.movtery.zalithlauncher.game.download.assets.platform.Platform
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformClasses
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformProject
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformVersion
+import com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites.FavoriteAction
 import com.movtery.zalithlauncher.game.download.assets.platform.getProject
 import com.movtery.zalithlauncher.game.download.assets.platform.getVersions
 import com.movtery.zalithlauncher.game.download.assets.platform.isAllNull
@@ -320,6 +324,9 @@ fun DownloadAssetsScreen(
                     .fillMaxHeight()
                     .offset { IntOffset(x = 0, y = yOffset.roundToPx()) },
                 viewModel = viewModel,
+                platform = key.platform,
+                projectId = key.projectId,
+                classes = key.classes,
                 onReload = { viewModel.getVersions() },
                 onItemClicked = { version ->
                     val deps = version.platformDependencies().mapNotNull { dep ->
@@ -359,9 +366,41 @@ fun DownloadAssetsScreen(
 private fun Versions(
     modifier: Modifier = Modifier,
     viewModel: DownloadScreenViewModel,
+    platform: Platform,
+    projectId: String,
+    classes: PlatformClasses,
     onReload: () -> Unit = {},
     onItemClicked: (PlatformVersion) -> Unit = {}
 ) {
+    val favorites by FavoriteManager.assets.collectAsStateWithLifecycle()
+    val favoriteProvider: ((PlatformVersion) -> FavoriteAction?)? = remember(
+        favorites, platform, projectId, classes, viewModel.projectResult
+    ) {
+        { version: PlatformVersion ->
+            val existing = favorites.firstOrNull { it.platform == platform && it.projectId == projectId }
+            val isThisVersionFavorited = existing != null &&
+                existing.downloadUrl == version.platformDownloadUrl()
+            FavoriteAction(
+                isFavorite = isThisVersionFavorited,
+                onToggle = {
+                    if (isThisVersionFavorited) {
+                        FavoriteManager.remove(platform, projectId)
+                    } else {
+                        val project = (viewModel.projectResult as? DownloadAssetsState.Success)?.result?.first
+                        if (project != null) {
+                            FavoriteManager.save(
+                                version.toFavorite(
+                                    project = project,
+                                    classes = classes,
+                                    previousSavedAt = existing?.savedAt
+                                )
+                            )
+                        }
+                    }
+                }
+            )
+        }
+    }
     when (val versions = viewModel.versionsResult) {
         is DownloadAssetsState.Getting -> {
             Box(
@@ -480,6 +519,7 @@ private fun Versions(
                                 .fillMaxWidth()
                                 .padding(vertical = 6.dp),
                             infoMap = info,
+                            favoriteProvider = favoriteProvider,
                             onItemClicked = onItemClicked
                         )
                     }

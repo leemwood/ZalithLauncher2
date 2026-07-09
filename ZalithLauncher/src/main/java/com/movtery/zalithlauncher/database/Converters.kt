@@ -20,6 +20,9 @@ package com.movtery.zalithlauncher.database
 
 import androidx.room.TypeConverter
 import com.movtery.zalithlauncher.game.account.wardrobe.SkinModelType
+import com.movtery.zalithlauncher.game.download.assets.platform.Platform
+import com.movtery.zalithlauncher.game.download.assets.platform.PlatformClasses
+import com.movtery.zalithlauncher.game.download.assets.platform.PlatformReleaseType
 
 class Converters {
     @TypeConverter
@@ -28,4 +31,23 @@ class Converters {
     @TypeConverter
     fun toSkinModelType(value: String): SkinModelType =
         enumValueOf(value)
+
+    @TypeConverter
+    fun fromPlatform(value: Platform): String = value.name
+
+    @TypeConverter
+    fun toPlatform(value: String): Platform = enumValueOf(value)
+
+    @TypeConverter
+    fun fromPlatformClasses(value: PlatformClasses): String = value.name
+
+    @TypeConverter
+    fun toPlatformClasses(value: String): PlatformClasses = enumValueOf(value)
+
+    @TypeConverter
+    fun fromPlatformReleaseType(value: PlatformReleaseType?): String? = value?.name
+
+    @TypeConverter
+    fun toPlatformReleaseType(value: String?): PlatformReleaseType? =
+        value?.let { enumValueOf<PlatformReleaseType>(it) }
 }

@@ -1269,4 +1269,15 @@
     <string name="festivals_new_year">新年快乐！</string>
     <string name="festivals_april_fools">愚人节快乐！</string>
     <string name="festivals_christmas">圣诞节快乐！</string>
+    <!-- Favorites (资源收藏) -->
+    <string name="favorites_title">资源收藏</string>
+    <string name="favorites_tab_all">全部</string>
+    <string name="favorites_empty">还没有收藏。浏览资源时点击心形图标即可收藏。</string>
+    <string name="favorites_no_version">未指定版本</string>
+    <string name="favorites_hint_select_version">选择一个版本来完成收藏</string>
+    <string name="favorites_add">添加到收藏</string>
+    <string name="favorites_remove">取消收藏</string>
+    <string name="favorites_copy_link">复制下载链接</string>
+    <string name="favorites_link_copied">下载链接已复制</string>
+    <string name="favorites_search_hint">搜索收藏</string>
 </resources>
