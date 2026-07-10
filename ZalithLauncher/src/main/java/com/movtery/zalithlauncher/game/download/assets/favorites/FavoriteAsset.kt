@@ -20,9 +20,6 @@ package com.movtery.zalithlauncher.game.download.assets.favorites
 
 import android.os.Parcelable
 import androidx.annotation.Keep
-import androidx.room.Entity
-import androidx.room.Index
-import androidx.room.PrimaryKey
 import com.movtery.zalithlauncher.game.download.assets.platform.Platform
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformClasses
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformReleaseType
@@ -36,13 +33,7 @@ import kotlinx.parcelize.Parcelize
  */
 @Keep
 @Parcelize
-@Entity(
-    tableName = "favoriteAssets",
-    indices = [Index(value = ["platform", "projectId", "type", "downloadUrl"], unique = true)]
-)
 data class FavoriteAsset(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
     val type: FavoriteType,
     val platform: Platform,
     val classes: PlatformClasses,

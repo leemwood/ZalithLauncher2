@@ -33,7 +33,6 @@ fun PlatformVersion.toFavorite(
     classes: PlatformClasses,
     previousSavedAt: Long? = null
 ): FavoriteAsset = FavoriteAsset(
-    id = 0,
     type = FavoriteType.VERSION,
     platform = project.platform(),
     classes = classes,
@@ -62,7 +61,6 @@ fun PlatformSearchData.toFavorite(
     classes: PlatformClasses,
     previousSavedAt: Long? = null
 ): FavoriteAsset = FavoriteAsset(
-    id = 0,
     type = FavoriteType.PROJECT,
     platform = platform(),
     classes = classes,

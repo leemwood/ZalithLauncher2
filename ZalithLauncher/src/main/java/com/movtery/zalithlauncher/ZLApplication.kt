@@ -139,6 +139,6 @@ class ZLApplication : Application(), SingletonImageLoader.Factory {
     private fun initializeData() {
         AccountsManager.initialize(this)
         GamePathManager.initialize(this)
-        FavoriteManager.initialize(this)
+        FavoriteManager.initialize()
     }
 }

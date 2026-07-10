@@ -18,8 +18,6 @@
 
 package com.movtery.zalithlauncher.game.download.assets.favorites
 
-import android.content.Context
-import com.movtery.zalithlauncher.database.AppDatabase
 import com.movtery.zalithlauncher.game.download.assets.platform.Platform
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformClasses
 import com.movtery.zalithlauncher.utils.logging.Logger
@@ -40,6 +38,8 @@ private const val TAG = "FavoriteManager"
  * 收藏分两类：
  * - 项目收藏（[FavoriteType.PROJECT]）：同一 (platform, projectId) 最多一条
  * - 版本收藏（[FavoriteType.VERSION]）：同一 (platform, projectId, downloadUrl) 唯一，可多条
+ *
+ * 数据通过 MMKV 持久化，每条收藏项以 (platform, projectId, type, downloadUrl) 为键。
  */
 object FavoriteManager {
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -48,16 +48,14 @@ object FavoriteManager {
     private val _assets = MutableStateFlow<List<FavoriteAsset>>(emptyList())
     val assets = _assets.asStateFlow()
 
-    private lateinit var favoriteAssetDao: FavoriteAssetDao
-
-    fun initialize(context: Context) {
-        favoriteAssetDao = AppDatabase.getInstance(context).favoriteAssetDao()
+    fun initialize() {
+        reload()
     }
 
     fun reload() {
         scope.launch {
             mutex.withLock {
-                runCatching { favoriteAssetDao.getAll() }
+                runCatching { loadAll() }
                     .onSuccess { list -> _assets.update { list } }
                     .onFailure { e -> Logger.error(TAG, "Failed to load favorites", e) }
             }
@@ -90,24 +88,31 @@ object FavoriteManager {
 
     fun save(asset: FavoriteAsset) {
         scope.launch {
-            runCatching { favoriteAssetDao.save(asset) }
-                .onFailure { e -> Logger.error(TAG, "Failed to save favorite", e) }
+            runCatching {
+                favoritesMMKV().encode(asset.key(), asset)
+            }.onFailure { e -> Logger.error(TAG, "Failed to save favorite", e) }
             reload()
         }
     }
 
     fun removeProject(platform: Platform, projectId: String) {
         scope.launch {
-            runCatching { favoriteAssetDao.deleteProject(platform, projectId) }
-                .onFailure { e -> Logger.error(TAG, "Failed to remove project favorite", e) }
+            runCatching {
+                val mmkv = favoritesMMKV()
+                val key = favoriteKey(platform, projectId, FavoriteType.PROJECT, "")
+                mmkv.removeValueForKey(key)
+            }.onFailure { e -> Logger.error(TAG, "Failed to remove project favorite", e) }
             reload()
         }
     }
 
     fun removeVersion(platform: Platform, projectId: String, downloadUrl: String) {
         scope.launch {
-            runCatching { favoriteAssetDao.deleteVersion(platform, projectId, downloadUrl) }
-                .onFailure { e -> Logger.error(TAG, "Failed to remove version favorite", e) }
+            runCatching {
+                val mmkv = favoritesMMKV()
+                val key = favoriteKey(platform, projectId, FavoriteType.VERSION, downloadUrl)
+                mmkv.removeValueForKey(key)
+            }.onFailure { e -> Logger.error(TAG, "Failed to remove version favorite", e) }
             reload()
         }
     }
@@ -115,8 +120,13 @@ object FavoriteManager {
     /** 删除某项目下的全部收藏（项目收藏 + 所有版本收藏） */
     fun removeAllByProject(platform: Platform, projectId: String) {
         scope.launch {
-            runCatching { favoriteAssetDao.deleteAllByProject(platform, projectId) }
-                .onFailure { e -> Logger.error(TAG, "Failed to remove all favorites by project", e) }
+            runCatching {
+                val mmkv = favoritesMMKV()
+                val keys = _assets.value
+                    .filter { it.platform == platform && it.projectId == projectId }
+                    .map { it.key() }
+                keys.forEach { mmkv.removeValueForKey(it) }
+            }.onFailure { e -> Logger.error(TAG, "Failed to remove all favorites by project", e) }
             reload()
         }
     }
@@ -139,5 +149,14 @@ object FavoriteManager {
         } else {
             save(asset)
         }
+    }
+
+    private fun loadAll(): List<FavoriteAsset> {
+        val mmkv = favoritesMMKV()
+        val keys = mmkv.allKeys() ?: return emptyList()
+        return keys.mapNotNull { key ->
+            runCatching { mmkv.decodeParcelable(key, FavoriteAsset::class.java) }
+                .getOrNull()
+        }.sortedByDescending { it.savedAt }
     }
 }
