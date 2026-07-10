@@ -29,17 +29,21 @@ import com.movtery.zalithlauncher.game.download.assets.platform.PlatformReleaseT
 import kotlinx.parcelize.Parcelize
 
 /**
- * 资源收藏项，按平台项目去重，并保存用户选中的某个版本的下载链接快照
+ * 资源收藏项，按 (platform, projectId, type, downloadUrl) 唯一约束。
+ * - [type] 为 [FavoriteType.PROJECT] 时仅收藏项目本身，[downloadUrl] 为空串；
+ * - [type] 为 [FavoriteType.VERSION] 时收藏项目的某个具体版本，[downloadUrl] 为版本直链。
+ * 同一项目最多 1 条 PROJECT 收藏 + N 条 VERSION 收藏。
  */
 @Keep
 @Parcelize
 @Entity(
     tableName = "favoriteAssets",
-    indices = [Index(value = ["platform", "projectId"], unique = true)]
+    indices = [Index(value = ["platform", "projectId", "type", "downloadUrl"], unique = true)]
 )
 data class FavoriteAsset(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val type: FavoriteType,
     val platform: Platform,
     val classes: PlatformClasses,
     val projectId: String,

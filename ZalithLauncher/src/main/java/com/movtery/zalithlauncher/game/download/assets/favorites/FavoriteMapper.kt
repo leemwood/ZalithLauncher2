@@ -19,14 +19,13 @@
 package com.movtery.zalithlauncher.game.download.assets.favorites
 
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformClasses
-import com.movtery.zalithlauncher.game.download.assets.platform.PlatformDisplayLabel
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformFilterCode
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformProject
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformSearchData
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformVersion
 
 /**
- * 由 [PlatformVersion]（已 initFile）+ [PlatformProject] 构建一个完整的资源收藏项。
+ * 由 [PlatformVersion]（已 initFile）+ [PlatformProject] 构建一个版本收藏项。
  * @param previousSavedAt 若为更新操作，传入原收藏项的 savedAt 以保留收藏时间；否则使用当前时间
  */
 fun PlatformVersion.toFavorite(
@@ -35,6 +34,7 @@ fun PlatformVersion.toFavorite(
     previousSavedAt: Long? = null
 ): FavoriteAsset = FavoriteAsset(
     id = 0,
+    type = FavoriteType.VERSION,
     platform = project.platform(),
     classes = classes,
     projectId = project.platformId(),
@@ -56,14 +56,14 @@ fun PlatformVersion.toFavorite(
 )
 
 /**
- * 由 [PlatformSearchData] 构建一个仅含项目元信息的资源收藏项（未指定版本）。
- * 调用方应在用户进入下载页选版后，再通过 [toFavorite] 回写完整版本链接。
+ * 由 [PlatformSearchData] 构建一个仅收藏项目本身的收藏项（不绑定版本）。
  */
 fun PlatformSearchData.toFavorite(
     classes: PlatformClasses,
     previousSavedAt: Long? = null
 ): FavoriteAsset = FavoriteAsset(
     id = 0,
+    type = FavoriteType.PROJECT,
     platform = platform(),
     classes = classes,
     projectId = platformId(),

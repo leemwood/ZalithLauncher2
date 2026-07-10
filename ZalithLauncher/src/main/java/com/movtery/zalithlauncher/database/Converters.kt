@@ -20,6 +20,7 @@ package com.movtery.zalithlauncher.database
 
 import androidx.room.TypeConverter
 import com.movtery.zalithlauncher.game.account.wardrobe.SkinModelType
+import com.movtery.zalithlauncher.game.download.assets.favorites.FavoriteType
 import com.movtery.zalithlauncher.game.download.assets.platform.Platform
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformClasses
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformReleaseType
@@ -50,4 +51,10 @@ class Converters {
     @TypeConverter
     fun toPlatformReleaseType(value: String?): PlatformReleaseType? =
         value?.let { enumValueOf<PlatformReleaseType>(it) }
+
+    @TypeConverter
+    fun fromFavoriteType(value: FavoriteType): String = value.name
+
+    @TypeConverter
+    fun toFavoriteType(value: String): FavoriteType = enumValueOf(value)
 }

@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +52,7 @@ import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.game.download.assets.favorites.FavoriteAsset
 import com.movtery.zalithlauncher.game.download.assets.favorites.FavoriteManager
 import com.movtery.zalithlauncher.setting.AllSettings
+import com.movtery.zalithlauncher.ui.components.LittleTextLabel
 import com.movtery.zalithlauncher.ui.screens.content.download.assets.elements.AssetsIcon
 import com.movtery.zalithlauncher.ui.screens.content.download.assets.elements.ClassesIdentifier
 import com.movtery.zalithlauncher.ui.screens.content.download.assets.elements.PlatformIdentifier
@@ -59,10 +61,28 @@ import com.movtery.zalithlauncher.ui.theme.cardColor
 import com.movtery.zalithlauncher.ui.theme.onCardColor
 import com.movtery.zalithlauncher.utils.animation.getAnimateTween
 
+/**
+ * 收藏列表中同一项目分组合并后的数据
+ * @param project 项目收藏记录（若仅收藏了版本没收藏项目本身则为 null）
+ * @param versions 该项目下已收藏的版本列表
+ */
+data class FavoriteGroup(
+    val project: FavoriteAsset?,
+    val versions: List<FavoriteAsset>
+) {
+    val platform get() = (project ?: versions.first()).platform
+    val classes get() = (project ?: versions.first()).classes
+    val projectId get() = (project ?: versions.first()).projectId
+    val title get() = (project ?: versions.first()).title
+    val author get() = (project ?: versions.first()).author
+    val description get() = (project ?: versions.first()).description
+    val iconUrl get() = (project ?: versions.first()).iconUrl
+}
+
 @Composable
 fun FavoriteCard(
     modifier: Modifier = Modifier,
-    asset: FavoriteAsset,
+    group: FavoriteGroup,
     onClick: () -> Unit = {}
 ) {
     val scale = remember { Animatable(initialValue = 0.95f) }
@@ -70,10 +90,10 @@ fun FavoriteCard(
         scale.animateTo(targetValue = 1f, animationSpec = getAnimateTween())
     }
 
-    val favoriteAction = remember(asset.platform, asset.projectId) {
+    val favoriteAction = remember(group.platform, group.projectId) {
         FavoriteAction(
             isFavorite = true,
-            onToggle = { FavoriteManager.remove(asset.platform, asset.projectId) }
+            onToggle = { FavoriteManager.removeAllByProject(group.platform, group.projectId) }
         )
     }
 
@@ -98,7 +118,7 @@ fun FavoriteCard(
                     .clip(shape = RoundedCornerShape(10.dp))
                     .align(Alignment.CenterVertically),
                 size = 72.dp,
-                iconUrl = asset.iconUrl
+                iconUrl = group.iconUrl
             )
 
             Column(
@@ -119,11 +139,11 @@ fun FavoriteCard(
                             modifier = Modifier
                                 .weight(0.6f, fill = false)
                                 .basicMarquee(iterations = Int.MAX_VALUE),
-                            text = asset.title,
+                            text = group.title,
                             style = MaterialTheme.typography.titleSmall,
                             maxLines = 1
                         )
-                        asset.author?.let { author ->
+                        group.author?.let { author ->
                             VerticalDivider(
                                 modifier = Modifier
                                     .fillMaxHeight()
@@ -141,7 +161,7 @@ fun FavoriteCard(
                         }
                     }
                     FavoriteToggleButton(favoriteAction = favoriteAction)
-                    PlatformIdentifier(platform = asset.platform)
+                    PlatformIdentifier(platform = group.platform)
                 }
 
                 Row(
@@ -150,7 +170,7 @@ fun FavoriteCard(
                 ) {
                     Text(
                         modifier = Modifier.weight(1f),
-                        text = asset.description ?: "",
+                        text = group.description ?: "",
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -161,7 +181,8 @@ fun FavoriteCard(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        asset.versionName?.let { name ->
+                        if (group.versions.isNotEmpty()) {
+                            //展示已收藏的版本数
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -172,12 +193,17 @@ fun FavoriteCard(
                                     contentDescription = null
                                 )
                                 Text(
-                                    text = name,
+                                    text = if (group.versions.size == 1) {
+                                        group.versions.first().versionName ?: ""
+                                    } else {
+                                        stringResource(R.string.favorites_version_count, group.versions.size)
+                                    },
                                     style = MaterialTheme.typography.labelSmall,
                                     maxLines = 1
                                 )
                             }
-                        } ?: run {
+                        } else if (group.project != null) {
+                            //仅收藏了项目本身
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -201,15 +227,19 @@ fun FavoriteCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    asset.loadersCsv?.takeIf { it.isNotBlank() }?.let { loaders ->
-                        Text(
-                            text = loaders,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.alpha(0.7f)
-                        )
-                    }
+                    group.versions.joinToString(", ") { it.loadersCsv ?: "" }
+                        .split(",")
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinct().joinToString(", ").takeIf { it.isNotBlank() }?.let { loaders ->
+                            Text(
+                                text = loaders,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.alpha(0.7f)
+                            )
+                        }
                     Row(modifier = Modifier.weight(1f)) {}
-                    ClassesIdentifier(classes = asset.classes)
+                    ClassesIdentifier(classes = group.classes)
                 }
             }
         }

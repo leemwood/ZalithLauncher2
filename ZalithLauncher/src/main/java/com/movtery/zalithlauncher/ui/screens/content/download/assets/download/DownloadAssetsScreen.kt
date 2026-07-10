@@ -377,14 +377,14 @@ private fun Versions(
         favorites, platform, projectId, classes, viewModel.projectResult
     ) {
         { version: PlatformVersion ->
-            val existing = favorites.firstOrNull { it.platform == platform && it.projectId == projectId }
-            val isThisVersionFavorited = existing != null &&
-                existing.downloadUrl == version.platformDownloadUrl()
+            val downloadUrl = version.platformDownloadUrl()
+            val isThisVersionFavorited = FavoriteManager.isVersionFavorite(platform, projectId, downloadUrl)
+            val existing = FavoriteManager.findVersions(platform, projectId).firstOrNull()
             FavoriteAction(
                 isFavorite = isThisVersionFavorited,
                 onToggle = {
                     if (isThisVersionFavorited) {
-                        FavoriteManager.remove(platform, projectId)
+                        FavoriteManager.removeVersion(platform, projectId, downloadUrl)
                     } else {
                         val project = (viewModel.projectResult as? DownloadAssetsState.Success)?.result?.first
                         if (project != null) {

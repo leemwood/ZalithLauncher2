@@ -1299,4 +1299,5 @@
     <string name="favorites_copy_link">Copy download link</string>
     <string name="favorites_link_copied">Download link copied</string>
     <string name="favorites_search_hint">Search favorites</string>
+    <string name="favorites_version_count">%1$d versions saved</string>
 </resources>

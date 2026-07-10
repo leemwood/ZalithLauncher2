@@ -33,12 +33,24 @@ interface FavoriteAssetDao {
     @Query("SELECT * FROM favoriteAssets WHERE classes = :classes ORDER BY savedAt DESC")
     suspend fun getByClasses(classes: PlatformClasses): List<FavoriteAsset>
 
-    @Query("SELECT * FROM favoriteAssets WHERE platform = :platform AND projectId = :projectId LIMIT 1")
-    suspend fun exists(platform: Platform, projectId: String): FavoriteAsset?
+    @Query("SELECT * FROM favoriteAssets WHERE platform = :platform AND projectId = :projectId AND type = 'PROJECT' LIMIT 1")
+    suspend fun getProjectFavorite(platform: Platform, projectId: String): FavoriteAsset?
+
+    @Query("SELECT * FROM favoriteAssets WHERE platform = :platform AND projectId = :projectId AND type = 'VERSION' ORDER BY savedAt DESC")
+    suspend fun getVersionFavorites(platform: Platform, projectId: String): List<FavoriteAsset>
+
+    @Query("SELECT * FROM favoriteAssets WHERE platform = :platform AND projectId = :projectId AND type = 'VERSION' AND downloadUrl = :downloadUrl LIMIT 1")
+    suspend fun getVersionFavorite(platform: Platform, projectId: String, downloadUrl: String): FavoriteAsset?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun save(asset: FavoriteAsset): Long
 
+    @Query("DELETE FROM favoriteAssets WHERE platform = :platform AND projectId = :projectId AND type = 'PROJECT'")
+    suspend fun deleteProject(platform: Platform, projectId: String): Int
+
+    @Query("DELETE FROM favoriteAssets WHERE platform = :platform AND projectId = :projectId AND type = 'VERSION' AND downloadUrl = :downloadUrl")
+    suspend fun deleteVersion(platform: Platform, projectId: String, downloadUrl: String): Int
+
     @Query("DELETE FROM favoriteAssets WHERE platform = :platform AND projectId = :projectId")
-    suspend fun delete(platform: Platform, projectId: String): Int
+    suspend fun deleteAllByProject(platform: Platform, projectId: String): Int
 }

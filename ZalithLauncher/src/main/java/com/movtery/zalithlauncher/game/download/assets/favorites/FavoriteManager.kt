@@ -36,6 +36,10 @@ private const val TAG = "FavoriteManager"
 
 /**
  * 资源收藏管理器，维护 [FavoriteAsset] 列表的 StateFlow，并对外暴露收藏/取消收藏/查询能力
+ *
+ * 收藏分两类：
+ * - 项目收藏（[FavoriteType.PROJECT]）：同一 (platform, projectId) 最多一条
+ * - 版本收藏（[FavoriteType.VERSION]）：同一 (platform, projectId, downloadUrl) 唯一，可多条
  */
 object FavoriteManager {
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -60,11 +64,26 @@ object FavoriteManager {
         }
     }
 
-    fun isFavorite(platform: Platform, projectId: String): Boolean =
-        _assets.value.any { it.platform == platform && it.projectId == projectId }
+    /** 是否已收藏项目本身 */
+    fun isProjectFavorite(platform: Platform, projectId: String): Boolean =
+        _assets.value.any { it.platform == platform && it.projectId == projectId && it.type == FavoriteType.PROJECT }
 
-    fun find(platform: Platform, projectId: String): FavoriteAsset? =
-        _assets.value.firstOrNull { it.platform == platform && it.projectId == projectId }
+    /** 是否已收藏指定版本 */
+    fun isVersionFavorite(platform: Platform, projectId: String, downloadUrl: String): Boolean =
+        _assets.value.any {
+            it.platform == platform && it.projectId == projectId &&
+                it.type == FavoriteType.VERSION && it.downloadUrl == downloadUrl
+        }
+
+    /** 取项目收藏记录 */
+    fun findProject(platform: Platform, projectId: String): FavoriteAsset? =
+        _assets.value.firstOrNull { it.platform == platform && it.projectId == projectId && it.type == FavoriteType.PROJECT }
+
+    /** 取某项目下所有版本收藏记录 */
+    fun findVersions(platform: Platform, projectId: String): List<FavoriteAsset> =
+        _assets.value.filter {
+            it.platform == platform && it.projectId == projectId && it.type == FavoriteType.VERSION
+        }
 
     fun getByClasses(classes: PlatformClasses): List<FavoriteAsset> =
         _assets.value.filter { it.classes == classes }
@@ -77,17 +96,46 @@ object FavoriteManager {
         }
     }
 
-    fun remove(platform: Platform, projectId: String) {
+    fun removeProject(platform: Platform, projectId: String) {
         scope.launch {
-            runCatching { favoriteAssetDao.delete(platform, projectId) }
-                .onFailure { e -> Logger.error(TAG, "Failed to remove favorite", e) }
+            runCatching { favoriteAssetDao.deleteProject(platform, projectId) }
+                .onFailure { e -> Logger.error(TAG, "Failed to remove project favorite", e) }
             reload()
         }
     }
 
-    fun toggle(asset: FavoriteAsset) {
-        if (isFavorite(asset.platform, asset.projectId)) {
-            remove(asset.platform, asset.projectId)
+    fun removeVersion(platform: Platform, projectId: String, downloadUrl: String) {
+        scope.launch {
+            runCatching { favoriteAssetDao.deleteVersion(platform, projectId, downloadUrl) }
+                .onFailure { e -> Logger.error(TAG, "Failed to remove version favorite", e) }
+            reload()
+        }
+    }
+
+    /** 删除某项目下的全部收藏（项目收藏 + 所有版本收藏） */
+    fun removeAllByProject(platform: Platform, projectId: String) {
+        scope.launch {
+            runCatching { favoriteAssetDao.deleteAllByProject(platform, projectId) }
+                .onFailure { e -> Logger.error(TAG, "Failed to remove all favorites by project", e) }
+            reload()
+        }
+    }
+
+    /** 切换项目收藏 */
+    fun toggleProject(asset: FavoriteAsset) {
+        require(asset.type == FavoriteType.PROJECT)
+        if (isProjectFavorite(asset.platform, asset.projectId)) {
+            removeProject(asset.platform, asset.projectId)
+        } else {
+            save(asset)
+        }
+    }
+
+    /** 切换版本收藏 */
+    fun toggleVersion(asset: FavoriteAsset) {
+        require(asset.type == FavoriteType.VERSION)
+        if (isVersionFavorite(asset.platform, asset.projectId, asset.downloadUrl)) {
+            removeVersion(asset.platform, asset.projectId, asset.downloadUrl)
         } else {
             save(asset)
         }

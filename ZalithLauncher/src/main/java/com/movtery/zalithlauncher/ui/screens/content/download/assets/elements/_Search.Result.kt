@@ -385,15 +385,14 @@ private fun ResultList(
             val categories = remember(item, classes) { item.platformCategories(classes) }
 
             val isFavorite = remember(favorites, projectId, platform) {
-                favorites.any { it.platform == platform && it.projectId == projectId }
+                FavoriteManager.isProjectFavorite(platform, projectId)
             }
             val favoriteAction = remember(isFavorite, item, classes) {
                 FavoriteAction(
                     isFavorite = isFavorite,
                     onToggle = {
-                        val existing = FavoriteManager.find(platform, projectId)
-                        if (existing != null) {
-                            FavoriteManager.remove(platform, projectId)
+                        if (isFavorite) {
+                            FavoriteManager.removeProject(platform, projectId)
                         } else {
                             FavoriteManager.save(item.toFavorite(classes = classes))
                         }

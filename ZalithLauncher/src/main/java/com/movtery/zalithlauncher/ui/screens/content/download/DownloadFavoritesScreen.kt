@@ -33,6 +33,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.movtery.zalithlauncher.game.download.assets.downloadSingleForVersions
+import com.movtery.zalithlauncher.game.download.assets.favorites.toPlatformVersion
 import com.movtery.zalithlauncher.ui.screens.NestedNavKey
 import com.movtery.zalithlauncher.ui.screens.NormalNavKey
 import com.movtery.zalithlauncher.ui.screens.TitledNavKey
@@ -113,6 +114,22 @@ fun DownloadFavoritesScreen(
                                     iconUrl = iconUrl
                                 )
                             )
+                        },
+                        onDirectDownload = { asset ->
+                            val version = asset.toPlatformVersion()
+                            operation = if (isUsingMobileData(context)) {
+                                DownloadSingleOperation.WarningForMobileData(
+                                    classes = asset.classes,
+                                    version = version,
+                                    dependencyProjects = emptyList()
+                                )
+                            } else {
+                                DownloadSingleOperation.SelectVersion(
+                                    classes = asset.classes,
+                                    version = version,
+                                    dependencyProjects = emptyList()
+                                )
+                            }
                         }
                     )
                 }

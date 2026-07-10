@@ -19,7 +19,6 @@
 package com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites
 
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -52,7 +51,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.movtery.zalithlauncher.R
+import com.movtery.zalithlauncher.game.download.assets.favorites.FavoriteAsset
 import com.movtery.zalithlauncher.game.download.assets.favorites.FavoriteManager
+import com.movtery.zalithlauncher.game.download.assets.favorites.FavoriteType
+import com.movtery.zalithlauncher.game.download.assets.favorites.hasFixedVersion
 import com.movtery.zalithlauncher.game.download.assets.platform.Platform
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformClasses
 import com.movtery.zalithlauncher.ui.base.BaseScreen
@@ -83,24 +85,37 @@ fun FavoritesListScreen(
     downloadScreenKey: TitledNavKey?,
     downloadFavoritesScreenKey: TitledNavKey,
     downloadFavoritesScreenCurrentKey: TitledNavKey?,
-    swapToDownload: (platform: Platform, projectId: String, classes: PlatformClasses, iconUrl: String?) -> Unit = { _, _, _, _ -> }
+    swapToDownload: (platform: Platform, projectId: String, classes: PlatformClasses, iconUrl: String?) -> Unit = { _, _, _, _ -> },
+    onDirectDownload: (asset: FavoriteAsset) -> Unit = {}
 ) {
     val favorites by FavoriteManager.assets.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredFavorites = remember(favorites, selectedTab, searchQuery) {
+    //按 (platform, projectId) 分组合并：项目收藏 + 该项目下所有版本收藏
+    val groupedFavorites = remember(favorites, selectedTab, searchQuery) {
         val tab = FAVORITES_TABS[selectedTab]
         val byClasses = if (tab.classes == null) favorites else favorites.filter { it.classes == tab.classes }
-        if (searchQuery.isEmptyOrBlank()) byClasses
-        else byClasses.filter { asset ->
-            asset.title.contains(searchQuery, true) ||
-                    asset.slug?.contains(searchQuery, true) == true ||
-                    asset.author?.contains(searchQuery, true) == true ||
-                    asset.description?.contains(searchQuery, true) == true ||
-                    asset.versionName?.contains(searchQuery, true) == true
-        }
+
+        byClasses.groupBy { Pair(it.platform, it.projectId) }
+            .map { (_, list) ->
+                val project = list.firstOrNull { it.type == FavoriteType.PROJECT }
+                val versions = list.filter { it.type == FavoriteType.VERSION }
+                FavoriteGroup(project = project, versions = versions)
+            }
+            .filter { group ->
+                //搜索过滤
+                if (searchQuery.isEmptyOrBlank()) true
+                else group.title.contains(searchQuery, true) ||
+                    group.author?.contains(searchQuery, true) == true ||
+                    group.description?.contains(searchQuery, true) == true ||
+                    group.versions.any { it.versionName?.contains(searchQuery, true) == true }
+            }
+            //按最近收藏时间排序
+            .sortedByDescending { group ->
+                listOfNotNull(group.project, group.versions.maxByOrNull { it.savedAt }).maxOf { it.savedAt }
+            }
     }
 
     BaseScreen(
@@ -116,7 +131,7 @@ fun FavoritesListScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
             ) {
                 SimpleTextInputField(
                     modifier = Modifier.weight(1f),
@@ -136,7 +151,7 @@ fun FavoritesListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
             ) {
                 SpacerFixed(width = 4.dp)
                 FAVORITES_TABS.forEachIndexed { index, tab ->
@@ -161,14 +176,14 @@ fun FavoritesListScreen(
                 SpacerFixed(width = 4.dp)
             }
 
-            if (filteredFavorites.isEmpty()) {
+            if (groupedFavorites.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(all = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
                             modifier = Modifier
@@ -192,19 +207,25 @@ fun FavoritesListScreen(
                     modifier = Modifier.fillMaxSize(),
                     state = listState,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
                 ) {
-                    items(filteredFavorites) { asset ->
+                    items(groupedFavorites) { group ->
+                        //点击行为：若恰好只收藏了 1 个版本（且没有项目收藏），直接下载该版本；否则跳资源详情页
+                        val singleVersion = group.versions.takeIf { it.size == 1 && group.project == null }?.first()
                         FavoriteCard(
                             modifier = Modifier.fillMaxWidth(),
-                            asset = asset,
+                            group = group,
                             onClick = {
-                                swapToDownload(
-                                    asset.platform,
-                                    asset.projectId,
-                                    asset.classes,
-                                    asset.iconUrl
-                                )
+                                if (singleVersion != null && singleVersion.hasFixedVersion) {
+                                    onDirectDownload(singleVersion)
+                                } else {
+                                    swapToDownload(
+                                        group.platform,
+                                        group.projectId,
+                                        group.classes,
+                                        group.iconUrl
+                                    )
+                                }
                             }
                         )
                     }

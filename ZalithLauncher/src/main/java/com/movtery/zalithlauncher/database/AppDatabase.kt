@@ -36,7 +36,7 @@ import com.movtery.zalithlauncher.game.path.GamePathDao
 
 @Database(
     entities = [Account::class, AuthServer::class, GamePath::class, FavoriteAsset::class],
-    version = 3,
+    version = 4,
     exportSchema = false //默认不支持导出
 )
 @TypeConverters(Converters::class)
@@ -104,6 +104,62 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                //旧表无 type 列，按 (platform, projectId) 唯一；新表按 (platform, projectId, type, downloadUrl) 唯一，
+                //且同项目可能存在多条记录。先重建表，再迁移数据：旧记录中 downloadUrl 为空串的视作项目收藏，
+                //否则按版本收藏处理。
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS favoriteAssets_new (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        type TEXT NOT NULL DEFAULT 'PROJECT',
+                        platform TEXT NOT NULL,
+                        classes TEXT NOT NULL,
+                        projectId TEXT NOT NULL,
+                        slug TEXT,
+                        title TEXT NOT NULL,
+                        author TEXT,
+                        description TEXT,
+                        iconUrl TEXT,
+                        categoriesCsv TEXT,
+                        versionName TEXT,
+                        versionFileName TEXT,
+                        downloadUrl TEXT NOT NULL,
+                        sha1 TEXT,
+                        fileSize INTEGER NOT NULL,
+                        gameVersionsCsv TEXT,
+                        loadersCsv TEXT,
+                        releaseType TEXT,
+                        savedAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                //迁移数据：downloadUrl 为空串的记为 PROJECT，否则记为 VERSION
+                db.execSQL(
+                    """
+                    INSERT INTO favoriteAssets_new (
+                        id, type, platform, classes, projectId, slug, title, author, description,
+                        iconUrl, categoriesCsv, versionName, versionFileName, downloadUrl, sha1,
+                        fileSize, gameVersionsCsv, loadersCsv, releaseType, savedAt
+                    )
+                    SELECT
+                        id,
+                        CASE WHEN downloadUrl = '' THEN 'PROJECT' ELSE 'VERSION' END,
+                        platform, classes, projectId, slug, title, author, description,
+                        iconUrl, categoriesCsv, versionName, versionFileName, downloadUrl, sha1,
+                        fileSize, gameVersionsCsv, loadersCsv, releaseType, savedAt
+                    FROM favoriteAssets
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE favoriteAssets")
+                db.execSQL("ALTER TABLE favoriteAssets_new RENAME TO favoriteAssets")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_favoriteAssets_platform_projectId_type_downloadUrl ON favoriteAssets(platform, projectId, type, downloadUrl)"
+                )
+            }
+        }
+
         /**
          * 获取全局数据库实例
          */
@@ -114,7 +170,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "launcher_data.db"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
                 INSTANCE = instance
                 instance
