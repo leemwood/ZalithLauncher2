@@ -186,7 +186,7 @@ sealed interface NormalNavKey : TitledNavKey {
 
     /** 资源收藏列表屏幕 */
     @Serializable data object FavoritesList : NormalNavKey {
-        override val title: Int = R.string.favorites_title
+        @Contextual override val title: AndroidStringText = androidText(R.string.favorites_title)
     }
 
     /** 下载资源屏幕 */
