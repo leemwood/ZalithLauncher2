@@ -1233,4 +1233,6 @@
     <string name="download_assets_id_not_found">Project tidak ditemukan!</string>
     <string name="download_assets_id_unsupported">Project tidak didukung!</string>
     <string name="settings_launcher_color_theme_style">Gaya Palet</string>
+    <string name="settings_renderer_config_title">Konfigurasi Renderer</string>
+    <string name="settings_renderer_env_title">Variabel Lingkungan: %s</string>
 </resources>
