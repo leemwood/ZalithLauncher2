@@ -67,6 +67,7 @@ import com.movtery.layer_controller.data.ButtonSize
 import com.movtery.layer_controller.data.MAX_SIZE_PERCENTAGE
 import com.movtery.layer_controller.data.MIN_SIZE_DP
 import com.movtery.layer_controller.data.MIN_SIZE_PERCENTAGE
+import com.movtery.layer_controller.layout.JoystickWidgetRenderer
 import com.movtery.layer_controller.layout.TextButton
 import com.movtery.layer_controller.observable.ObservableButtonStyle
 import com.movtery.layer_controller.observable.ObservableControlLayer
@@ -514,8 +515,9 @@ private fun ControlWidgetRenderer(
             renderingLayers.forEach { layer ->
                 val normalButtons by layer.normalButtons.collectAsStateWithLifecycle()
                 val textBoxes by layer.textBoxes.collectAsStateWithLifecycle()
+                val joystickButtons by layer.joystickButtons.collectAsStateWithLifecycle()
 
-                val widgetsInLayer = normalButtons + textBoxes
+                val widgetsInLayer = normalButtons + textBoxes + joystickButtons
                 allWidgetsMap[layer] = widgetsInLayer
 
                 textBoxes.forEach { data ->
@@ -524,6 +526,32 @@ private fun ControlWidgetRenderer(
 
                 normalButtons.forEach { data ->
                     RenderWidget(data, layer, data.isPressed)
+                }
+
+                joystickButtons.forEach { data ->
+                    JoystickWidgetRenderer(
+                        data = data,
+                        joystickStyles = emptyList(),
+                        screenSize = screenSize,
+                        isDark = isDark,
+                        isEditMode = true,
+                        enableSnap = enableSnap,
+                        snapMode = snapMode,
+                        localSnapRange = localSnapRange,
+                        getOtherWidgets = {
+                            allWidgetsMap
+                                .filter { (layer1, _) ->
+                                    snapInAllLayers1 || layer1 == layer
+                                }
+                                .values.flatten().filter { it != data }
+                        },
+                        snapThresholdValue = snapThresholdValue,
+                        drawLine = drawLine,
+                        onLineCancel = onLineCancel,
+                        onTapInEditMode = {
+                            onButtonTap(data, layer)
+                        }
+                    )
                 }
             }
         }
@@ -544,6 +572,7 @@ private fun ControlWidgetRenderer(
         renderingLayers.fastForEach { layer ->
             layer.textBoxes.value.fastForEach { it.putSize() }
             layer.normalButtons.value.fastForEach { it.putSize() }
+            layer.joystickButtons.value.fastForEach { it.putSize() }
         }
 
         layout(constraints.maxWidth, constraints.maxHeight) {
@@ -564,6 +593,7 @@ private fun ControlWidgetRenderer(
             renderingLayers.fastForEach { layer ->
                 layer.textBoxes.value.fastForEach { it.place() }
                 layer.normalButtons.value.fastForEach { it.place() }
+                layer.joystickButtons.value.fastForEach { it.place() }
             }
         }
     }

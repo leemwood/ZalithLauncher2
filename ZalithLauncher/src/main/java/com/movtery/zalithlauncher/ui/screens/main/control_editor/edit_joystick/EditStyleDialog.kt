@@ -65,7 +65,6 @@ import com.movtery.zalithlauncher.ui.components.MarqueeText
 import com.movtery.zalithlauncher.ui.control.joystick.StyleableJoystick
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutColorItem
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutSliderItem
-import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutTextItem
 import com.movtery.zalithlauncher.ui.screens.rememberSwapTween
 import com.movtery.zalithlauncher.ui.theme.cardColor
 import com.movtery.zalithlauncher.ui.theme.itemColor
@@ -75,28 +74,14 @@ import com.movtery.zalithlauncher.ui.theme.onItemColor
 private data class TabItem(val titleRes: Int)
 
 /**
- * 编辑摇杆样式模式
- */
-enum class EditJoystickStyleMode {
-    /** 控制布局编辑其独立的样式 */
-    ControlLayout,
-    /** 编辑启动器默认样式 */
-    Launcher
-}
-
-/**
  * 摇杆样式编辑对话框
  * **不再真正使用Dialog，真的会有性能问题！**
- * @param mode 编辑样式的模式
- * @param onInfoButtonClick 根据模式变更文本的按钮被点击时的回调
  */
 @Composable
 fun EditJoystickStyleDialog(
     visible: Boolean,
     style: ObservableJoystickStyle?,
-    mode: EditJoystickStyleMode,
     onClose: () -> Unit,
-    onInfoButtonClick: () -> Unit
 ) {
     val tween = rememberSwapTween()
 
@@ -163,23 +148,6 @@ fun EditJoystickStyleDialog(
                                 modifier = Modifier.weight(1f),
                                 style = style,
                                 isDarkMode = selectedTabIndex == 1
-                            )
-
-                            val buttonText = when (mode) {
-                                EditJoystickStyleMode.ControlLayout -> {
-                                    //在编辑控制布局独立样式时，这里是删除样式按钮
-                                    stringResource(R.string.generic_delete)
-                                }
-                                EditJoystickStyleMode.Launcher -> {
-                                    //在编辑启动器默认样式时，这里是保存按钮
-                                    stringResource(R.string.generic_save)
-                                }
-                            }
-                            InfoLayoutTextItem(
-                                modifier = Modifier.fillMaxWidth(),
-                                title = buttonText,
-                                onClick = onInfoButtonClick,
-                                showArrow = false
                             )
                         }
 

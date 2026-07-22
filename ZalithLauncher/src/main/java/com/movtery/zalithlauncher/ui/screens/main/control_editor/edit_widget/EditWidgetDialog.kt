@@ -62,6 +62,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.movtery.layer_controller.event.ClickEvent
 import com.movtery.layer_controller.observable.ObservableButtonStyle
 import com.movtery.layer_controller.observable.ObservableControlLayer
+import com.movtery.layer_controller.observable.ObservableJoystickData
 import com.movtery.layer_controller.observable.ObservableNormalData
 import com.movtery.layer_controller.observable.ObservableTranslatableString
 import com.movtery.layer_controller.observable.ObservableWidget
@@ -149,10 +150,10 @@ fun EditWidgetDialog(
 
             if (data != null) {
                 val categories = remember(data) {
-                    if (data.data is ObservableNormalData) {
-                        editWidgetCategories
-                    } else {
-                        editWidgetCategories.filterNot { it.key == EditWidgetCategory.ClickEvent }
+                    when (data.data) {
+                        is ObservableNormalData -> editWidgetCategories
+                        is ObservableJoystickData -> editJoystickCategories
+                        else -> editWidgetCategories.filterNot { it.key == EditWidgetCategory.ClickEvent }
                     }
                 }
 
@@ -361,6 +362,28 @@ private fun EditWidgetNavigation(
                         currentKey = currentKey,
                         data = data,
                         styles = styles,
+                        openStyleList = openStyleList
+                    )
+                }
+                entry<EditWidgetCategory.JoystickConfig> { key ->
+                    EditJoystickConfig(
+                        screenKey = key,
+                        currentKey = currentKey,
+                        data = data as ObservableJoystickData
+                    )
+                }
+                entry<EditWidgetCategory.DirectionEvents> { key ->
+                    EditJoystickEvents(
+                        screenKey = key,
+                        currentKey = currentKey,
+                        data = data as ObservableJoystickData
+                    )
+                }
+                entry<EditWidgetCategory.JoystickStyle> { key ->
+                    EditJoystickStyle(
+                        screenKey = key,
+                        currentKey = currentKey,
+                        data = data as ObservableJoystickData,
                         openStyleList = openStyleList
                     )
                 }

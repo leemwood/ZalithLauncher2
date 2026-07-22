@@ -31,9 +31,12 @@ import com.movtery.layer_controller.layout.ControlLayout
 import com.movtery.layer_controller.observable.ObservableButtonStyle
 import com.movtery.layer_controller.observable.ObservableControlLayer
 import com.movtery.layer_controller.observable.ObservableControlLayout
+import com.movtery.layer_controller.observable.ObservableJoystickData
+import com.movtery.layer_controller.observable.ObservableJoystickStyle
 import com.movtery.layer_controller.observable.ObservableNormalData
 import com.movtery.layer_controller.observable.ObservableTextData
 import com.movtery.layer_controller.observable.ObservableWidget
+import com.movtery.layer_controller.observable.cloneJoystick
 import com.movtery.layer_controller.observable.cloneNormal
 import com.movtery.layer_controller.observable.cloneText
 import com.movtery.layer_controller.utils.saveToFile
@@ -55,7 +58,7 @@ import java.io.File
 /**
  * 控制布局编辑器
  */
-class EditorViewModel() : ViewModel() {
+class EditorViewModel : ViewModel() {
     lateinit var observableLayout: ObservableControlLayout
         private set
 
@@ -117,11 +120,6 @@ class EditorViewModel() : ViewModel() {
      */
     var previewHideLayerWhen by mutableStateOf(HideLayerWhen.None)
 
-    /**
-     * 预览控制布局时是否启用摇杆
-     */
-    var enableJoystick by mutableStateOf(false)
-
 
 
     fun initLayout(layout: ControlLayout) {
@@ -168,6 +166,7 @@ class EditorViewModel() : ViewModel() {
         when (widget) {
             is ObservableNormalData -> layer.removeNormalButton(widget.uuid)
             is ObservableTextData -> layer.removeTextBox(widget.uuid)
+            is ObservableJoystickData -> layer.removeJoystickButton(widget.uuid)
         }
     }
 
@@ -186,6 +185,12 @@ class EditorViewModel() : ViewModel() {
                 layers.forEach { layer ->
                     val newData = widget.cloneText()
                     layer.addTextBox(newData)
+                }
+            }
+            is ObservableJoystickData -> {
+                layers.forEach { layer ->
+                    val newData = widget.cloneJoystick()
+                    layer.addJoystickButton(newData)
                 }
             }
         }
@@ -212,6 +217,13 @@ class EditorViewModel() : ViewModel() {
      */
     fun removeStyle(style: ObservableButtonStyle) {
         observableLayout.removeStyle(style.uuid)
+    }
+
+    /**
+     * 移除一个摇杆样式
+     */
+    fun removeJoystickStyle(style: ObservableJoystickStyle) {
+        observableLayout.removeJoystickStyle(style.uuid)
     }
 
     /**

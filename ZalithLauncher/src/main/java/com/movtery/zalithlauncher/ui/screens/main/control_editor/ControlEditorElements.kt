@@ -62,6 +62,7 @@ import com.movtery.layer_controller.data.VisibilityType
 import com.movtery.layer_controller.event.ClickEvent
 import com.movtery.layer_controller.observable.ObservableButtonStyle
 import com.movtery.layer_controller.observable.ObservableControlLayer
+import com.movtery.layer_controller.observable.ObservableJoystickStyle
 import com.movtery.layer_controller.observable.ObservableNormalData
 import com.movtery.layer_controller.observable.ObservableTranslatableString
 import com.movtery.layer_controller.observable.ObservableWidget
@@ -103,14 +104,10 @@ sealed interface EditorOperation {
     data object EditButtonStyle : EditorOperation
     /** 删除控件外观 */
     data class DeleteButtonStyle(val style: ObservableButtonStyle) : EditorOperation
-    /** 创建摇杆样式独立设定 */
-    data object CreateJoystickStyle : EditorOperation
-    /** 关于摇杆的提醒 */
-    data object TipJoystick : EditorOperation
-    /** 打开摇杆样式独立设定页面 */
+    /** 编辑摇杆样式 */
     data object EditJoystickStyle : EditorOperation
-    /** 删除摇杆样式独立设定 */
-    data object DeleteJoystickStyle : EditorOperation
+    /** 删除摇杆样式 */
+    data class DeleteJoystickStyle(val style: ObservableJoystickStyle) : EditorOperation
     /** 控制布局正在保存中 */
     data object Saving : EditorOperation
     /** 控制布局保存失败 */
@@ -215,8 +212,8 @@ fun EditorMenu(
     onHideSwitch: (ObservableControlLayer) -> Unit,
     addNewButton: () -> Unit,
     addNewText: () -> Unit,
+    addNewJoystick: () -> Unit,
     openStyleList: () -> Unit,
-    onEditJoystickStyle: () -> Unit,
     isLayerFocus: Boolean,
     onLayerFocusChanged: (Boolean) -> Unit,
     isPreviewMode: Boolean,
@@ -225,9 +222,6 @@ fun EditorMenu(
     onPreviewScenarioChanged: (PreviewScenario) -> Unit,
     previewHideLayerWhen: HideLayerWhen,
     onPreviewHideLayerChanged: (HideLayerWhen) -> Unit,
-    enableJoystick: Boolean,
-    onJoystickSwitch: (Boolean) -> Unit,
-    onJoystickTip: () -> Unit,
     onSave: () -> Unit,
     saveAndExit: () -> Unit,
     onExit: () -> Unit
@@ -248,17 +242,14 @@ fun EditorMenu(
                 closeScreen = closeScreen,
                 addNewButton = addNewButton,
                 addNewText = addNewText,
+                addNewJoystick = addNewJoystick,
                 openStyleList = openStyleList,
-                onEditJoystickStyle = onEditJoystickStyle,
                 isPreviewMode = isPreviewMode,
                 onPreviewChanged = onPreviewChanged,
                 previewScenario = previewScenario,
                 onPreviewScenarioChanged = onPreviewScenarioChanged,
                 previewHideLayerWhen = previewHideLayerWhen,
                 onPreviewHideLayerChanged = onPreviewHideLayerChanged,
-                enableJoystick = enableJoystick,
-                onJoystickSwitch = onJoystickSwitch,
-                onJoystickTip = onJoystickTip,
                 onSave = onSave,
                 saveAndExit = saveAndExit,
                 onExit = onExit
@@ -314,17 +305,14 @@ private fun EditorMenuContent(
     closeScreen: () -> Unit,
     addNewButton: () -> Unit,
     addNewText: () -> Unit,
+    addNewJoystick: () -> Unit,
     openStyleList: () -> Unit,
-    onEditJoystickStyle: () -> Unit,
     isPreviewMode: Boolean,
     onPreviewChanged: (Boolean) -> Unit,
     previewScenario: PreviewScenario,
     onPreviewScenarioChanged: (PreviewScenario) -> Unit,
     previewHideLayerWhen: HideLayerWhen,
     onPreviewHideLayerChanged: (HideLayerWhen) -> Unit,
-    enableJoystick: Boolean,
-    onJoystickSwitch: (Boolean) -> Unit,
-    onJoystickTip: () -> Unit,
     onSave: () -> Unit,
     saveAndExit: () -> Unit,
     onExit: () -> Unit,
@@ -363,6 +351,18 @@ private fun EditorMenuContent(
             )
         }
 
+        //添加摇杆
+        item {
+            MenuTextButton(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = isPreviewMode.not(),
+                text = stringResource(R.string.control_editor_menu_new_widget_joystick),
+                onClick = addNewJoystick,
+                color = color,
+                contentColor = contentColor,
+            )
+        }
+
         //控件外观列表
         item {
             MenuTextButton(
@@ -371,36 +371,6 @@ private fun EditorMenuContent(
                 enabled = isPreviewMode.not(),
                 onClick = {
                     openStyleList()
-                    closeScreen()
-                },
-                color = color,
-                contentColor = contentColor,
-            )
-        }
-
-        //摇杆样式
-        item {
-            MenuTextButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.control_editor_special_joystick_style),
-                enabled = isPreviewMode.not(),
-                appendLayout = {
-                    //摇杆提示弹窗
-                    IconButton(
-                        onClick = {
-                            onJoystickTip()
-                            closeScreen()
-                        },
-                        enabled = isPreviewMode.not()
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_help_outlined),
-                            contentDescription = stringResource(R.string.generic_tip)
-                        )
-                    }
-                },
-                onClick = {
-                    onEditJoystickStyle()
                     closeScreen()
                 },
                 color = color,
@@ -470,21 +440,6 @@ private fun EditorMenuContent(
                         if (value) HideLayerWhen.WhenGamepad
                         else HideLayerWhen.None
                     )
-                },
-                color = color,
-                contentColor = contentColor,
-                enabled = isPreviewMode
-            )
-        }
-
-        //启用摇杆
-        item {
-            MenuSwitchButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.game_styles_joystick_enable),
-                switch = enableJoystick,
-                onSwitch = { value ->
-                    onJoystickSwitch(value)
                 },
                 color = color,
                 contentColor = contentColor,

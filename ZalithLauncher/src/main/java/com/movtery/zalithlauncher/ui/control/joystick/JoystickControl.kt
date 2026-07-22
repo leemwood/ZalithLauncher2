@@ -61,63 +61,11 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.movtery.layer_controller.data.DefaultJoystickStyle
-import com.movtery.layer_controller.data.loadFromFile
-import com.movtery.layer_controller.data.saveToFile
 import com.movtery.layer_controller.observable.ObservableJoystickStyle
 import com.movtery.zalithlauncher.setting.enums.isLauncherInDarkTheme
-import com.movtery.zalithlauncher.utils.logging.Logger
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
-import java.io.File
 import kotlin.math.atan2
 import kotlin.math.sqrt
-
-private const val TAG = "JoystickControl"
-
-private const val JSON_FILE_NAME = "joystick.json"
-
-/**
- * 加载启动器默认的摇杆样式
- */
-suspend fun loadJoystickStyle(
-    path: File
-): ObservableJoystickStyle {
-    val styleFile = File(path, JSON_FILE_NAME)
-    val style = if (styleFile.exists()) {
-        runCatching {
-            withContext(Dispatchers.IO) {
-                loadFromFile(styleFile)
-            }
-        }.onFailure {
-            Logger.warning(TAG, "Failed to load joystick from file: $styleFile", it)
-        }.getOrNull()
-    } else null
-
-    return ObservableJoystickStyle(style ?: DefaultJoystickStyle)
-}
-
-/**
- * 保存启动器默认的摇杆样式
- */
-suspend fun saveJoystickStyle(
-    path: File,
-    style: ObservableJoystickStyle,
-    onFailed: (Throwable) -> Unit,
-    onSuccess: suspend () -> Unit = {}
-) {
-    val styleFile = File(path, JSON_FILE_NAME)
-    runCatching {
-        withContext(Dispatchers.IO) {
-            saveToFile(style.pack(), styleFile)
-        }
-    }.onFailure {
-        onFailed(it)
-    }.onSuccess {
-        onSuccess()
-    }
-}
 
 /**
  * 根据可观察的摇杆样式对象一键设置样式的移动摇杆控件

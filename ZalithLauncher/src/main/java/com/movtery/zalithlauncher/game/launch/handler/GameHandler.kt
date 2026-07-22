@@ -221,9 +221,6 @@ class GameHandler(
             getAccountName = { account.username },
             eventViewModel = eventViewModel,
             gamepadViewModel = gamepadViewModel,
-            submitError = {
-                errorViewModel.showError(it)
-            }
         )
     }
 
