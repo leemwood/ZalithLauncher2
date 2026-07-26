@@ -771,7 +771,7 @@
     <string name="settings_game_java_runtime_summary">Especifique o ambiente Java padrão a ser usado</string>
     <string name="settings_game_java_memory_title">Taxa de alocação da memória RAM</string>
     <string name="settings_game_java_memory_summary">Ajustar o uso de ram que você quer que seja usada no seu Minecraft</string>
-    <string name="settings_game_java_memory_used_text">Total que seu dispositivo está usando: %1$dMB | Total do seu dispositivo: %2$dMB</string>
+    <string name="settings_game_java_memory_used_text">Total usado no seu dispositivo: %1$dMB | Total do dispositivo: %2$dMB</string>
     <string name="settings_game_java_memory_allocation_text">Alocado pro jogo: %dMB</string>
     <string name="settings_game_jvm_args_title">Argumentos JVM</string>
     <string name="settings_game_jvm_args_summary">Argumentos adicionais da JVM adicionados ao iniciar a JVM. Modificá-los sem o conhecimento adequado não é recomendado, pois pode causar travamentos, qualquer coisa utilize o CHAT GPT para lhe auxiliar/ajudar</string>
