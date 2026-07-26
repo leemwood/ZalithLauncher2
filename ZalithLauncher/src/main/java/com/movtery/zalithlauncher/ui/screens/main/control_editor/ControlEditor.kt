@@ -362,7 +362,8 @@ fun BoxWithConstraintsScope.ControlEditor(
                     hideWhenGamepad = baseLayer.hideWhenGamepad,
                     visibilityType = baseLayer.visibilityType,
                     normalButtons = baseLayer.normalButtons,
-                    textBoxes = baseLayer.textBoxes
+                    textBoxes = baseLayer.textBoxes,
+                    joystickButtons = baseLayer.joystickButtons
                 )
             )
             viewModel.editorOperation = EditorOperation.EditLayer(newLayer)

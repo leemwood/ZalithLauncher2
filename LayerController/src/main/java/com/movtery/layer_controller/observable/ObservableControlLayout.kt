@@ -89,6 +89,12 @@ class ObservableControlLayout(
                 downLayer.addAllTextBox(it)
             }
 
+            layer.joystickButtons.value.takeIf {
+                it.isNotEmpty()
+            }?.let {
+                downLayer.addAllJoystickButton(it)
+            }
+
             layers.removeAt(index)
             layers
         }
@@ -185,6 +191,7 @@ class ObservableControlLayout(
             info = info.pack(),
             layers = _layers.value.map { it.pack() },
             styles = _styles.value.map { it.pack() },
+            joystickStyles = _joystickStyles.value.map { it.pack() },
             editorVersion = EDITOR_VERSION
         )
     }

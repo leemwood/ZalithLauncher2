@@ -129,6 +129,13 @@ class ObservableControlLayer(
     }
 
     /**
+     * 批量添加摇杆控件
+     */
+    fun addAllJoystickButton(joysticks: List<ObservableJoystickData>) {
+        _joystickButtons.update { it + joysticks }
+    }
+
+    /**
      * 移除摇杆控件
      */
     fun removeJoystickButton(uuid: String) {
