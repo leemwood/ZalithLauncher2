@@ -265,9 +265,9 @@ internal fun JoystickWidgetRenderer(
             }
 
             DisposableEffect(Unit) {
-                data.onCompositionStart(null)
+                data.onCompositionStart(eventHandler)
                 onDispose {
-                    data.onCompositionDispose(null)
+                    data.onCompositionDispose(eventHandler)
                 }
             }
         }

@@ -137,7 +137,7 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
             currentDirection = JoystickDirection.None
         }
         // 释放锁定事件
-        if (isLocked) {
+        if (canLockState || isLocked) {
             eventHandler?.onKeyPressed(lockEvents, false)
             isLocked = false
         }
@@ -262,10 +262,18 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
         )
         updateDirection(direction, eventHandler)
 
-        canLockState =
+        val newCanLockState =
             canLock &&
             direction == JoystickDirection.North &&
             lastDragPosition.y < -lockThresholdPx
+
+        if (newCanLockState && !canLockState) {
+            eventHandler.onKeyPressed(lockEvents, true)
+        } else if (!newCanLockState && canLockState) {
+            eventHandler.onKeyPressed(lockEvents, false)
+        }
+
+        canLockState = newCanLockState
     }
 
     /**
@@ -365,7 +373,6 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
                                     lockThresholdPx = lockThresholdPx,
                                     eventHandler = eventHandler
                                 )
-                                eventHandler.onKeyPressed(lockEvents, true)
                             } else {
                                 canLockState = false
                                 isLocked = false
