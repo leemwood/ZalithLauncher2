@@ -1169,6 +1169,11 @@
     <string name="control_editor_edit_category_info">基本資訊</string>
     <string name="control_editor_edit_category_event">點擊事件</string>
     <string name="control_editor_edit_category_style">控制項樣式</string>
+    <string name="control_editor_edit_joystick_dead_zone">死區範圍</string>
+    <string name="control_editor_edit_joystick_lock_threshold">鎖定閾值</string>
+    <string name="control_editor_edit_joystick_can_lock">前進鎖定</string>
+    <string name="control_editor_edit_joystick_lock_events">鎖定事件</string>
+    <string name="control_editor_edit_joystick_select_area">選擇區域編輯事件</string>
     <string name="control_editor_edit_layer_default">新控制項圖層</string>
     <string name="control_editor_edit_button_default">按鍵</string>
     <string name="control_editor_edit_text_default">文字框</string>

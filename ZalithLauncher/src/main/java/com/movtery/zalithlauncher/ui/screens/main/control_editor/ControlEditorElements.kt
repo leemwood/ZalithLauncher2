@@ -61,9 +61,9 @@ import com.movtery.layer_controller.data.HideLayerWhen
 import com.movtery.layer_controller.data.VisibilityType
 import com.movtery.layer_controller.event.ClickEvent
 import com.movtery.layer_controller.observable.ObservableButtonStyle
+import com.movtery.layer_controller.observable.ObservableClickEventsProvider
 import com.movtery.layer_controller.observable.ObservableControlLayer
 import com.movtery.layer_controller.observable.ObservableJoystickStyle
-import com.movtery.layer_controller.observable.ObservableNormalData
 import com.movtery.layer_controller.observable.ObservableTranslatableString
 import com.movtery.layer_controller.observable.ObservableWidget
 import com.movtery.layer_controller.utils.snap.SnapMode
@@ -126,9 +126,12 @@ sealed interface EditorWidgetOperation {
     /** 编辑控件的显示文本 */
     data class EditWidgetText(val string: ObservableTranslatableString) : EditorWidgetOperation
     /** 编辑切换控件层可见性事件 */
-    data class SwitchLayersVisibility(val data: ObservableNormalData, val type: ClickEvent.Type) : EditorWidgetOperation
+    data class SwitchLayersVisibility(
+        val data: ObservableClickEventsProvider,
+        val type: ClickEvent.Type
+    ) : EditorWidgetOperation
     /** 编辑发送的文本 */
-    data class SendText(val data: ObservableNormalData) : EditorWidgetOperation
+    data class SendText(val data: ObservableClickEventsProvider) : EditorWidgetOperation
 }
 
 /**

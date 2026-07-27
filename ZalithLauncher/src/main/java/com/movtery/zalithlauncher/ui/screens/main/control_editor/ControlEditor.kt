@@ -657,9 +657,9 @@ private fun EditorWidgetOperation(
                 singleLine = true,
                 onConfirm = {
                     //清除所有发送文本事件，如果文本不为空则再添加
-                    data.removeAllEvent(ClickEvent.Type.SendText)
+                    data.onRemoveAllEvents(ClickEvent.Type.SendText)
                     if (value.isNotEmpty()) {
-                        data.addEvent(ClickEvent(ClickEvent.Type.SendText, value))
+                        data.onAddEvent(ClickEvent(ClickEvent.Type.SendText, value))
                     }
                     changeOperation(EditorWidgetOperation.None)
                 }

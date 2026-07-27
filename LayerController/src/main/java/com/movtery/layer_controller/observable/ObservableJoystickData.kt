@@ -46,6 +46,7 @@ import com.movtery.layer_controller.data.JoystickData
 import com.movtery.layer_controller.data.JoystickDirection
 import com.movtery.layer_controller.data.VisibilityType
 import com.movtery.layer_controller.data.cloneNew
+import com.movtery.layer_controller.event.ClickEvent
 import com.movtery.layer_controller.event.EventHandler
 import kotlin.math.atan2
 import kotlin.math.sqrt
@@ -170,6 +171,48 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
         eventHandler: EventHandler,
         allLayers: List<ObservableControlLayer>
     ) {}
+
+    /**
+     * 为锁定状态添加触发事件
+     */
+    fun addLockEvent(event: ClickEvent) {
+        lockEvents += event
+    }
+
+    /**
+     * 为锁定状态移除触发事件
+     */
+    fun removeLockEvent(filterNot: (ClickEvent) -> Boolean) {
+        lockEvents = lockEvents.filterNot(filterNot)
+    }
+
+    /**
+     * 为指定方向添加触发事件
+     */
+    fun addDirectionEvent(
+        direction: JoystickDirection?,
+        event: ClickEvent
+    ) {
+        if (direction != null) {
+            val current = directionEvents[direction] ?: emptyList()
+            if (current.none { it.type == event.type && it.key == event.key }) {
+                directionEvents += (direction to current + event)
+            }
+        }
+    }
+
+    /**
+     * 为指定方向移除触发事件
+     */
+    fun removeDirectionEvent(
+        direction: JoystickDirection?,
+        filterNot: (ClickEvent) -> Boolean
+    ) {
+        if (direction != null) {
+            val current = directionEvents[direction] ?: emptyList()
+            directionEvents += (direction to current.filterNot(filterNot))
+        }
+    }
 
     /**
      * 计算方向并触发事件

@@ -61,6 +61,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.movtery.layer_controller.event.ClickEvent
 import com.movtery.layer_controller.observable.ObservableButtonStyle
+import com.movtery.layer_controller.observable.ObservableClickEventsProvider
 import com.movtery.layer_controller.observable.ObservableControlLayer
 import com.movtery.layer_controller.observable.ObservableJoystickData
 import com.movtery.layer_controller.observable.ObservableNormalData
@@ -109,8 +110,8 @@ fun EditWidgetDialog(
     onDelete: (ObservableWidget, ObservableControlLayer) -> Unit,
     onClone: (ObservableWidget, ObservableControlLayer) -> Unit,
     onEditWidgetText: (ObservableTranslatableString) -> Unit,
-    switchControlLayers: (ObservableNormalData, ClickEvent.Type) -> Unit,
-    sendText: (ObservableNormalData) -> Unit,
+    switchControlLayers: (ObservableClickEventsProvider, ClickEvent.Type) -> Unit,
+    sendText: (ObservableClickEventsProvider) -> Unit,
     openStyleList: () -> Unit
 ) {
     val tween = rememberSwapTween()
@@ -314,8 +315,8 @@ private fun EditWidgetNavigation(
     data: ObservableWidget,
     styles: List<ObservableButtonStyle>,
     onEditWidgetText: (ObservableTranslatableString) -> Unit,
-    switchControlLayers: (ObservableNormalData, ClickEvent.Type) -> Unit,
-    sendText: (ObservableNormalData) -> Unit,
+    switchControlLayers: (ObservableClickEventsProvider, ClickEvent.Type) -> Unit,
+    sendText: (ObservableClickEventsProvider) -> Unit,
     openStyleList: () -> Unit,
     onPreviewRequested: () -> Unit,
     onDismissRequested: () -> Unit
@@ -374,9 +375,9 @@ private fun EditWidgetNavigation(
                 }
                 entry<EditWidgetCategory.DirectionEvents> { key ->
                     EditJoystickEvents(
-                        screenKey = key,
-                        currentKey = currentKey,
-                        data = data as ObservableJoystickData
+                        data = data as ObservableJoystickData,
+                        switchControlLayers = switchControlLayers,
+                        sendText = sendText,
                     )
                 }
                 entry<EditWidgetCategory.JoystickStyle> { key ->
