@@ -254,7 +254,6 @@ fun BoxWithConstraintsScope.ControlEditor(
                             position = CenterPosition,
                             sizeType = ButtonSize.Type.Percentage,
                             sizePercentage = ((200f * density.density) / screenSize.height * 10000).toInt(),
-                            sizeReference = ButtonSize.Reference.ScreenHeight,
                             visibilityType = VisibilityType.ALWAYS,
                             directionEvents = DefaultDirectionEvents
                         )

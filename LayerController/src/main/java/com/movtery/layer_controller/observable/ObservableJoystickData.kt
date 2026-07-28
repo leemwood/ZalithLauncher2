@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import com.movtery.layer_controller.data.ButtonPosition
 import com.movtery.layer_controller.data.ButtonSize
+import com.movtery.layer_controller.data.JOYSTICK_MIN_SIZE_DP
+import com.movtery.layer_controller.data.JOYSTICK_MIN_SIZE_PERCENTAGE
 import com.movtery.layer_controller.data.JoystickData
 import com.movtery.layer_controller.data.JoystickDirection
 import com.movtery.layer_controller.data.VisibilityType
@@ -58,9 +60,15 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
     val uuid: String = data.uuid
     var position by mutableStateOf(data.position)
     var sizeType by mutableStateOf(data.sizeType)
-    var sizeDp by mutableFloatStateOf(data.sizeDp)
-    var sizePercentage by mutableIntStateOf(data.sizePercentage)
-    var sizeReference by mutableStateOf(data.sizeReference)
+    private val _sizeDp = mutableFloatStateOf(data.sizeDp.coerceAtLeast(JOYSTICK_MIN_SIZE_DP))
+    var sizeDp: Float
+        get() = _sizeDp.floatValue
+        set(value) { _sizeDp.floatValue = value.coerceAtLeast(JOYSTICK_MIN_SIZE_DP) }
+
+    private val _sizePercentage = mutableIntStateOf(data.sizePercentage.coerceAtLeast(JOYSTICK_MIN_SIZE_PERCENTAGE))
+    var sizePercentage: Int
+        get() = _sizePercentage.intValue
+        set(value) { _sizePercentage.intValue = value.coerceAtLeast(JOYSTICK_MIN_SIZE_PERCENTAGE) }
     var visibilityType by mutableStateOf(data.visibilityType)
     var joystickStyleId by mutableStateOf(data.joystickStyleId)
     var deadZoneRatio by mutableFloatStateOf(data.deadZoneRatio)
@@ -111,7 +119,6 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
         this.sizeDp = size.widthDp
         this.sizePercentage = size.widthPercentage
         this.sizeType = size.type
-        this.sizeReference = size.widthReference
     }
 
     override val styleId: String?
@@ -123,8 +130,7 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
             position = position,
             sizeType = sizeType,
             sizeDp = sizeDp,
-            sizePercentage = sizePercentage,
-            sizeReference = sizeReference
+            sizePercentage = sizePercentage
         ).toButtonSize()
 
     override fun onCompositionStart(eventHandler: EventHandler?) {}
@@ -400,7 +406,6 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
             sizeType = sizeType,
             sizeDp = sizeDp,
             sizePercentage = sizePercentage,
-            sizeReference = sizeReference,
             visibilityType = visibilityType,
             joystickStyleId = joystickStyleId,
             deadZoneRatio = deadZoneRatio,

@@ -26,6 +26,16 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
+ * 摇杆控件大小的绝对值最小值（Dp）
+ */
+const val JOYSTICK_MIN_SIZE_DP = 20f
+
+/**
+ * 摇杆控件大小的百分比最小值（100 = 1%）
+ */
+const val JOYSTICK_MIN_SIZE_PERCENTAGE = 2000
+
+/**
  * 摇杆头大小的取值范围
  */
 val JOYSTICK_KNOB_SIZE_RANGE: ClosedFloatingPointRange<Float> = 0.1f..1.0f
@@ -69,8 +79,6 @@ data class JoystickData(
     val sizeDp: Float = 200f,
     @SerialName("sizePercentage")
     val sizePercentage: Int = 5000,
-    @SerialName("sizeReference")
-    val sizeReference: ButtonSize.Reference = ButtonSize.Reference.ScreenHeight,
     @SerialName("visibilityType")
     val visibilityType: VisibilityType = VisibilityType.ALWAYS,
     @SerialName("joystickStyleId")
@@ -96,24 +104,26 @@ data class JoystickData(
      * 将摇杆的尺寸数据转换为 ButtonSize（宽=高），供 editMode / buttonSize 修饰符使用
      */
     fun toButtonSize(): ButtonSize {
+        val clampedDp = sizeDp.coerceAtLeast(JOYSTICK_MIN_SIZE_DP)
+        val clampedPercentage = sizePercentage.coerceAtLeast(JOYSTICK_MIN_SIZE_PERCENTAGE)
         return when (sizeType) {
             ButtonSize.Type.Dp -> ButtonSize(
                 type = ButtonSize.Type.Dp,
-                widthDp = sizeDp,
-                heightDp = sizeDp,
+                widthDp = clampedDp,
+                heightDp = clampedDp,
                 widthPercentage = MIN_SIZE_PERCENTAGE,
                 heightPercentage = MIN_SIZE_PERCENTAGE,
-                widthReference = sizeReference,
-                heightReference = sizeReference
+                widthReference = ButtonSize.Reference.ScreenHeight,
+                heightReference = ButtonSize.Reference.ScreenHeight
             )
             ButtonSize.Type.Percentage -> ButtonSize(
                 type = ButtonSize.Type.Percentage,
-                widthDp = sizeDp,
-                heightDp = sizeDp,
-                widthPercentage = sizePercentage,
-                heightPercentage = sizePercentage,
-                widthReference = sizeReference,
-                heightReference = sizeReference
+                widthDp = clampedDp,
+                heightDp = clampedDp,
+                widthPercentage = clampedPercentage,
+                heightPercentage = clampedPercentage,
+                widthReference = ButtonSize.Reference.ScreenHeight,
+                heightReference = ButtonSize.Reference.ScreenHeight
             )
             else -> ButtonSize(
                 type = ButtonSize.Type.Dp,
@@ -121,8 +131,8 @@ data class JoystickData(
                 heightDp = 200f,
                 widthPercentage = MIN_SIZE_PERCENTAGE,
                 heightPercentage = MIN_SIZE_PERCENTAGE,
-                widthReference = sizeReference,
-                heightReference = sizeReference
+                widthReference = ButtonSize.Reference.ScreenHeight,
+                heightReference = ButtonSize.Reference.ScreenHeight
             )
         }
     }
@@ -133,7 +143,6 @@ data class JoystickData(
                 this.sizeType != other.sizeType ||
                 this.sizeDp != other.sizeDp ||
                 this.sizePercentage != other.sizePercentage ||
-                this.sizeReference != other.sizeReference ||
                 this.visibilityType != other.visibilityType ||
                 this.joystickStyleId != other.joystickStyleId ||
                 this.deadZoneRatio != other.deadZoneRatio ||
@@ -171,7 +180,6 @@ fun JoystickData.cloneNew(): JoystickData = JoystickData(
     sizeType = sizeType,
     sizeDp = sizeDp,
     sizePercentage = sizePercentage,
-    sizeReference = sizeReference,
     visibilityType = visibilityType,
     joystickStyleId = joystickStyleId,
     deadZoneRatio = deadZoneRatio,

@@ -36,6 +36,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.movtery.layer_controller.data.ButtonPosition
 import com.movtery.layer_controller.data.ButtonSize
+import com.movtery.layer_controller.data.JOYSTICK_MIN_SIZE_DP
+import com.movtery.layer_controller.data.JOYSTICK_MIN_SIZE_PERCENTAGE
 import com.movtery.layer_controller.data.MIN_SIZE_DP
 import com.movtery.layer_controller.data.SIZE_PERCENTAGE_EDITOR
 import com.movtery.layer_controller.data.VisibilityType
@@ -322,7 +324,7 @@ private fun LazyListScope.joystickInfos(
     onPreviewRequested: () -> Unit,
     onDismissRequested: () -> Unit,
     screenWidth: Float,
-    @Suppress("UNUSED_PARAMETER") screenHeight: Float,
+    screenHeight: Float,
     data: ObservableJoystickData
 ) {
     // 可见场景
@@ -410,7 +412,7 @@ private fun LazyListScope.joystickInfos(
                         data.sizeDp = it
                         onPreviewRequested()
                     },
-                    valueRange = MIN_SIZE_DP..screenWidth,
+                    valueRange = JOYSTICK_MIN_SIZE_DP..screenHeight,
                     onValueChangeFinished = onDismissRequested,
                     suffix = "Dp"
                 )
@@ -426,29 +428,10 @@ private fun LazyListScope.joystickInfos(
                         data.sizePercentage = (it * 100).toInt()
                         onPreviewRequested()
                     },
-                    valueRange = SIZE_PERCENTAGE_EDITOR,
+                    valueRange = (JOYSTICK_MIN_SIZE_PERCENTAGE / 100f)..100f,
                     onValueChangeFinished = onDismissRequested,
                     decimalFormat = "#0.00",
                     suffix = "%"
-                )
-            }
-
-            @Composable fun ButtonSize.Reference.getReferenceText(): String {
-                val textRes = when (this) {
-                    ButtonSize.Reference.ScreenWidth -> R.string.control_editor_edit_size_reference_screen_width
-                    ButtonSize.Reference.ScreenHeight -> R.string.control_editor_edit_size_reference_screen_height
-                }
-                return stringResource(textRes)
-            }
-
-            item {
-                InfoLayoutListItem(
-                    modifier = Modifier.fillMaxWidth(),
-                    title = stringResource(R.string.control_editor_edit_size_reference),
-                    items = ButtonSize.Reference.entries,
-                    selectedItem = data.sizeReference,
-                    onItemSelected = { data.sizeReference = it },
-                    getItemText = { it.getReferenceText() }
                 )
             }
         }
