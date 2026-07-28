@@ -23,6 +23,7 @@ import com.movtery.layer_controller.data.ButtonStyle
 import com.movtery.layer_controller.data.JoystickStyle
 import com.movtery.layer_controller.data.lang.EmptyTranslatableString
 import com.movtery.layer_controller.data.lang.TranslatableString
+import com.movtery.layer_controller.data.legacy.LegacySpecial
 import com.movtery.layer_controller.layout.ControlLayout.Info
 import com.movtery.layer_controller.observable.Modifiable
 import com.movtery.layer_controller.observable.isModified
@@ -115,8 +116,27 @@ fun loadLayoutFromString(jsonString: String): ControlLayout {
     if (jsonObject["editorVersion"] == null) throw SerializationException("The file does not contain the key \"editorVersion\".")
     val version = jsonObject["editorVersion"]!!.jsonPrimitive.int
     if (version <= EDITOR_VERSION) {
+        val legacyJoystickStyle = if (version < 12) {
+            jsonObject["special"]?.let { specialElement ->
+                //在反序列化前尝试提取旧版 special 字段
+                try {
+                    layoutJson.decodeFromJsonElement(LegacySpecial.serializer(), specialElement).joystickStyle?.toJoystickStyle()
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        } else null
+
         var layout = layoutJson.decodeFromString<ControlLayout>(jsonString)
         if (version < EDITOR_VERSION) layout = updateLayoutToNew(layout)
+
+        if (legacyJoystickStyle != null) {
+            //迁移至新版摇杆样式列表
+            layout = layout.copy(
+                joystickStyles = layout.joystickStyles + legacyJoystickStyle
+            )
+        }
+
         return layout
     } else {
         throw IllegalArgumentException("Control layout versions are not supported!")
