@@ -1220,6 +1220,10 @@
     <string name="control_editor_edit_style_config_widget_radius_right_top">Top Right Corner</string>
     <string name="control_editor_edit_style_config_widget_radius_left_bottom">Bottom Left Corner</string>
     <string name="control_editor_edit_style_config_widget_radius_right_bottom">Bottom Right Corner</string>
+    <string name="control_editor_edit_joystick_style_list">Joystick Style List</string>
+    <string name="control_editor_edit_joystick_style_list_empty">No joystick styles in the current control layout</string>
+    <string name="control_editor_edit_joystick_style_list_name">Joystick Style Name</string>
+    <string name="control_editor_edit_joystick_style_list_delete">Are you sure you want to delete the joystick style %s?</string>
     <string name="control_editor_special_joystick_style">Joystick Style</string>
     <string name="control_editor_special_joystick_style_tip_title">Can\'t Create Joystick?</string>
     <string name="control_editor_special_joystick_style_tip_summary">Due to high implementation complexity, the control layout system cannot directly integrate joystick components. To use joystick components, you can only enable the universal joystick in the in-game menu. However, you can still provide the joystick appearance through the control layout to maintain a consistent style.</string>

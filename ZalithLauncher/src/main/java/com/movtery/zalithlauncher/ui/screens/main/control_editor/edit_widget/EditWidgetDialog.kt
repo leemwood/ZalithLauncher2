@@ -64,6 +64,7 @@ import com.movtery.layer_controller.observable.ObservableButtonStyle
 import com.movtery.layer_controller.observable.ObservableClickEventsProvider
 import com.movtery.layer_controller.observable.ObservableControlLayer
 import com.movtery.layer_controller.observable.ObservableJoystickData
+import com.movtery.layer_controller.observable.ObservableJoystickStyle
 import com.movtery.layer_controller.observable.ObservableNormalData
 import com.movtery.layer_controller.observable.ObservableTranslatableString
 import com.movtery.layer_controller.observable.ObservableWidget
@@ -106,13 +107,15 @@ fun EditWidgetDialog(
     visible: Boolean,
     data: SelectedWidgetData?,
     styles: List<ObservableButtonStyle>,
+    joystickStyles: List<ObservableJoystickStyle>,
     onDismissRequest: () -> Unit,
     onDelete: (ObservableWidget, ObservableControlLayer) -> Unit,
     onClone: (ObservableWidget, ObservableControlLayer) -> Unit,
     onEditWidgetText: (ObservableTranslatableString) -> Unit,
     switchControlLayers: (ObservableClickEventsProvider, ClickEvent.Type) -> Unit,
     sendText: (ObservableClickEventsProvider) -> Unit,
-    openStyleList: () -> Unit
+    openStyleList: () -> Unit,
+    openJoystickStyleList: () -> Unit,
 ) {
     val tween = rememberSwapTween()
 
@@ -194,9 +197,11 @@ fun EditWidgetDialog(
                                 backStack = backStack,
                                 data = data.data,
                                 styles = styles,
+                                joystickStyles = joystickStyles,
                                 switchControlLayers = switchControlLayers,
                                 sendText = sendText,
                                 openStyleList = openStyleList,
+                                openJoystickStyleList = openJoystickStyleList,
                                 onEditWidgetText = onEditWidgetText,
                                 onPreviewRequested = {
                                     if (dialogTransparent == EditWidgetDialogState.SEMI_TRANSPARENT_USER) return@EditWidgetNavigation
@@ -314,10 +319,12 @@ private fun EditWidgetNavigation(
     backStack: NavBackStack<TitledNavKey>,
     data: ObservableWidget,
     styles: List<ObservableButtonStyle>,
+    joystickStyles: List<ObservableJoystickStyle>,
     onEditWidgetText: (ObservableTranslatableString) -> Unit,
     switchControlLayers: (ObservableClickEventsProvider, ClickEvent.Type) -> Unit,
     sendText: (ObservableClickEventsProvider) -> Unit,
     openStyleList: () -> Unit,
+    openJoystickStyleList: () -> Unit,
     onPreviewRequested: () -> Unit,
     onDismissRequested: () -> Unit
 ) {
@@ -385,7 +392,8 @@ private fun EditWidgetNavigation(
                         screenKey = key,
                         currentKey = currentKey,
                         data = data as ObservableJoystickData,
-                        openStyleList = openStyleList
+                        joystickStyles = joystickStyles,
+                        openJoystickStyleList = openJoystickStyleList,
                     )
                 }
             }

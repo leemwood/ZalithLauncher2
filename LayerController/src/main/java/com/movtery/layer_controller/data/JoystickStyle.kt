@@ -157,3 +157,9 @@ fun JoystickStyle.cloneNew(): JoystickStyle {
         darkStyle = darkStyle,
     )
 }
+
+fun createNewJoystickStyle(name: String): JoystickStyle =
+    DefaultJoystickStyle.copy(
+        name = name,
+        uuid = randomUUID()
+    )

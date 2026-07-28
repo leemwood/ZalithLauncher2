@@ -65,6 +65,8 @@ import com.movtery.zalithlauncher.ui.components.MarqueeText
 import com.movtery.zalithlauncher.ui.control.joystick.StyleableJoystick
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutColorItem
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutSliderItem
+import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutSwitchItem
+import com.movtery.zalithlauncher.ui.components.SingleLineTextCheck
 import com.movtery.zalithlauncher.ui.screens.rememberSwapTween
 import com.movtery.zalithlauncher.ui.theme.cardColor
 import com.movtery.zalithlauncher.ui.theme.itemColor
@@ -147,7 +149,14 @@ fun EditJoystickStyleDialog(
                             RenderBox(
                                 modifier = Modifier.weight(1f),
                                 style = style,
-                                isDarkMode = selectedTabIndex == 1
+                                isDarkMode = !style.commonStyle && selectedTabIndex == 1
+                            )
+                            // 不区分暗色主题
+                            InfoLayoutSwitchItem(
+                                modifier = Modifier.fillMaxWidth(),
+                                title = stringResource(R.string.control_editor_edit_style_config_common_style),
+                                value = style.commonStyle,
+                                onValueChange = { style.commonStyle = it }
                             )
                         }
 
@@ -156,43 +165,54 @@ fun EditJoystickStyleDialog(
                                 .weight(0.6f)
                                 .fillMaxHeight()
                         ) {
-                            //顶贴标签栏
-                            SecondaryTabRow(
-                                selectedTabIndex = selectedTabIndex,
-                                containerColor = cardColor(false)
-                            ) {
-                                tabs.forEachIndexed { index, item ->
-                                    Tab(
-                                        selected = index == selectedTabIndex,
-                                        onClick = {
-                                            selectedTabIndex = index
-                                        },
-                                        text = {
-                                            MarqueeText(text = stringResource(item.titleRes))
-                                        }
-                                    )
-                                }
-                            }
+                            SingleLineTextCheck(
+                                text = style.name,
+                                onSingleLined = { style.name = it }
+                            )
 
-                            HorizontalPager(
-                                state = pagerState,
-                                userScrollEnabled = false,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                            ) { page ->
-                                when (page) {
-                                    0 -> {
-                                        StyleConfigEditor(
-                                            modifier = Modifier.fillMaxSize(),
-                                            config = style.lightStyle,
+                            if (style.commonStyle) {
+                                StyleConfigEditor(
+                                    modifier = Modifier.fillMaxSize(),
+                                    config = style.lightStyle
+                                )
+                            } else {
+                                SecondaryTabRow(
+                                    selectedTabIndex = selectedTabIndex,
+                                    containerColor = cardColor(false)
+                                ) {
+                                    tabs.forEachIndexed { index, item ->
+                                        Tab(
+                                            selected = index == selectedTabIndex,
+                                            onClick = {
+                                                selectedTabIndex = index
+                                            },
+                                            text = {
+                                                MarqueeText(text = stringResource(item.titleRes))
+                                            }
                                         )
                                     }
-                                    1 -> {
-                                        StyleConfigEditor(
-                                            modifier = Modifier.fillMaxSize(),
-                                            config = style.darkStyle,
-                                        )
+                                }
+
+                                HorizontalPager(
+                                    state = pagerState,
+                                    userScrollEnabled = false,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                ) { page ->
+                                    when (page) {
+                                        0 -> {
+                                            StyleConfigEditor(
+                                                modifier = Modifier.fillMaxSize(),
+                                                config = style.lightStyle,
+                                            )
+                                        }
+                                        1 -> {
+                                            StyleConfigEditor(
+                                                modifier = Modifier.fillMaxSize(),
+                                                config = style.darkStyle,
+                                            )
+                                        }
                                     }
                                 }
                             }

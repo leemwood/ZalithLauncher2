@@ -104,10 +104,10 @@ internal fun JoystickWidgetRenderer(
         joystickStyles.find { it.uuid == id }
     }
 
-    val themeConfig = if (isDark) {
-        joystickStyle?.darkStyle ?: DefaultObservableJoystickStyle.darkStyle
-    } else {
+    val themeConfig = if (joystickStyle?.commonStyle == true || !isDark) {
         joystickStyle?.lightStyle ?: DefaultObservableJoystickStyle.lightStyle
+    } else {
+        joystickStyle?.darkStyle ?: DefaultObservableJoystickStyle.darkStyle
     }
 
     //已经经过验证，如果使用Modifier.alpha设置不透明度，会导致摇杆强制裁切超出范围的内容
@@ -150,7 +150,7 @@ internal fun JoystickWidgetRenderer(
 
     // 摇杆头大小
     val joystickSizeRatio = remember(themeConfig.joystickSize) {
-        themeConfig.joystickSize.coerceIn(0.1f, 1.0f)
+        themeConfig.joystickSize.coerceIn(0.0f, 1.0f)
     }
 
     //使用这个标记来判断是否渲染摇杆组件，未完全初始化时，可能导致组件闪烁

@@ -1169,6 +1169,10 @@
     <string name="control_editor_edit_category_info">基本資訊</string>
     <string name="control_editor_edit_category_event">點擊事件</string>
     <string name="control_editor_edit_category_style">控制項樣式</string>
+    <string name="control_editor_edit_category_joystick_config">搖桿配置</string>
+    <string name="control_editor_edit_category_joystick_events">方向事件</string>
+    <string name="control_editor_edit_category_joystick_style">搖桿樣式</string>
+    <string name="control_editor_edit_size_joystick">搖桿大小</string>
     <string name="control_editor_edit_joystick_dead_zone">死區範圍</string>
     <string name="control_editor_edit_joystick_lock_threshold">鎖定閾值</string>
     <string name="control_editor_edit_joystick_can_lock">前進鎖定</string>
@@ -1261,6 +1265,10 @@
     <string name="control_editor_special_joystick_style_background_rounded_corner">背景層圓角</string>
     <string name="control_editor_special_joystick_style_joystick_rounded_corner">搖桿圓角</string>
     <string name="control_editor_special_joystick_style_joystick_size">搖桿大小</string>
+    <string name="control_editor_edit_joystick_style_list">搖桿樣式列表</string>
+    <string name="control_editor_edit_joystick_style_list_empty">目前控制佈局還沒有搖桿樣式</string>
+    <string name="control_editor_edit_joystick_style_list_name">搖桿樣式名稱</string>
+    <string name="control_editor_edit_joystick_style_list_delete">確定要刪除搖桿樣式 %s？</string>
     <string name="control_editor_exit_message">您確定要直接退出嗎？這將導致您的任何變更都無法被儲存。若需要儲存，請檢查編輯器選單。</string>
     <string name="control_editor_exit_confirm">直接退出</string>
     <string name="vibrate_kind_one_shot">持續</string>

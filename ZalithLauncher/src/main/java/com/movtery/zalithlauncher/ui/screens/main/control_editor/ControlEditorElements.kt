@@ -108,6 +108,10 @@ sealed interface EditorOperation {
     data object EditJoystickStyle : EditorOperation
     /** 删除摇杆样式 */
     data class DeleteJoystickStyle(val style: ObservableJoystickStyle) : EditorOperation
+    /** 打开摇杆样式列表 */
+    data object OpenJoystickStyleList : EditorOperation
+    /** 创建摇杆样式 */
+    data object CreateJoystickStyle : EditorOperation
     /** 控制布局正在保存中 */
     data object Saving : EditorOperation
     /** 控制布局保存失败 */
@@ -217,6 +221,7 @@ fun EditorMenu(
     addNewText: () -> Unit,
     addNewJoystick: () -> Unit,
     openStyleList: () -> Unit,
+    openJoystickStyleList: () -> Unit,
     isLayerFocus: Boolean,
     onLayerFocusChanged: (Boolean) -> Unit,
     isPreviewMode: Boolean,
@@ -247,6 +252,7 @@ fun EditorMenu(
                 addNewText = addNewText,
                 addNewJoystick = addNewJoystick,
                 openStyleList = openStyleList,
+                openJoystickStyleList = openJoystickStyleList,
                 isPreviewMode = isPreviewMode,
                 onPreviewChanged = onPreviewChanged,
                 previewScenario = previewScenario,
@@ -310,6 +316,7 @@ private fun EditorMenuContent(
     addNewText: () -> Unit,
     addNewJoystick: () -> Unit,
     openStyleList: () -> Unit,
+    openJoystickStyleList: () -> Unit,
     isPreviewMode: Boolean,
     onPreviewChanged: (Boolean) -> Unit,
     previewScenario: PreviewScenario,
@@ -374,6 +381,21 @@ private fun EditorMenuContent(
                 enabled = isPreviewMode.not(),
                 onClick = {
                     openStyleList()
+                    closeScreen()
+                },
+                color = color,
+                contentColor = contentColor,
+            )
+        }
+
+        //摇杆样式列表
+        item {
+            MenuTextButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.control_editor_edit_joystick_style_list),
+                enabled = isPreviewMode.not(),
+                onClick = {
+                    openJoystickStyleList()
                     closeScreen()
                 },
                 color = color,

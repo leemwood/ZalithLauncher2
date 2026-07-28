@@ -72,6 +72,7 @@ import com.movtery.layer_controller.layout.TextButton
 import com.movtery.layer_controller.observable.ObservableButtonStyle
 import com.movtery.layer_controller.observable.ObservableControlLayer
 import com.movtery.layer_controller.observable.ObservableControlLayout
+import com.movtery.layer_controller.observable.ObservableJoystickStyle
 import com.movtery.layer_controller.observable.ObservableWidget
 import com.movtery.layer_controller.utils.getWidgetPosition
 import com.movtery.layer_controller.utils.snap.GuideLine
@@ -111,6 +112,7 @@ fun ControlEditorLayer(
 
         val layers by observedLayout.layers.collectAsStateWithLifecycle()
         val styles by observedLayout.styles.collectAsStateWithLifecycle()
+        val joystickStyles by observedLayout.joystickStyles.collectAsStateWithLifecycle()
 
         val guideLines = remember { mutableStateMapOf<ObservableWidget, List<GuideLine>>() }
 
@@ -179,6 +181,7 @@ fun ControlEditorLayer(
                 isDark = isDark,
                 renderingLayers = renderingLayers,
                 styles = styles,
+                joystickStyles = joystickStyles,
                 enableSnap = enableSnap,
                 snapInAllLayers = snapInAllLayers,
                 snapMode = snapMode,
@@ -465,6 +468,7 @@ private fun ControlWidgetRenderer(
     isDark: Boolean,
     renderingLayers: List<ObservableControlLayer>,
     styles: List<ObservableButtonStyle>,
+    joystickStyles: List<ObservableJoystickStyle>,
     enableSnap: Boolean,
     snapInAllLayers: Boolean,
     snapMode: SnapMode,
@@ -531,7 +535,7 @@ private fun ControlWidgetRenderer(
                 joystickButtons.forEach { data ->
                     JoystickWidgetRenderer(
                         data = data,
-                        joystickStyles = emptyList(),
+                        joystickStyles = joystickStyles,
                         screenSize = screenSize,
                         isDark = isDark,
                         isEditMode = true,

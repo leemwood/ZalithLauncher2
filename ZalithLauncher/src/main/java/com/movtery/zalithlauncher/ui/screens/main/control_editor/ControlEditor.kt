@@ -71,6 +71,7 @@ import com.movtery.zalithlauncher.ui.components.SimpleAlertDialog
 import com.movtery.zalithlauncher.ui.components.SimpleEditDialog
 import com.movtery.zalithlauncher.ui.components.rememberBoxSize
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.edit_joystick.EditJoystickStyleDialog
+import com.movtery.zalithlauncher.ui.screens.main.control_editor.edit_joystick.JoystickStyleListDialog
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.edit_layer.EditControlLayerDialog
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.edit_layer.EditSwitchLayersVisibilityDialog
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.edit_style.EditButtonStyleDialog
@@ -97,6 +98,7 @@ fun BoxWithConstraintsScope.ControlEditor(
 ) {
     val layers by viewModel.observableLayout.layers.collectAsStateWithLifecycle()
     val styles by viewModel.observableLayout.styles.collectAsStateWithLifecycle()
+    val joystickStyles by viewModel.observableLayout.joystickStyles.collectAsStateWithLifecycle()
 
     /** 默认新建的控件层的名称 */
     val defaultLayerName = stringResource(R.string.control_editor_edit_layer_default)
@@ -263,6 +265,9 @@ fun BoxWithConstraintsScope.ControlEditor(
         openStyleList = {
             viewModel.editorOperation = EditorOperation.OpenStyleList
         },
+        openJoystickStyleList = {
+            viewModel.editorOperation = EditorOperation.OpenJoystickStyleList
+        },
         isLayerFocus = viewModel.isLayerFocus,
         onLayerFocusChanged = { viewModel.isLayerFocus = it },
         isPreviewMode = viewModel.isPreviewMode,
@@ -299,6 +304,7 @@ fun BoxWithConstraintsScope.ControlEditor(
         data = viewModel.selectedWidget,
         visible = viewModel.editorOperation == EditorOperation.SelectButton,
         styles = styles,
+        joystickStyles = joystickStyles,
         onDismissRequest = {
             viewModel.editorOperation = EditorOperation.None
         },
@@ -319,6 +325,9 @@ fun BoxWithConstraintsScope.ControlEditor(
         },
         openStyleList = {
             viewModel.editorOperation = EditorOperation.OpenStyleList
+        },
+        openJoystickStyleList = {
+            viewModel.editorOperation = EditorOperation.OpenJoystickStyleList
         }
     )
 
@@ -332,7 +341,7 @@ fun BoxWithConstraintsScope.ControlEditor(
 
     EditJoystickStyleDialog(
         visible = viewModel.editorOperation == EditorOperation.EditJoystickStyle,
-        style = null,
+        style = viewModel.selectedJoystickStyle,
         onClose = {
             viewModel.editorOperation = EditorOperation.None
         },
@@ -389,7 +398,18 @@ fun BoxWithConstraintsScope.ControlEditor(
         onDeleteJoystickStyle = { style ->
             viewModel.removeJoystickStyle(style)
         },
-        styles = styles
+        onEditJoystickStyle = { style ->
+            viewModel.selectedJoystickStyle = style
+            viewModel.editorOperation = EditorOperation.EditJoystickStyle
+        },
+        onCreateJoystickStyle = { name ->
+            viewModel.createNewJoystickStyle(name)
+        },
+        onCloneJoystickStyle = { style ->
+            viewModel.cloneJoystickStyle(style)
+        },
+        styles = styles,
+        joystickStyles = joystickStyles
     )
 
     EditorWidgetOperation(
@@ -459,8 +479,12 @@ private fun EditorOperation(
     onCreateStyle: (name: String) -> Unit,
     onCloneStyle: (ObservableButtonStyle) -> Unit,
     onDeleteStyle: (ObservableButtonStyle) -> Unit,
+    onEditJoystickStyle: (ObservableJoystickStyle) -> Unit,
+    onCreateJoystickStyle: (name: String) -> Unit,
+    onCloneJoystickStyle: (ObservableJoystickStyle) -> Unit,
     onDeleteJoystickStyle: (ObservableJoystickStyle) -> Unit,
-    styles: List<ObservableButtonStyle>
+    styles: List<ObservableButtonStyle>,
+    joystickStyles: List<ObservableJoystickStyle>
 ) {
     when (operation) {
         is EditorOperation.None,
@@ -555,7 +579,7 @@ private fun EditorOperation(
             val style = operation.style
             SimpleAlertDialog(
                 title = stringResource(R.string.control_editor_special_joystick_style_delete_title),
-                text = stringResource(R.string.control_editor_special_joystick_style_delete_summary),
+                text = stringResource(R.string.control_editor_edit_joystick_style_list_delete, style.name),
                 confirmText = stringResource(R.string.generic_delete),
                 onConfirm = {
                     onDeleteJoystickStyle(style)
@@ -563,6 +587,40 @@ private fun EditorOperation(
                 },
                 onDismiss = {
                     changeOperation(EditorOperation.None)
+                }
+            )
+        }
+        is EditorOperation.OpenJoystickStyleList -> {
+            JoystickStyleListDialog(
+                styles = joystickStyles,
+                onEditStyle = onEditJoystickStyle,
+                onCreate = {
+                    changeOperation(EditorOperation.CreateJoystickStyle)
+                },
+                onClone = { style ->
+                    onCloneJoystickStyle(style)
+                },
+                onDelete = { style ->
+                    changeOperation(EditorOperation.DeleteJoystickStyle(style))
+                },
+                onClose = {
+                    changeOperation(EditorOperation.None)
+                }
+            )
+        }
+        is EditorOperation.CreateJoystickStyle -> {
+            var name by remember { mutableStateOf("") }
+            SimpleEditDialog(
+                title = stringResource(R.string.control_editor_edit_joystick_style_list_name),
+                value = name,
+                onValueChange = { name = it },
+                singleLine = true,
+                onDismissRequest = {
+                    changeOperation(EditorOperation.None)
+                },
+                onConfirm = {
+                    onCreateJoystickStyle(name)
+                    changeOperation(EditorOperation.OpenJoystickStyleList)
                 }
             )
         }

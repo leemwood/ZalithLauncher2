@@ -78,6 +78,11 @@ class EditorViewModel : ViewModel() {
     var selectedStyle by mutableStateOf<ObservableButtonStyle?>(null)
 
     /**
+     * 当前选中的摇杆样式（仅用于摇杆样式编辑对话框）
+     */
+    var selectedJoystickStyle by mutableStateOf<ObservableJoystickStyle?>(null)
+
+    /**
      * 编辑器菜单状态
      */
     var editorMenu by mutableStateOf(MenuState.HIDE)
@@ -224,6 +229,22 @@ class EditorViewModel : ViewModel() {
      */
     fun removeJoystickStyle(style: ObservableJoystickStyle) {
         observableLayout.removeJoystickStyle(style.uuid)
+    }
+
+    /**
+     * 创建一个新的摇杆样式
+     */
+    fun createNewJoystickStyle(name: String) {
+        observableLayout.addJoystickStyle(
+            com.movtery.layer_controller.data.createNewJoystickStyle(name)
+        )
+    }
+
+    /**
+     * 复制摇杆样式
+     */
+    fun cloneJoystickStyle(style: ObservableJoystickStyle) {
+        observableLayout.cloneJoystickStyle(style)
     }
 
     /**

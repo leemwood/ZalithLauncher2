@@ -58,6 +58,8 @@ fun BoxWithConstraintsScope.PreviewControlBox(
         observedLayout = observableLayout,
         checkOccupiedPointers = { occupiedPointers.contains(it) },
         markPointerAsMoveOnly = { moveOnlyPointers.add(it) },
+        onOccupiedPointer = { occupiedPointers.add(it) },
+        onReleasePointer = { occupiedPointers.remove(it) },
         isCursorGrabbing = previewScenario.isCursorGrabbing,
         hideLayerWhen = previewHideLayerWhen,
         isDark = isLauncherInDarkTheme()
