@@ -58,7 +58,6 @@ val JOYSTICK_LOCK_THRESHOLD_RANGE: ClosedFloatingPointRange<Float> = 0.0f..1.0f
  * @param sizeType 尺寸类型（不支持 WrapContent）
  * @param sizeDp Dp 模式下的尺寸值
  * @param sizePercentage 百分比模式下的尺寸值
- * @param sizeReference 百分比模式下的参考基准（屏幕宽/屏幕高）
  * @param visibilityType 控件可见类型
  * @param joystickStyleId 引用摇杆样式ID
  * @param deadZoneRatio 死区比例
@@ -78,7 +77,7 @@ data class JoystickData(
     @SerialName("sizeDp")
     val sizeDp: Float = 200f,
     @SerialName("sizePercentage")
-    val sizePercentage: Int = 5000,
+    val sizePercentage: Int = 2500,
     @SerialName("visibilityType")
     val visibilityType: VisibilityType = VisibilityType.ALWAYS,
     @SerialName("joystickStyleId")
