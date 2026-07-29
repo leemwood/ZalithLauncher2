@@ -18,14 +18,14 @@
 
 package com.movtery.zalithlauncher.ui.control.joystick
 
-import com.movtery.zalithlauncher.game.keycodes.MOVEMENT_BACK
-import com.movtery.zalithlauncher.game.keycodes.MOVEMENT_BACK_VALUE
-import com.movtery.zalithlauncher.game.keycodes.MOVEMENT_FORWARD
-import com.movtery.zalithlauncher.game.keycodes.MOVEMENT_FORWARD_VALUE
-import com.movtery.zalithlauncher.game.keycodes.MOVEMENT_LEFT
-import com.movtery.zalithlauncher.game.keycodes.MOVEMENT_LEFT_VALUE
-import com.movtery.zalithlauncher.game.keycodes.MOVEMENT_RIGHT
-import com.movtery.zalithlauncher.game.keycodes.MOVEMENT_RIGHT_VALUE
+import com.movtery.inputmap.keycodes.MOVEMENT_BACK
+import com.movtery.inputmap.keycodes.MOVEMENT_BACK_VALUE
+import com.movtery.inputmap.keycodes.MOVEMENT_FORWARD
+import com.movtery.inputmap.keycodes.MOVEMENT_FORWARD_VALUE
+import com.movtery.inputmap.keycodes.MOVEMENT_LEFT
+import com.movtery.inputmap.keycodes.MOVEMENT_LEFT_VALUE
+import com.movtery.inputmap.keycodes.MOVEMENT_RIGHT
+import com.movtery.inputmap.keycodes.MOVEMENT_RIGHT_VALUE
 
 /**
  * 摇杆的每个方向代表的移动键键值

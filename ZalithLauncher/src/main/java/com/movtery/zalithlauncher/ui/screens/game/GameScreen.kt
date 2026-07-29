@@ -59,6 +59,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.movtery.inputmap.keycodes.ControlEventKeycode
+import com.movtery.inputmap.keycodes.LwjglGlfwKeycode
+import com.movtery.inputmap.keycodes.OPEN_CHAT
+import com.movtery.inputmap.keycodes.OPEN_CHAT_VALUE
 import com.movtery.layer_controller.ControlBoxLayout
 import com.movtery.layer_controller.data.HideLayerWhen
 import com.movtery.layer_controller.event.ClickEvent
@@ -72,10 +76,6 @@ import com.movtery.zalithlauncher.bridge.CURSOR_DISABLED
 import com.movtery.zalithlauncher.bridge.ZLBridgeStates
 import com.movtery.zalithlauncher.bridge.ZLNativeInvoker
 import com.movtery.zalithlauncher.game.input.LWJGLCharSender
-import com.movtery.zalithlauncher.game.keycodes.ControlEventKeycode
-import com.movtery.zalithlauncher.game.keycodes.LwjglGlfwKeycode
-import com.movtery.zalithlauncher.game.keycodes.OPEN_CHAT
-import com.movtery.zalithlauncher.game.keycodes.OPEN_CHAT_VALUE
 import com.movtery.zalithlauncher.game.keycodes.mapToKeycode
 import com.movtery.zalithlauncher.game.launch.handler.GameHandler
 import com.movtery.zalithlauncher.game.support.touch_controller.touchControllerInputModifier

@@ -18,6 +18,10 @@
 
 package com.movtery.layer_controller.data
 
+import com.movtery.inputmap.keycodes.ControlEventKeycode.GLFW_KEY_A
+import com.movtery.inputmap.keycodes.ControlEventKeycode.GLFW_KEY_D
+import com.movtery.inputmap.keycodes.ControlEventKeycode.GLFW_KEY_S
+import com.movtery.inputmap.keycodes.ControlEventKeycode.GLFW_KEY_W
 import com.movtery.layer_controller.event.ClickEvent
 import com.movtery.layer_controller.observable.Modifiable
 import com.movtery.layer_controller.utils.checkInRange
@@ -156,10 +160,10 @@ data class JoystickData(
  * 默认的摇杆方向事件绑定
  */
 val DefaultDirectionEvents = buildMap {
-    val forward = ClickEvent(ClickEvent.Type.Key, "GLFW_KEY_W")
-    val back = ClickEvent(ClickEvent.Type.Key, "GLFW_KEY_S")
-    val left = ClickEvent(ClickEvent.Type.Key, "GLFW_KEY_A")
-    val right = ClickEvent(ClickEvent.Type.Key, "GLFW_KEY_D")
+    val forward = ClickEvent(ClickEvent.Type.Key, GLFW_KEY_W)
+    val back = ClickEvent(ClickEvent.Type.Key, GLFW_KEY_S)
+    val left = ClickEvent(ClickEvent.Type.Key, GLFW_KEY_A)
+    val right = ClickEvent(ClickEvent.Type.Key, GLFW_KEY_D)
 
     put(JoystickDirection.North, listOf(forward))
     put(JoystickDirection.NorthEast, listOf(forward, right))

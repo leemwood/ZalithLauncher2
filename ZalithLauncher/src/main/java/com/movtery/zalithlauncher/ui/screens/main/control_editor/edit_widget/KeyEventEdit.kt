@@ -44,10 +44,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.movtery.inputmap.keycodes.ControlEventKeyName
 import com.movtery.layer_controller.event.ClickEvent
 import com.movtery.layer_controller.observable.ObservableClickEventsProvider
 import com.movtery.zalithlauncher.R
-import com.movtery.zalithlauncher.game.keycodes.ControlEventKeyName
 import com.movtery.zalithlauncher.ui.components.MarqueeText
 import com.movtery.zalithlauncher.ui.control.Keyboard
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutItem
