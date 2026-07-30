@@ -287,14 +287,14 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
      */
     internal var backgroundRegion: Region = Region()
 
-    override fun touchModifier(
+    override fun Modifier.touchModifier(
         pointerEventBus: PointerEventBus,
         eventHandler: EventHandler,
         allLayers: List<ObservableControlLayer>,
         screenSize: IntSize,
         onOccupiedPointer: (PointerId) -> Unit,
         onReleasePointer: (PointerId) -> Unit
-    ): Modifier = Modifier.pointerInput(Unit) {
+    ): Modifier = this.pointerInput(Unit) {
         awaitPointerEventScope {
             var activePointer: PointerId? = null
 

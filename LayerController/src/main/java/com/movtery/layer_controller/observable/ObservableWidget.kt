@@ -90,14 +90,14 @@ abstract class ObservableWidget {
      * @param onOccupiedPointer 当占用一个指针时回调，用于隔离指针
      * @param onReleasePointer 当释放一个指针时回调
      */
-    open fun touchModifier(
+    open fun Modifier.touchModifier(
         pointerEventBus: PointerEventBus,
         eventHandler: EventHandler,
         allLayers: List<ObservableControlLayer>,
         screenSize: IntSize,
         onOccupiedPointer: (PointerId) -> Unit = {},
         onReleasePointer: (PointerId) -> Unit = {}
-    ): Modifier = Modifier
+    ): Modifier = this
 
     /**
      * Compose 树开始布局时

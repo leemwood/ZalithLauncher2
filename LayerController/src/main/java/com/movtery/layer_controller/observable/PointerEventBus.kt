@@ -18,9 +18,7 @@
 
 package com.movtery.layer_controller.observable
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerId
-import androidx.compose.ui.unit.IntSize
 
 /**
  * 共享的多指针状态管理器

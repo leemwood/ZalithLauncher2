@@ -207,8 +207,8 @@ internal fun JoystickWidgetRenderer(
                             onTapInEditMode = onTapInEditMode ?: {}
                         )
                     } else if (pointerEventBus != null && eventHandler != null && reversedLayers != null) {
-                        modifier.then(
-                            data.touchModifier(
+                        with(data) {
+                            modifier.touchModifier(
                                 pointerEventBus = pointerEventBus,
                                 eventHandler = eventHandler,
                                 allLayers = reversedLayers,
@@ -216,7 +216,7 @@ internal fun JoystickWidgetRenderer(
                                 onOccupiedPointer = onOccupiedPointer,
                                 onReleasePointer = onReleasePointer
                             )
-                        )
+                        }
                     } else modifier
                 },
             contentAlignment = Alignment.Center
