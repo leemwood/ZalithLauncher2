@@ -1129,6 +1129,9 @@
     <string name="control_editor_edit_joystick_dead_zone">死区范围</string>
     <string name="control_editor_edit_joystick_lock_threshold">锁定阈值</string>
     <string name="control_editor_edit_joystick_can_lock">前进锁定</string>
+    <string name="control_editor_edit_joystick_trigger_mode">操控方式</string>
+    <string name="control_editor_edit_joystick_trigger_mode_drag">拖动触发</string>
+    <string name="control_editor_edit_joystick_trigger_mode_touch">触碰触发</string>
     <string name="control_editor_edit_joystick_lock_events">锁定事件</string>
     <string name="control_editor_edit_joystick_select_area">选择区域编辑事件</string>
     <string name="control_editor_edit_layer_default">新控件层</string>

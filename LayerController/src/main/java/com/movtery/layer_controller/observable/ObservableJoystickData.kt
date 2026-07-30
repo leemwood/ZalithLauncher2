@@ -46,6 +46,7 @@ import com.movtery.layer_controller.data.JOYSTICK_MIN_SIZE_DP
 import com.movtery.layer_controller.data.JOYSTICK_MIN_SIZE_PERCENTAGE
 import com.movtery.layer_controller.data.JoystickData
 import com.movtery.layer_controller.data.JoystickDirection
+import com.movtery.layer_controller.data.JoystickTriggerMode
 import com.movtery.layer_controller.data.VisibilityType
 import com.movtery.layer_controller.data.cloneNew
 import com.movtery.layer_controller.event.ClickEvent
@@ -74,6 +75,7 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
     var deadZoneRatio by mutableFloatStateOf(data.deadZoneRatio)
     var lockThreshold by mutableFloatStateOf(data.lockThreshold)
     var canLock by mutableStateOf(data.canLock)
+    var triggerMode by mutableStateOf(data.triggerMode)
     var directionEvents by mutableStateOf(data.directionEvents)
     var lockEvents by mutableStateOf(data.lockEvents)
 
@@ -319,6 +321,22 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
                                     if (isLocked) {
                                         isLocked = false
                                     }
+
+                                    if (triggerMode == JoystickTriggerMode.TOUCH) {
+                                        // 触碰触发时立即更新摇杆状态
+                                        val centerPoint = Offset(
+                                            internalRenderSize.width / 2f,
+                                            internalRenderSize.height / 2f
+                                        )
+                                        val bgRadius = minOf(internalRenderSize.width, internalRenderSize.height) / 2f
+                                        updateJoystickState(
+                                            position = pos,
+                                            centerPoint = centerPoint,
+                                            deadZoneRadius = bgRadius * deadZoneRatio,
+                                            lockThresholdPx = bgRadius * lockThreshold,
+                                            eventHandler = eventHandler
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -411,6 +429,7 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
             deadZoneRatio = deadZoneRatio,
             lockThreshold = lockThreshold,
             canLock = canLock,
+            triggerMode = triggerMode,
             directionEvents = directionEvents,
             lockEvents = lockEvents
         )

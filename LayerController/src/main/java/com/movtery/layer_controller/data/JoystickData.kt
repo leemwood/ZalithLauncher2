@@ -67,6 +67,7 @@ val JOYSTICK_LOCK_THRESHOLD_RANGE: ClosedFloatingPointRange<Float> = 0.0f..1.0f
  * @param deadZoneRatio 死区比例
  * @param lockThreshold 前进锁阈值（相对于背景层大小的百分比）
  * @param canLock 是否支持前进锁
+ * @param triggerMode 操控方式（拖动触发 / 触碰触发）
  * @param directionEvents 方向绑定事件
  * @param lockEvents 锁定时触发的事件列表
  */
@@ -92,6 +93,8 @@ data class JoystickData(
     val lockThreshold: Float = 0.3f,
     @SerialName("canLock")
     val canLock: Boolean = true,
+    @SerialName("triggerMode")
+    val triggerMode: JoystickTriggerMode = JoystickTriggerMode.DRAG,
     @SerialName("directionEvents")
     val directionEvents: Map<JoystickDirection, List<ClickEvent>> = DefaultDirectionEvents,
     @SerialName("lockEvents")
@@ -151,6 +154,7 @@ data class JoystickData(
                 this.deadZoneRatio != other.deadZoneRatio ||
                 this.lockThreshold != other.lockThreshold ||
                 this.canLock != other.canLock ||
+                this.triggerMode != other.triggerMode ||
                 this.directionEvents != other.directionEvents ||
                 this.lockEvents != other.lockEvents
     }
@@ -188,6 +192,7 @@ fun JoystickData.cloneNew(): JoystickData = JoystickData(
     deadZoneRatio = deadZoneRatio,
     lockThreshold = lockThreshold,
     canLock = canLock,
+    triggerMode = triggerMode,
     directionEvents = directionEvents,
     lockEvents = lockEvents
 )

@@ -1129,6 +1129,9 @@
     <string name="control_editor_edit_joystick_dead_zone">Dead Zone</string>
     <string name="control_editor_edit_joystick_lock_threshold">Lock Threshold</string>
     <string name="control_editor_edit_joystick_can_lock">Forward Lock</string>
+    <string name="control_editor_edit_joystick_trigger_mode">Trigger Mode</string>
+    <string name="control_editor_edit_joystick_trigger_mode_drag">Drag Trigger</string>
+    <string name="control_editor_edit_joystick_trigger_mode_touch">Touch Trigger</string>
     <string name="control_editor_edit_joystick_lock_events">Lock Events</string>
     <string name="control_editor_edit_joystick_select_area">Select an area to edit events</string>
     <string name="control_editor_edit_layer_default">New Control Layer</string>
