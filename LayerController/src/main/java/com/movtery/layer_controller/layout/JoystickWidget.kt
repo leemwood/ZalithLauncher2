@@ -19,9 +19,11 @@
 package com.movtery.layer_controller.layout
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -30,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +48,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -52,10 +56,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.movtery.layer_controller.data.JoystickDirection
 import com.movtery.layer_controller.event.EventHandler
 import com.movtery.layer_controller.observable.DefaultObservableJoystickStyle
 import com.movtery.layer_controller.observable.ObservableControlLayer
 import com.movtery.layer_controller.observable.ObservableJoystickData
+import com.movtery.layer_controller.observable.ObservableJoystickData.Companion.calculateDirection
+import com.movtery.layer_controller.observable.ObservableJoystickData.Companion.clampToRegion
 import com.movtery.layer_controller.observable.ObservableJoystickData.Companion.toRegion
 import com.movtery.layer_controller.observable.ObservableJoystickStyle
 import com.movtery.layer_controller.observable.ObservableWidget
@@ -67,12 +74,6 @@ import com.movtery.layer_controller.utils.snap.SnapMode
 
 /**
  * 摇杆控件渲染组件
- * 完整迁移自 StyleableJoystick，支持：
- * - 自定义形状（圆角矩形/圆形）背景层和摇杆
- * - 死区、前进锁、锁定标记
- * - 多种颜色状态（正常/可锁定/已锁定）
- * - Alpha 不透明度处理
- * - 区域命中检测
  */
 @Composable
 internal fun JoystickWidgetRenderer(
@@ -354,4 +355,176 @@ private fun DrawScope.drawJoystick(
 
 private fun Color.applyAlpha(multiplier: Float): Color {
     return copy(alpha = this.alpha * multiplier)
+}
+
+@Composable
+fun JoystickStyleWidget(
+    modifier: Modifier = Modifier,
+    isDarkTheme: Boolean,
+    style: ObservableJoystickStyle,
+    widgetSize: Dp = 120.dp,
+    deadZoneRatio: Float = 0.5f,
+    lockThreshold: Float = 0.3f,
+) {
+    val theme = if (isDarkTheme) style.darkStyle else style.lightStyle
+
+    val backgroundShape = remember(theme.backgroundShape) {
+        RoundedCornerShape(percent = theme.backgroundShape)
+    }
+
+    val joystickShape = remember(theme.joystickShape) {
+        RoundedCornerShape(percent = theme.joystickShape)
+    }
+
+    val borderWidthRatio = remember(theme.borderWidthRatio) {
+        (theme.borderWidthRatio.toFloat() / 100f).coerceIn(0.0f, 0.5f)
+    }
+
+    val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
+
+    val backgroundSizePx = remember(widgetSize) {
+        with(density) { widgetSize.toPx() }
+    }
+
+    val backgroundRegion = remember(backgroundShape, backgroundSizePx) {
+        backgroundShape.toRegion(
+            size = Size(backgroundSizePx, backgroundSizePx),
+            density = density,
+            layoutDirection = layoutDirection
+        )
+    }
+    val currentBackgroundRegion by rememberUpdatedState(backgroundRegion)
+
+    val joystickSizePx = remember(backgroundSizePx, theme.joystickSize) {
+        backgroundSizePx * theme.joystickSize.coerceIn(0.0f, 1.0f)
+    }
+
+    val centerPoint = remember(backgroundSizePx) {
+        Offset(backgroundSizePx / 2, backgroundSizePx / 2)
+    }
+
+    val deadZoneRadius = remember(backgroundSizePx, deadZoneRatio) {
+        backgroundSizePx * deadZoneRatio / 2
+    }
+
+    val lockThresholdPx = remember(backgroundSizePx, lockThreshold) {
+        backgroundSizePx * lockThreshold
+    }
+
+    val lockPosition = remember(centerPoint) {
+        Offset(centerPoint.x, 0f)
+    }
+
+    var joystickPosition by remember { mutableStateOf(centerPoint) }
+    var isLocked by remember { mutableStateOf(false) }
+    var internalCanLock by remember { mutableStateOf(false) }
+    var lastDragPosition by remember { mutableStateOf(Offset.Zero) }
+
+    fun updateJoystickState(position: Offset) {
+        val clampedPosition = position.clampToRegion(
+            region = currentBackgroundRegion,
+            center = centerPoint
+        )
+        joystickPosition = clampedPosition
+
+        val direction = calculateDirection(
+            joystickPosition = clampedPosition,
+            backgroundCenter = centerPoint,
+            deadZoneRadius = deadZoneRadius
+        )
+
+        internalCanLock =
+            direction == JoystickDirection.North &&
+            lastDragPosition.y < -lockThresholdPx
+    }
+
+    val currentBackgroundColor = remember(theme.backgroundColor, theme.alpha) {
+        theme.backgroundColor.applyAlpha(theme.alpha)
+    }
+    val currentJoystickColor = remember(theme.joystickColor, theme.alpha) {
+        theme.joystickColor.applyAlpha(theme.alpha)
+    }
+    val currentJoystickCanLockColor = remember(theme.joystickCanLockColor, theme.alpha) {
+        theme.joystickCanLockColor.applyAlpha(theme.alpha)
+    }
+    val currentJoystickLockedColor = remember(theme.joystickLockedColor, theme.alpha) {
+        theme.joystickLockedColor.applyAlpha(theme.alpha)
+    }
+    val currentLockMarkColor = remember(theme.lockMarkColor, theme.alpha) {
+        theme.lockMarkColor.applyAlpha(theme.alpha)
+    }
+    val currentBorderColor = remember(theme.borderColor, theme.alpha) {
+        theme.borderColor.applyAlpha(theme.alpha)
+    }
+
+    Box(
+        modifier = modifier.size(widgetSize),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            if (currentBackgroundRegion.contains(offset.x.toInt(), offset.y.toInt())) {
+                                lastDragPosition = offset
+                                updateJoystickState(offset)
+                            }
+                        },
+                        onDrag = { change, _ ->
+                            change.consume()
+                            lastDragPosition = change.position
+                            if (isLocked) isLocked = false
+                            updateJoystickState(change.position)
+                        },
+                        onDragEnd = {
+                            if (internalCanLock) {
+                                isLocked = true
+                                updateJoystickState(lockPosition)
+                            } else {
+                                isLocked = false
+                                updateJoystickState(centerPoint)
+                            }
+                        },
+                        onDragCancel = {
+                            isLocked = false
+                            updateJoystickState(centerPoint)
+                        }
+                    )
+                }
+        ) {
+            val canvasSize = this.size
+
+            drawBackgroundLayer(
+                layoutDirection = layoutDirection,
+                size = canvasSize,
+                shape = backgroundShape,
+                backgroundColor = currentBackgroundColor,
+                borderColor = currentBorderColor,
+                borderWidthPx = (minOf(canvasSize.width, canvasSize.height) * borderWidthRatio).coerceAtLeast(0f)
+            )
+
+            drawJoystick(
+                layoutDirection = layoutDirection,
+                color = when {
+                    isLocked -> currentJoystickLockedColor
+                    internalCanLock -> currentJoystickCanLockColor
+                    else -> currentJoystickColor
+                },
+                center = joystickPosition,
+                size = joystickSizePx,
+                shape = joystickShape
+            )
+
+            if (isLocked) {
+                drawCircle(
+                    color = currentLockMarkColor,
+                    center = lockPosition,
+                    radius = 4f
+                )
+            }
+        }
+    }
 }

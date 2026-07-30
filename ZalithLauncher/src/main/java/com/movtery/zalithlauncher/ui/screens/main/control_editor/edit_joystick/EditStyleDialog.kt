@@ -57,16 +57,16 @@ import androidx.compose.ui.unit.dp
 import com.movtery.layer_controller.data.BORDER_RADIO_RANGE
 import com.movtery.layer_controller.data.SHAPE_PERCENT_RANGE
 import com.movtery.layer_controller.data.SIZE_PERCENT_RANGE
+import com.movtery.layer_controller.layout.JoystickStyleWidget
 import com.movtery.layer_controller.observable.ObservableJoystickStyle
 import com.movtery.layer_controller.observable.ObservableJoystickStyleConfig
 import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.setting.unit.toFloatRange
 import com.movtery.zalithlauncher.ui.components.MarqueeText
-import com.movtery.zalithlauncher.ui.control.joystick.StyleableJoystick
+import com.movtery.zalithlauncher.ui.components.SingleLineTextCheck
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutColorItem
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutSliderItem
 import com.movtery.zalithlauncher.ui.screens.main.control_editor.InfoLayoutSwitchItem
-import com.movtery.zalithlauncher.ui.components.SingleLineTextCheck
 import com.movtery.zalithlauncher.ui.screens.rememberSwapTween
 import com.movtery.zalithlauncher.ui.theme.cardColor
 import com.movtery.zalithlauncher.ui.theme.itemColor
@@ -422,7 +422,7 @@ private fun RenderBox(
                 .padding(all = 16.dp),
             contentAlignment = Alignment.Center
         ) {
-            StyleableJoystick(
+            JoystickStyleWidget(
                 modifier = Modifier.size(120.dp),
                 style = style,
                 isDarkTheme = isDarkMode
