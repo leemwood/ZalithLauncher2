@@ -159,9 +159,9 @@ internal fun JoystickWidgetRenderer(
 
     // 当大小变化时重新初始化
     var currentSize by remember { mutableStateOf(IntSize.Zero) }
-    LaunchedEffect(currentSize) {
+    LaunchedEffect(currentSize, visible) {
         initialized = false
-        if (currentSize != IntSize.Zero) {
+        if (visible && currentSize != IntSize.Zero) {
             // 计算并设置背景区域
             val sizePx = Size(currentSize.width.toFloat(), currentSize.height.toFloat())
             data.backgroundRegion = backgroundShape.toRegion(
@@ -176,7 +176,7 @@ internal fun JoystickWidgetRenderer(
 
     // 当形状变化时重新计算区域
     LaunchedEffect(backgroundShape) {
-        if (currentSize != IntSize.Zero) {
+        if (visible && currentSize != IntSize.Zero) {
             val sizePx = Size(currentSize.width.toFloat(), currentSize.height.toFloat())
             data.backgroundRegion = backgroundShape.toRegion(
                 size = sizePx,
