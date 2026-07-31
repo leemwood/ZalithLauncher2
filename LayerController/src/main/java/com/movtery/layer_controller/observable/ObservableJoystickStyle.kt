@@ -27,7 +27,7 @@ import com.movtery.layer_controller.data.cloneNew
 
 class ObservableJoystickStyle(
     private val style: JoystickStyle
-): Packable<JoystickStyle> {
+) : Packable<JoystickStyle> {
     var name by mutableStateOf(style.name)
     val uuid = style.uuid
     var commonStyle by mutableStateOf(style.commonStyle)

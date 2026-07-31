@@ -64,12 +64,18 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
     private val _sizeDp = mutableFloatStateOf(data.sizeDp.coerceAtLeast(JOYSTICK_MIN_SIZE_DP))
     var sizeDp: Float
         get() = _sizeDp.floatValue
-        set(value) { _sizeDp.floatValue = value.coerceAtLeast(JOYSTICK_MIN_SIZE_DP) }
+        set(value) {
+            _sizeDp.floatValue = value.coerceAtLeast(JOYSTICK_MIN_SIZE_DP)
+        }
 
-    private val _sizePercentage = mutableIntStateOf(data.sizePercentage.coerceAtLeast(JOYSTICK_MIN_SIZE_PERCENTAGE))
+    private val _sizePercentage =
+        mutableIntStateOf(data.sizePercentage.coerceAtLeast(JOYSTICK_MIN_SIZE_PERCENTAGE))
     var sizePercentage: Int
         get() = _sizePercentage.intValue
-        set(value) { _sizePercentage.intValue = value.coerceAtLeast(JOYSTICK_MIN_SIZE_PERCENTAGE) }
+        set(value) {
+            _sizePercentage.intValue = value.coerceAtLeast(JOYSTICK_MIN_SIZE_PERCENTAGE)
+        }
+
     var visibilityType by mutableStateOf(data.visibilityType)
     var joystickStyleId by mutableStateOf(data.joystickStyleId)
     var deadZoneRatio by mutableFloatStateOf(data.deadZoneRatio)
@@ -101,6 +107,11 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
      */
     var canLockState by mutableStateOf(false)
         private set
+
+    /**
+     * 当前占用的指针ID
+     */
+    internal var activePointer: PointerId? = null
 
     /**
      * 上一次拖动的位置
@@ -272,8 +283,8 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
 
         val newCanLockState =
             canLock &&
-            direction == JoystickDirection.North &&
-            lastDragPosition.y < -lockThresholdPx
+                    direction == JoystickDirection.North &&
+                    lastDragPosition.y < -lockThresholdPx
 
         if (newCanLockState && !canLockState) {
             eventHandler.onKeyPressed(lockEvents, true)
@@ -298,8 +309,6 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
         onReleasePointer: (PointerId) -> Unit
     ): Modifier = this.pointerInput(Unit) {
         awaitPointerEventScope {
-            var activePointer: PointerId? = null
-
             while (true) {
                 val event = awaitPointerEvent()
 
@@ -328,7 +337,10 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
                                             internalRenderSize.width / 2f,
                                             internalRenderSize.height / 2f
                                         )
-                                        val bgRadius = minOf(internalRenderSize.width, internalRenderSize.height) / 2f
+                                        val bgRadius = minOf(
+                                            internalRenderSize.width,
+                                            internalRenderSize.height
+                                        ) / 2f
                                         updateJoystickState(
                                             position = pos,
                                             centerPoint = centerPoint,

@@ -159,20 +159,6 @@ internal fun JoystickWidgetRenderer(
 
     // 当大小变化时重新初始化
     var currentSize by remember { mutableStateOf(IntSize.Zero) }
-    LaunchedEffect(currentSize, visible) {
-        initialized = false
-        if (visible && currentSize != IntSize.Zero) {
-            // 计算并设置背景区域
-            val sizePx = Size(currentSize.width.toFloat(), currentSize.height.toFloat())
-            data.backgroundRegion = backgroundShape.toRegion(
-                size = sizePx,
-                density = density,
-                layoutDirection = layoutDirection
-            )
-            data.knobOffset = Offset.Zero
-            initialized = true
-        }
-    }
 
     // 当形状变化时重新计算区域
     LaunchedEffect(backgroundShape) {
@@ -189,7 +175,20 @@ internal fun JoystickWidgetRenderer(
     if (visible) {
         Box(
             modifier = Modifier
-                .onSizeChanged { currentSize = it }
+                .onSizeChanged { size ->
+                    currentSize = size
+                    if (size != IntSize.Zero) {
+                        // 计算并设置背景区域
+                        val sizePx = Size(size.width.toFloat(), size.height.toFloat())
+                        data.backgroundRegion = backgroundShape.toRegion(
+                            size = sizePx,
+                            density = density,
+                            layoutDirection = layoutDirection
+                        )
+                        data.knobOffset = Offset.Zero
+                        initialized = true
+                    }
+                }
                 .buttonSize(data, screenSize)
                 .let { modifier ->
                     if (isEditMode) {
@@ -269,6 +268,10 @@ internal fun JoystickWidgetRenderer(
                 data.onCompositionStart(eventHandler)
                 onDispose {
                     data.onCompositionDispose(eventHandler)
+                    data.activePointer?.let { pointerId ->
+                        onReleasePointer(pointerId)
+                        data.activePointer = null
+                    }
                 }
             }
         }
