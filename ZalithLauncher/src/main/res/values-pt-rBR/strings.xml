@@ -182,7 +182,7 @@
     <string name="download_install_input_version_name_title">Digite o nome da versão pré-instalada</string>
     <string name="download_assets_filter_search_name">Nome da Pesquisa</string>
     <string name="download_assets_filter_search_platform">Plataforma Alvo</string>
-    <string name="download_assets_filter_game_version">Nome da versão</string>
+    <string name="download_assets_filter_game_version">Versão do jogo</string>
     <string name="download_assets_filter_category">Categoria</string>
     <string name="download_assets_filter_modloader">Carregador De Mod</string>
     <string name="download_assets_filter_none">Nenhum Selecionado</string>
