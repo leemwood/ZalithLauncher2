@@ -323,6 +323,7 @@ class ObservableJoystickData(data: JoystickData) : ObservableWidget() {
                                 val pos = change.position
                                 // 命中检测：触摸必须在背景区域内
                                 if (backgroundRegion.contains(pos.x.toInt(), pos.y.toInt())) {
+                                    change.consume()
                                     activePointer = pointerId
                                     onOccupiedPointer(pointerId)
                                     lastDragPosition = pos
