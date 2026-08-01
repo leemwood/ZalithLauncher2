@@ -1214,4 +1214,22 @@
     <string name="settings_launcher_color_theme_style">Estilo de paleta</string>
     <string name="settings_renderer_env_title">Variável de ambiente: %s</string>
     <string name="settings_renderer_config_title">Configuração do Renderizador</string>
+    <string name="control_editor_menu_new_widget_joystick">Adicionar Joystick</string>
+    <string name="control_editor_edit_category_joystick_config">Configuração do Joystick</string>
+    <string name="control_editor_edit_category_joystick_events">Direção de Eventos</string>
+    <string name="control_editor_edit_category_joystick_style">Estilo do Joystick</string>
+    <string name="control_editor_edit_size_joystick">Tamanho do Joystick</string>
+    <string name="control_editor_edit_size_reference">Referência de tamanho</string>
+    <string name="control_editor_edit_joystick_dead_zone">Zona Morta</string>
+    <string name="control_editor_edit_joystick_lock_threshold">Limite de bloqueio</string>
+    <string name="control_editor_edit_joystick_can_lock">Trava frontal</string>
+    <string name="control_editor_edit_joystick_trigger_mode">Modo de disparo</string>
+    <string name="control_editor_edit_joystick_trigger_mode_drag">Gatilho de Arrastar</string>
+    <string name="control_editor_edit_joystick_trigger_mode_touch">Gatilho de toque</string>
+    <string name="control_editor_edit_joystick_lock_events">Bloquear Eventos</string>
+    <string name="control_editor_edit_joystick_select_area">Selecione uma área para editar eventos</string>
+    <string name="control_editor_edit_joystick_style_list">Lista de estilos do joystick</string>
+    <string name="control_editor_edit_joystick_style_list_empty">Não há estilos de joystick no layout de controle atual</string>
+    <string name="control_editor_edit_joystick_style_list_name">Nome do estilo do joystick</string>
+    <string name="control_editor_edit_joystick_style_list_delete">Tem certeza de que deseja excluir o estilo de joystick mano? %s</string>
 </resources>
