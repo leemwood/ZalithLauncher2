@@ -1218,9 +1218,12 @@
     <string name="control_editor_edit_category_joystick_config">Cấu hình cần</string>
     <string name="control_editor_edit_category_joystick_style">Kiểu giao diện cần</string>
     <string name="control_editor_edit_size_joystick">Kích cỡ cần điều khiển</string>
-    <string name="control_editor_edit_category_joystick_events">Sự kiện điều hướng</string>
+    <string name="control_editor_edit_category_joystick_events">Sửa nhóm sự kiện joystick</string>
     <string name="control_editor_edit_size_reference">Kích thước chuẩn</string>
     <string name="control_editor_edit_joystick_dead_zone">Vùng chết</string>
     <string name="control_editor_edit_joystick_lock_threshold">Mốc khoá hướng</string>
-    <string name="control_editor_edit_joystick_can_lock">Khóa hướng</string>
+    <string name="control_editor_edit_joystick_can_lock">Cho phép khóa joystick</string>
+    <string name="control_editor_edit_joystick_trigger_mode">Kiểu kích hoạt</string>
+    <string name="control_editor_edit_joystick_trigger_mode_drag">Kéo để kích hoạt</string>
+    <string name="control_editor_edit_joystick_trigger_mode_touch">Chạm để kích hoạt</string>
 </resources>
