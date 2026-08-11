@@ -1233,15 +1233,4 @@
     <string name="settings_title_blur">Bulanıklık Etkisi</string>
     <string name="settings_launcher_background_blur_summary">Arka plan bulanıklık efektini ayarlayın. Bu seçenek önemli ölçüde performans tüketir.</string>
     <string name="settings_launcher_color_theme_style">Palet Sitili</string>
-    <!-- Favorites (资源收藏) -->
-    <string name="favorites_title">Favoriler</string>
-    <string name="favorites_tab_all">Tümü</string>
-    <string name="favorites_empty">Henüz favori yok. Kaynakları kaydetmek için kalp simgesine dokunun.</string>
-    <string name="favorites_no_version">Sürüm belirtilmedi</string>
-    <string name="favorites_hint_select_version">Favori tamamlamak için bir sürüm seçin</string>
-    <string name="favorites_add">Favorilere ekle</string>
-    <string name="favorites_remove">Favorilerden kaldır</string>
-    <string name="favorites_copy_link">İndirme bağlantısını kopyala</string>
-    <string name="favorites_link_copied">İndirme bağlantısı kopyalandı</string>
-    <string name="favorites_search_hint">Favorilerde ara</string>
 </resources>

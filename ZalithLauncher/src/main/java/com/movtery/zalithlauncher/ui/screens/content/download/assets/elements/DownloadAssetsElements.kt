@@ -84,8 +84,6 @@ import com.movtery.zalithlauncher.ui.components.IconTextButton
 import com.movtery.zalithlauncher.ui.components.LittleTextLabel
 import com.movtery.zalithlauncher.ui.components.ShimmerBox
 import com.movtery.zalithlauncher.ui.components.rememberMaxHeight
-import com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites.FavoriteAction
-import com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites.FavoriteToggleButton
 import com.movtery.zalithlauncher.ui.screens.content.elements.backgroundGlass
 import com.movtery.zalithlauncher.ui.theme.cardColor
 import com.movtery.zalithlauncher.ui.theme.onCardColor
@@ -218,6 +216,7 @@ private fun isVersionAdapt(
 
 /**
  * 资源版本分组可折叠列表
+ * @param trailingContent 版本行尾插槽（如收藏按钮），按行注入；为 null 时版本行保持原布局
  */
 @Composable
 fun AssetsVersionItemLayout(
@@ -229,7 +228,7 @@ fun AssetsVersionItemLayout(
     color: Color = cardColor(influencedByBackground),
     contentColor: Color = onCardColor(),
     blur: Int = AllSettings.backgroundBlur.state,
-    favoriteProvider: ((PlatformVersion) -> FavoriteAction?)? = null,
+    trailingContent: (@Composable (PlatformVersion) -> Unit)? = null,
     onItemClicked: (PlatformVersion) -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -274,7 +273,7 @@ fun AssetsVersionItemLayout(
                                         .fillMaxWidth()
                                         .padding(all = 4.dp),
                                     version = version,
-                                    favoriteAction = favoriteProvider?.invoke(version),
+                                    trailingContent = trailingContent,
                                     onClick = {
                                         onItemClicked(version)
                                     }
@@ -355,7 +354,7 @@ private fun AssetsVersionHeadLayout(
 private fun AssetsVersionListItem(
     modifier: Modifier = Modifier,
     version: PlatformVersion,
-    favoriteAction: FavoriteAction? = null,
+    trailingContent: (@Composable (PlatformVersion) -> Unit)? = null,
     onClick: () -> Unit = {}
 ) {
     Row(
@@ -387,7 +386,9 @@ private fun AssetsVersionListItem(
 
         //版本简要信息
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .padding(all = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
@@ -452,13 +453,8 @@ private fun AssetsVersionListItem(
             }
         }
 
-        //收藏按钮
-        favoriteAction?.let {
-            FavoriteToggleButton(
-                modifier = Modifier.padding(end = 4.dp),
-                favoriteAction = it
-            )
-        }
+        //行尾插槽（如收藏按钮），为 null 时不占位
+        trailingContent?.invoke(version)
     }
 }
 

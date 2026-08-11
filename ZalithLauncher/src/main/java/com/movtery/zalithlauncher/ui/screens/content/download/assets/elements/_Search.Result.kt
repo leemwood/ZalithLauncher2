@@ -61,6 +61,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,8 +81,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.movtery.zalithlauncher.R
-import com.movtery.zalithlauncher.game.download.assets.favorites.FavoriteManager
-import com.movtery.zalithlauncher.game.download.assets.favorites.toFavorite
+import com.movtery.zalithlauncher.game.download.assets.favorites.AssetFavoriteManager
+import com.movtery.zalithlauncher.game.download.assets.favorites.toAssetFavorite
 import com.movtery.zalithlauncher.game.download.assets.platform.Platform
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformClasses
 import com.movtery.zalithlauncher.game.download.assets.platform.PlatformDisplayLabel
@@ -94,8 +95,6 @@ import com.movtery.zalithlauncher.ui.AndroidStringText
 import com.movtery.zalithlauncher.ui.buildAppendedText
 import com.movtery.zalithlauncher.ui.components.ScalingLabel
 import com.movtery.zalithlauncher.ui.components.SmallOutlinedEditField
-import com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites.FavoriteAction
-import com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites.FavoriteToggleButton
 import com.movtery.zalithlauncher.ui.screens.content.elements.backgroundGlass
 import com.movtery.zalithlauncher.ui.theme.cardColor
 import com.movtery.zalithlauncher.ui.theme.onCardColor
@@ -366,7 +365,7 @@ private fun ResultList(
     swapToDownload: (Platform, projectId: String, iconUrl: String?) -> Unit = { _, _, _ -> }
 ) {
     val context = LocalContext.current
-    val favorites by FavoriteManager.assets.collectAsStateWithLifecycle()
+    val favoriteKeys by AssetFavoriteManager.favoriteKeys.collectAsStateWithLifecycle()
     LazyColumn(
         modifier = modifier,
         state = state,
@@ -384,21 +383,11 @@ private fun ResultList(
             val modloaders = remember(item) { item.platformModLoaders() }
             val categories = remember(item, classes) { item.platformCategories(classes) }
 
-            val isFavorite = remember(favorites, projectId, platform) {
-                FavoriteManager.isProjectFavorite(platform, projectId)
+            val isFavorite = remember(favoriteKeys, projectId, platform) {
+                AssetFavoriteManager.isProjectFavorite(platform, projectId)
             }
-            val favoriteAction = remember(isFavorite, item, classes) {
-                FavoriteAction(
-                    isFavorite = isFavorite,
-                    onToggle = {
-                        if (isFavorite) {
-                            FavoriteManager.removeProject(platform, projectId)
-                        } else {
-                            FavoriteManager.save(item.toFavorite(classes = classes))
-                        }
-                    }
-                )
-            }
+            //防止点击闭包捕获陈旧的收藏态
+            val currentIsFavorite by rememberUpdatedState(isFavorite)
 
             ResultProjectLayout(
                 modifier = Modifier
@@ -413,7 +402,19 @@ private fun ResultList(
                 follows = follows,
                 modloaders = modloaders,
                 categories = categories?.sortedWith { o1, o2 -> o1.index() - o2.index() },
-                favoriteAction = favoriteAction,
+                trailingContent = {
+                    FavoriteToggleButton(
+                        isFavorite = isFavorite,
+                        onToggle = {
+                            //项目收藏与版本收藏完全独立，这里只切换项目收藏
+                            if (currentIsFavorite) {
+                                AssetFavoriteManager.removeProject(platform, projectId)
+                            } else {
+                                AssetFavoriteManager.addProject(item.toAssetFavorite(classes))
+                            }
+                        }
+                    )
+                },
                 onClick = {
                     swapToDownload(platform, projectId, iconUrl)
                 }
@@ -440,7 +441,7 @@ fun ResultProjectLayout(
     color: Color = cardColor(influencedByBackground),
     contentColor: Color = onCardColor(),
     blur: Int = AllSettings.backgroundBlur.state,
-    favoriteAction: FavoriteAction? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
     onClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -480,7 +481,7 @@ fun ResultProjectLayout(
                     platform = platform,
                     title = title,
                     author = author,
-                    favoriteAction = favoriteAction
+                    trailingContent = trailingContent
                 )
 
                 Row(
@@ -583,7 +584,7 @@ fun ProjectTitleHead(
     platform: Platform,
     title: String,
     author: String?,
-    favoriteAction: FavoriteAction? = null
+    trailingContent: (@Composable () -> Unit)? = null
 ) {
     //标题栏、作者栏、平台标签
     Row(
@@ -622,10 +623,8 @@ fun ProjectTitleHead(
                 )
             }
         }
-        //收藏按钮
-        favoriteAction?.let {
-            FavoriteToggleButton(favoriteAction = it)
-        }
+        //行尾插槽（如收藏按钮），位于平台标签之前，为 null 时不占位
+        trailingContent?.invoke()
         //平台标签
         PlatformIdentifier(platform = platform)
     }

@@ -16,54 +16,48 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/gpl-3.0.txt>.
  */
 
-package com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites
+package com.movtery.zalithlauncher.ui.screens.content.download.assets.elements
 
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.movtery.zalithlauncher.R
 
 /**
- * 收藏操作回调，封装收藏态与切换逻辑
- */
-class FavoriteAction(
-    val isFavorite: Boolean,
-    val onToggle: () -> Unit
-)
-
-/**
- * 可复用的收藏切换按钮，用于搜索结果卡、下载详情页版本行、收藏列表卡片
+ * 收藏切换按钮（心形 filled/outlined 双态）
+ * @param isFavorite 当前是否已收藏：已收藏显示实心图标并按主题色着色，未收藏显示描边图标（沿用内容色，不显式 tint）
+ * @param onToggle 点击切换收藏状态的回调
+ * @param modifier 修饰符
+ * @param enabled 是否可点击
  */
 @Composable
 fun FavoriteToggleButton(
+    isFavorite: Boolean,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
-    favoriteAction: FavoriteAction
+    enabled: Boolean = true
 ) {
     IconButton(
-        modifier = modifier
-            .size(40.dp)
-            .clip(CircleShape),
-        onClick = favoriteAction.onToggle
+        modifier = modifier,
+        onClick = onToggle,
+        enabled = enabled
     ) {
         Icon(
             painter = painterResource(
-                if (favoriteAction.isFavorite) R.drawable.ic_favorite_filled
+                if (isFavorite) R.drawable.ic_favorite_filled
                 else R.drawable.ic_favorite_outlined
             ),
             contentDescription = stringResource(
-                if (favoriteAction.isFavorite) R.string.favorites_remove
-                else R.string.favorites_add
+                if (isFavorite) R.string.download_favorites_remove
+                else R.string.download_favorites_add
             ),
-            tint = if (favoriteAction.isFavorite) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurface
+            tint = if (isFavorite) MaterialTheme.colorScheme.primary
+            else LocalContentColor.current
         )
     }
 }
