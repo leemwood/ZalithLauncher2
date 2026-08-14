@@ -23,9 +23,15 @@ import android.content.res.Configuration
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -33,7 +39,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -67,10 +75,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.filemanager.logic.entry.FmEntry
 import com.movtery.zalithlauncher.filemanager.logic.ops.ConflictResolution
-import com.movtery.zalithlauncher.filemanager.logic.task.TaskState
 import com.movtery.zalithlauncher.filemanager.os.FmLog
-import com.movtery.zalithlauncher.filemanager.ui.animation.FmContentPhase
-import com.movtery.zalithlauncher.filemanager.ui.animation.FmContentTransition
 import com.movtery.zalithlauncher.filemanager.ui.components.FmAlertDialog
 import com.movtery.zalithlauncher.filemanager.ui.components.FmAppBar
 import com.movtery.zalithlauncher.filemanager.ui.components.FmBottomBar
@@ -100,6 +105,7 @@ import com.movtery.zalithlauncher.filemanager.viewmodel.DialogIntent
 import com.movtery.zalithlauncher.filemanager.viewmodel.FileManagerUiState
 import com.movtery.zalithlauncher.filemanager.viewmodel.FileManagerViewModel
 import com.movtery.zalithlauncher.filemanager.viewmodel.SearchUiState
+import com.movtery.zalithlauncher.filemanager.viewmodel.applyVisibility
 import com.movtery.zalithlauncher.utils.file.formatFileSize
 import com.movtery.zalithlauncher.utils.formatDate
 import kotlinx.coroutines.delay
@@ -129,7 +135,8 @@ private sealed interface FmOperation {
 fun FmMainPage(
     vm: FileManagerViewModel,
     snackHost: SnackbarHostState,
-    transition: FmContentTransition,
+    /** 返回手势透明度（1 = 完全可见），仅作用于内容区，不随顶栏 / 底栏 */
+    contentAlpha: Animatable<Float, AnimationVector1D>,
     onOpenTrash: () -> Unit,
     onExit: () -> Unit,
     onToggleOrientation: () -> Unit
@@ -139,6 +146,9 @@ fun FmMainPage(
     var operation by remember { mutableStateOf<FmOperation>(FmOperation.None) }
     val updateOperation: (FmOperation) -> Unit = { operation = it }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -218,7 +228,14 @@ fun FmMainPage(
                     contentColor = fmOnCardColor(),
                     shape = MaterialTheme.shapes.large
                 ) {
-                    MainContent(uiState, vm, updateOperation, transition)
+                    MainContent(
+                        uiState = uiState,
+                        vm = vm,
+                        updateOperation = updateOperation,
+                        listState = listState,
+                        gridState = gridState,
+                        contentAlpha = contentAlpha
+                    )
                 }
             }
         } else {
@@ -227,7 +244,14 @@ fun FmMainPage(
                     .fillMaxSize()
                     .padding(inner)
             ) {
-                MainContent(uiState, vm, updateOperation, transition)
+                MainContent(
+                    uiState = uiState,
+                    vm = vm,
+                    updateOperation = updateOperation,
+                    listState = listState,
+                    gridState = gridState,
+                    contentAlpha = contentAlpha
+                )
             }
         }
     }
@@ -247,37 +271,64 @@ private fun MainContent(
     uiState: FileManagerUiState,
     vm: FileManagerViewModel,
     updateOperation: (FmOperation) -> Unit,
-    transition: FmContentTransition
+    listState: LazyListState,
+    gridState: LazyGridState,
+    contentAlpha: Animatable<Float, AnimationVector1D>
 ) {
-    val branch = when {
-        uiState.taskState is TaskState.Busy && uiState.visibleEntries.isEmpty() -> 0 // 加载
-        uiState.visibleEntries.isEmpty() -> 1 // 空目录
-        else -> 2 // 列表
+    val rawList = uiState.rawList
+    val contentState = if (uiState.refreshing &&
+        (rawList == null || rawList.currentDir != uiState.currentDir)
+    ) {
+        null
+    } else {
+        rawList
     }
 
-    val progress by transition.progress.collectAsStateWithLifecycle()
-    val phase by transition.phase.collectAsStateWithLifecycle()
-    val inputBlocked by transition.inputBlocked.collectAsStateWithLifecycle()
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = contentAlpha.value }
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = 1f - progress }
-        ) {
-            when (branch) {
-                0 -> LoadingBox()
-                1 -> EmptyBox(stringResource(R.string.fm_empty_dir))
-                else -> EntryList(uiState, vm, updateOperation)
+        AnimatedContent(
+            targetState = contentState,
+            transitionSpec = {
+                fadeIn(tween(FmAnimations.FADE_IN_MS)) togetherWith
+                    fadeOut(tween(FmAnimations.FADE_OUT_MS))
+            },
+            label = "fm-content"
+        ) { state ->
+            when {
+                state == null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                else -> {
+                    // 按各帧自己的内容渲染
+                    val visible = remember(state, uiState.sortConfig, uiState.showHidden) {
+                        applyVisibility(state.entries, uiState.sortConfig, uiState.showHidden)
+                    }
+                    if (visible.isEmpty()) {
+                        EmptyBox(stringResource(R.string.fm_empty_dir))
+                    } else {
+                        EntryList(
+                            entries = visible,
+                            uiState = uiState,
+                            vm = vm,
+                            updateOperation = updateOperation,
+                            listState = listState,
+                            gridState = gridState
+                        )
+                    }
+                }
             }
         }
 
-        if (phase == FmContentPhase.FADING_OUT || phase == FmContentPhase.WAITING) {
-            CircularProgressIndicator(Modifier.align(Alignment.Center))
-        }
-        // 淡出期间透明拦截层
-        if (inputBlocked) {
+        // 刷新进行中，全屏透明输入拦截层
+        if (uiState.refreshing) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -295,17 +346,17 @@ private fun MainContent(
 
 @Composable
 private fun EntryList(
+    entries: List<FmEntry>,
     uiState: FileManagerUiState,
     vm: FileManagerViewModel,
-    updateOperation: (FmOperation) -> Unit
+    updateOperation: (FmOperation) -> Unit,
+    listState: LazyListState,
+    gridState: LazyGridState
 ) {
-    val entries = uiState.visibleEntries
     val cutPaths by remember(uiState.clipboard) {
         derivedStateOf { uiState.clipboard?.sources?.map { it.normalize().toAbsolutePath().toString() }?.toSet() ?: emptySet() }
     }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val gridState = rememberLazyGridState()
-    val listState = rememberLazyListState()
 
     fun selectionKey(entry: FmEntry): String =
         entry.path.normalize().toAbsolutePath().toString()
@@ -691,23 +742,6 @@ private fun FmMainDialogs(
             text = stringResource(R.string.fm_range_select_help_text),
             onDismiss = { updateOperation(FmOperation.None) }
         )
-    }
-}
-
-@Composable
-private fun LoadingBox() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
-            Text(
-                text = stringResource(R.string.generic_loading),
-                modifier = Modifier.padding(top = 12.dp),
-                color = fmSecondaryTextColor()
-            )
-        }
     }
 }
 

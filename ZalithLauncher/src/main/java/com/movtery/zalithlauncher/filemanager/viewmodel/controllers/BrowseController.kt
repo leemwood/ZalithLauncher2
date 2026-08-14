@@ -28,7 +28,6 @@ import com.movtery.zalithlauncher.filemanager.logic.FmResult
 import com.movtery.zalithlauncher.filemanager.logic.entry.FmEntry
 import com.movtery.zalithlauncher.filemanager.logic.entry.FmListResult
 import com.movtery.zalithlauncher.filemanager.os.FmLog
-import com.movtery.zalithlauncher.filemanager.ui.animation.FmContentTransition
 import com.movtery.zalithlauncher.filemanager.viewmodel.FmSnackbar
 import com.movtery.zalithlauncher.filemanager.viewmodel.FmStateStore
 import com.movtery.zalithlauncher.filemanager.viewmodel.RawList
@@ -39,16 +38,18 @@ import com.movtery.zalithlauncher.filemanager.viewmodel.persist
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG = "FmBrowse"
+
+/** 浏览任务被其它任务占用时的重试间隔 */
+private const val BUSY_RETRY_DELAY_MS = 150L
 
 /**
  * 浏览 / 导航控制器，负责目录列表刷新与导航历史管理
@@ -58,14 +59,13 @@ class BrowseController(
     private val logic: FileManagerLogic,
     private val scope: AccessScope,
     private val store: FmStateStore,
-    private val transition: FmContentTransition,
     private val coroutineScope: CoroutineScope
 ) {
-    @Volatile
+    private val refreshLock = Any()
+
     private var refreshJob: Job? = null
 
-    // 待处理的最新刷新目标：快速导航时中间目标被覆盖合并
-    @Volatile
+    /** 待处理的最新刷新目标：快速导航时中间目标被覆盖合并（仅允许在 [refreshLock] 内访问） */
     private var pendingTarget: Path? = null
 
     /**
@@ -73,9 +73,15 @@ class BrowseController(
      * @param target 目标目录；null 表示刷新当前路径
      */
     fun refreshDir(target: Path? = null) {
-        pendingTarget = target ?: store.history.currentPath
-        if (refreshJob?.isActive == true) return
-        refreshJob = coroutineScope.launch(Dispatchers.IO) { refreshPipeline() }
+        val t = target ?: store.history.currentPath
+        synchronized(refreshLock) {
+            pendingTarget = t
+            store.updateState {
+                it.copy(currentDir = t, refreshing = true)
+            }
+            if (refreshJob?.isActive == true) return
+            refreshJob = coroutineScope.launch(Dispatchers.IO) { refreshPipeline() }
+        }
     }
 
     /** 操作出错后刷新当前目录内容，使列表反映磁盘真实状态 */
@@ -84,46 +90,80 @@ class BrowseController(
     /** 目标刷新流水线：顺序处理刷新期间累积的最新目标。 */
     private suspend fun refreshPipeline() {
         while (true) {
-            val target = pendingTarget
+            val target = takePendingTarget()
             if (target == null) {
-                // 双读避免退出竞态
-                if (pendingTarget == null) break
+                val shouldExit = synchronized(refreshLock) {
+                    if (pendingTarget == null) {
+                        refreshJob = null
+                        true
+                    } else {
+                        false
+                    }
+                }
+                if (shouldExit) {
+                    store.updateState {
+                        it.copy(refreshing = false)
+                    }
+                    return
+                }
                 continue
             }
-            pendingTarget = null
             refreshOnce(target)
         }
     }
 
+    /** 原子取出最新待刷新目标 */
+    private fun takePendingTarget(): Path? = synchronized(refreshLock) {
+        val t = pendingTarget
+        pendingTarget = null
+        t
+    }
+
     private suspend fun refreshOnce(target: Path) {
         FmLog.info(TAG, "refreshList target=$target")
-        transition.fadeOut()
-        try {
-            var result = logic.browse(target)
-            while (result is FmResult.Rejected && currentCoroutineContext().isActive) {
-                yield()
-                result = logic.browse(target)
-            }
-            when (result) {
-                is FmResult.Ok -> {
+        // 任务被占用时等待重试，动画由 UI 层按内容状态驱动，流水线只负责数据
+        val result = browseAwaitingMutex(target) ?: return
+
+        if (target != store.history.currentPath) {
+            FmLog.info(TAG, "browse result stale, drop: $target")
+            return
+        }
+
+        when (result) {
+            is FmResult.Ok -> {
+                // 应用前二次校验，等待 / 应用间隙用户可能已导航走，过期结果不写入状态
+                if (result.value.currentDir == store.history.currentPath) {
                     FmLog.info(TAG, "browse ok: entries=${result.value.entries.size}, current=${result.value.currentDir}")
                     updateList(result.value)
-                }
-                is FmResult.Failed -> {
-                    FmLog.warn(TAG, "browse failed", result.error)
-                    store.emitSnackbar(FmSnackbar(result.error.message ?: store.stringResolver(R.string.fm_error_browse_failed)))
-                }
-                FmResult.Cancelled -> {
-                    FmLog.warn(TAG, "browse cancelled")
-                }
-                FmResult.Rejected -> {
-                    FmLog.warn(TAG, "browse rejected (busy)")
-                    store.emitSnackbar(FmSnackbar(store.stringResolver(R.string.fm_task_busy)))
+                } else {
+                    FmLog.info(TAG, "browse result stale at apply, drop: ${result.value.currentDir}")
                 }
             }
-        } finally {
-            withContext(NonCancellable) { transition.fadeIn() }
+            is FmResult.Failed -> {
+                FmLog.warn(TAG, "browse failed", result.error)
+                store.emitSnackbar(FmSnackbar(result.error.message ?: store.stringResolver(R.string.fm_error_browse_failed)))
+            }
+            FmResult.Cancelled -> {
+                FmLog.warn(TAG, "browse cancelled")
+            }
+            FmResult.Rejected -> {
+                FmLog.warn(TAG, "browse rejected (busy)")
+                store.emitSnackbar(FmSnackbar(store.stringResolver(R.string.fm_task_busy)))
+            }
         }
+    }
+
+    private suspend fun browseAwaitingMutex(target: Path): FmResult<FmListResult>? {
+        var result = logic.browse(target)
+        while (result is FmResult.Rejected && currentCoroutineContext().isActive) {
+            if (target != store.history.currentPath) {
+                FmLog.info(TAG, "browse abandoned (target changed): $target")
+                return null
+            }
+            delay(BUSY_RETRY_DELAY_MS.milliseconds)
+            result = logic.browse(target)
+        }
+        return result
     }
 
     /** 导航到目录（计入历史） */
@@ -269,7 +309,6 @@ class BrowseController(
         store.updateState {
             it.copy(
                 rawList = raw,
-                currentDir = raw.currentDir,
                 visibleEntries = visible
             )
         }

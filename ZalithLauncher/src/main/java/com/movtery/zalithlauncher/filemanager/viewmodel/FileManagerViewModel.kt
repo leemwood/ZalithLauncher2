@@ -32,7 +32,6 @@ import com.movtery.zalithlauncher.filemanager.logic.ops.ConflictResolution
 import com.movtery.zalithlauncher.filemanager.logic.task.TaskManager
 import com.movtery.zalithlauncher.filemanager.logic.task.TaskState
 import com.movtery.zalithlauncher.filemanager.logic.trash.TrashItem
-import com.movtery.zalithlauncher.filemanager.ui.animation.FmContentTransition
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.BrowseController
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.CompressController
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.DirectoryScanController
@@ -80,10 +79,7 @@ class FileManagerViewModel @Inject constructor(
 
     private val store = FmStateStore(context)
 
-    /** 列表内容“不透明闪烁”切换动画：由刷新流程与返回手势驱动，UI 只读观察。 */
-    val contentTransition = FmContentTransition()
-
-    private val browseCtr = BrowseController(logic, scope, store, contentTransition, viewModelScope)
+    private val browseCtr = BrowseController(logic, scope, store, viewModelScope)
     private val selectionCtr = SelectionController(store)
     private val pasteCtr = PasteController(logic, store, browseCtr, viewModelScope)
     private val compressCtr = CompressController(context, logic, store, browseCtr, viewModelScope)
@@ -92,7 +88,7 @@ class FileManagerViewModel @Inject constructor(
     private val searchCtr = SearchController(logic, taskManager, store, viewModelScope)
     private val directoryScanCtr = DirectoryScanController(store, viewModelScope)
     private val entryCtr = EntryController(context, logic, store, browseCtr, viewModelScope)
-    private val trashCtr = TrashController(logic, store, browseCtr, contentTransition, viewModelScope)
+    private val trashCtr = TrashController(logic, store, browseCtr, viewModelScope)
 
     val state: StateFlow<FileManagerUiState> get() = store.state
     val searchUi: StateFlow<SearchUiState> get() = store.searchUi
@@ -145,8 +141,6 @@ class FileManagerViewModel @Inject constructor(
     fun consumeBack(): Boolean {
         if (store.stateValue().multiSelect) {
             store.clearSelectionAndExitMulti()
-            // 返回手势提交时内容已被淡出；退多选不触发刷新，需显式淡入恢复
-            viewModelScope.launch { contentTransition.fadeIn() }
             return true
         }
         // 系统返回键视为返回上一层目录，而非后退到上一个访问的目录

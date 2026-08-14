@@ -58,8 +58,8 @@ object FmAnimations {
     const val SWIPE_BACK_MS = 220
     /** 定位高亮闪烁停留时长（ms） */
     const val LOCATE_HIGHLIGHT_MS = 1400L
-    /** 列表内容“不透明闪烁”淡出时长（ms） */
+    /** 内容切换淡出时长（ms） */
     const val FADE_OUT_MS = 120
-    /** 列表内容“不透明闪烁”淡入时长（ms） */
+    /** 内容切换淡入时长（ms） */
     const val FADE_IN_MS = 180
 }

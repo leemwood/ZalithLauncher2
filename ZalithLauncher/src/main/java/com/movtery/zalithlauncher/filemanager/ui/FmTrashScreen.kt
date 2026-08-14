@@ -21,8 +21,15 @@ package com.movtery.zalithlauncher.filemanager.ui
 import android.content.res.Configuration
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,7 +51,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,7 +75,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -80,14 +85,13 @@ import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.filemanager.config.FmConfig
 import com.movtery.zalithlauncher.filemanager.logic.ops.ConflictResolution
 import com.movtery.zalithlauncher.filemanager.logic.trash.TrashItem
-import com.movtery.zalithlauncher.filemanager.ui.animation.FmContentPhase
-import com.movtery.zalithlauncher.filemanager.ui.animation.FmContentTransition
 import com.movtery.zalithlauncher.filemanager.ui.components.AppBarSubTexts
 import com.movtery.zalithlauncher.filemanager.ui.components.FmAlertDialog
 import com.movtery.zalithlauncher.filemanager.ui.components.FmIcons
 import com.movtery.zalithlauncher.filemanager.ui.components.fmSwipeTrigger
 import com.movtery.zalithlauncher.filemanager.ui.dialogs.FmConflictDialog
 import com.movtery.zalithlauncher.filemanager.ui.dialogs.FmTrashPropertyDialog
+import com.movtery.zalithlauncher.filemanager.ui.theme.FmAnimations
 import com.movtery.zalithlauncher.filemanager.ui.theme.fmBackgroundColor
 import com.movtery.zalithlauncher.filemanager.ui.theme.fmCardColor
 import com.movtery.zalithlauncher.filemanager.ui.theme.fmOnBackgroundColor
@@ -129,7 +133,8 @@ private sealed interface FmTrashOperation {
 fun FmTrashScreen(
     vm: FileManagerViewModel,
     snackHost: SnackbarHostState,
-    transition: FmContentTransition,
+    /** 返回手势透明度 */
+    contentAlpha: Animatable<Float, AnimationVector1D>,
     onBack: () -> Unit,
     onExit: () -> Unit,
     onToggleOrientation: () -> Unit
@@ -223,7 +228,12 @@ fun FmTrashScreen(
                         contentColor = fmOnCardColor(),
                         shape = MaterialTheme.shapes.large
                     ) {
-                        TrashContent(vm, trash, updateTrashOperation, transition)
+                        TrashContent(
+                            vm = vm,
+                            trash = trash,
+                            updateTrashOperation = updateTrashOperation,
+                            contentAlpha = contentAlpha
+                        )
                     }
                 }
             }
@@ -236,7 +246,12 @@ fun FmTrashScreen(
                 if (trash == null) {
                     TrashStatusBox(stringResource(R.string.generic_loading))
                 } else {
-                    TrashContent(vm, trash, updateTrashOperation, transition)
+                    TrashContent(
+                        vm = vm,
+                        trash = trash,
+                        updateTrashOperation = updateTrashOperation,
+                        contentAlpha = contentAlpha
+                    )
                 }
             }
         }
@@ -255,104 +270,89 @@ private fun TrashContent(
     vm: FileManagerViewModel,
     trash: TrashViewState.Opened,
     updateTrashOperation: (FmTrashOperation) -> Unit,
-    transition: FmContentTransition
+    contentAlpha: Animatable<Float, AnimationVector1D>
 ) {
     val list = trash.trashListView
 
-    val progress by transition.progress.collectAsStateWithLifecycle()
-    val phase by transition.phase.collectAsStateWithLifecycle()
-    val inputBlocked by transition.inputBlocked.collectAsStateWithLifecycle()
+    val contentState = if (list.loading) null else list.items
+
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = contentAlpha.value }
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = 1f - progress }
-        ) {
-            if (list.loading) {
-                TrashStatusBox(stringResource(R.string.generic_loading))
-                return@Box
-            }
-            if (list.items.isEmpty()) {
-                TrashStatusBox(stringResource(R.string.fm_trash_empty))
-                return@Box
-            }
-
-            val rawItemByUuid = remember(trash.rawItems) {
-                trash.rawItems.associateBy { it.uuid }
-            }
-            val itemContent: @Composable (TrashItemView) -> Unit = { item ->
-                FmTrashItem(
-                    item = item,
-                    multiSelect = list.multiSelect,
-                    selected = item.uuid in list.selection,
-                    onClick = {
-                        if (list.multiSelect) vm.toggleTrashSelection(item.uuid)
-                    },
-                    onSwipeTrigger = {
-                        rawItemByUuid[item.uuid]?.let { vm.trashRangeSelect(it) }
-                    },
-                    onDetail = {
-                        rawItemByUuid[item.uuid]?.let { updateTrashOperation(FmTrashOperation.ItemDetail(it)) }
-                    },
-                    onMultiRestoreWithConfirm = {
-                        updateTrashOperation(FmTrashOperation.RestoreAllConfirm)
-                    },
-                    onMultiPurgeWithConfirm = {
-                        updateTrashOperation(FmTrashOperation.PurgeAllConfirm)
-                    },
-                    onRestoreWithConfirm = {
-                        rawItemByUuid[item.uuid]?.let { updateTrashOperation(FmTrashOperation.RestoreConfirm(it)) }
-                    },
-                    onPurgeWithConfirm = {
-                        rawItemByUuid[item.uuid]?.let { updateTrashOperation(FmTrashOperation.PurgeConfirm(it)) }
-                    }
-                )
-            }
-
-            val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-            val entries = list.items
-
-            if (isLandscape) {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 280.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(0.dp),
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    items(entries, key = { it.uuid }) {
-                        itemContent(it)
-                    }
+        AnimatedContent(
+            targetState = contentState,
+            transitionSpec = {
+                fadeIn(tween(FmAnimations.FADE_IN_MS)) togetherWith
+                    fadeOut(tween(FmAnimations.FADE_OUT_MS))
+            },
+            label = "fm-trash-content"
+        ) { items ->
+            when {
+                items == null -> {
+                    TrashStatusBox(stringResource(R.string.generic_loading))
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp)
-                ) {
-                    items(entries, key = { it.uuid }) {
-                        itemContent(it)
-                    }
+                items.isEmpty() -> {
+                    TrashStatusBox(stringResource(R.string.fm_trash_empty))
                 }
-            }
-        }
+                else -> {
+                    val rawItemByUuid = remember(trash.rawItems) {
+                        trash.rawItems.associateBy { it.uuid }
+                    }
+                    val itemContent: @Composable (TrashItemView) -> Unit = { item ->
+                        FmTrashItem(
+                            item = item,
+                            multiSelect = list.multiSelect,
+                            selected = item.uuid in list.selection,
+                            onClick = {
+                                if (list.multiSelect) vm.toggleTrashSelection(item.uuid)
+                            },
+                            onSwipeTrigger = {
+                                rawItemByUuid[item.uuid]?.let { vm.trashRangeSelect(it) }
+                            },
+                            onDetail = {
+                                rawItemByUuid[item.uuid]?.let { updateTrashOperation(FmTrashOperation.ItemDetail(it)) }
+                            },
+                            onMultiRestoreWithConfirm = {
+                                updateTrashOperation(FmTrashOperation.RestoreAllConfirm)
+                            },
+                            onMultiPurgeWithConfirm = {
+                                updateTrashOperation(FmTrashOperation.PurgeAllConfirm)
+                            },
+                            onRestoreWithConfirm = {
+                                rawItemByUuid[item.uuid]?.let { updateTrashOperation(FmTrashOperation.RestoreConfirm(it)) }
+                            },
+                            onPurgeWithConfirm = {
+                                rawItemByUuid[item.uuid]?.let { updateTrashOperation(FmTrashOperation.PurgeConfirm(it)) }
+                            }
+                        )
+                    }
 
-        if (phase == FmContentPhase.FADING_OUT || phase == FmContentPhase.WAITING) {
-            CircularProgressIndicator(Modifier.align(Alignment.Center))
-        }
-        // 淡出期间透明拦截层
-        if (inputBlocked) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                awaitPointerEvent().changes.forEach { it.consume() }
+                    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+                    if (isLandscape) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 280.dp),
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(0.dp),
+                            verticalArrangement = Arrangement.spacedBy(0.dp)
+                        ) {
+                            items(items, key = { it.uuid }) {
+                                itemContent(it)
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            items(items, key = { it.uuid }) {
+                                itemContent(it)
                             }
                         }
                     }
-            )
+                }
+            }
         }
     }
 }

@@ -20,6 +20,9 @@ package com.movtery.zalithlauncher.filemanager.ui
 
 import androidx.activity.ExperimentalActivityApi
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.SnackbarDuration
@@ -35,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavBackStack
@@ -44,6 +48,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.filemanager.ui.components.FmAlertDialog
 import com.movtery.zalithlauncher.filemanager.ui.dialogs.FmProgressDialog
+import com.movtery.zalithlauncher.filemanager.ui.theme.FmAnimations
 import com.movtery.zalithlauncher.filemanager.viewmodel.FileManagerViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
@@ -117,50 +122,70 @@ fun FileManagerRootScreen(
             val backStack = remember(vm) { NavBackStack<FmNavKey>(FmNavKey.FileManager) }
             val saveableStateHolder = rememberSaveableStateHolder()
 
-            val transition = vm.contentTransition
             val isTrashOpen = backStack.size > 1
             val atRoot = uiState.rawList?.let { it.currentDir == it.rootDir } ?: false
             val backHandledInApp = isTrashOpen || uiState.multiSelect || !atRoot
 
-            NavDisplay(
-                backStack = backStack,
-                entryProvider = entryProvider {
-                    entry<FmNavKey.FileManager> {
-                        saveableStateHolder.SaveableStateProvider("fm_main") {
-                            FmMainPage(
+            val gestureAlpha = remember { Animatable(1f) }
+            var gestureActive by remember { mutableStateOf(false) }
+
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                NavDisplay(
+                    backStack = backStack,
+                    entryProvider = entryProvider {
+                        entry<FmNavKey.FileManager> {
+                            saveableStateHolder.SaveableStateProvider("fm_main") {
+                                FmMainPage(
+                                    vm = vm,
+                                    snackHost = snackHost,
+                                    contentAlpha = gestureAlpha,
+                                    onOpenTrash = { backStack.openTrash() },
+                                    onExit = onExit,
+                                    onToggleOrientation = onToggleOrientation
+                                )
+                            }
+                        }
+                        entry<FmNavKey.Trash> {
+                            FmTrashScreen(
                                 vm = vm,
                                 snackHost = snackHost,
-                                transition = transition,
-                                onOpenTrash = { backStack.openTrash() },
+                                contentAlpha = gestureAlpha,
+                                onBack = {
+                                    vm.closeTrash()
+                                    backStack.closeTrash()
+                                },
                                 onExit = onExit,
                                 onToggleOrientation = onToggleOrientation
                             )
                         }
                     }
-                    entry<FmNavKey.Trash> {
-                        FmTrashScreen(
-                            vm = vm,
-                            snackHost = snackHost,
-                            transition = transition,
-                            onBack = {
-                                vm.closeTrash()
-                                backStack.closeTrash()
-                            },
-                            onExit = onExit,
-                            onToggleOrientation = onToggleOrientation
-                        )
-                    }
+                )
+
+                if (gestureActive) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        awaitPointerEvent().changes.forEach { it.consume() }
+                                    }
+                                }
+                            }
+                    )
                 }
-            )
+            }
 
             PredictiveBackHandler(enabled = backHandledInApp) { progressFlow ->
+                gestureActive = true
                 try {
                     // 流正常结束 = 手势提交
                     progressFlow.collect { event ->
-                        transition.followGesture(event.progress)
+                        gestureAlpha.snapTo(1f - event.progress)
                     }
-                    // 完成淡出，淡入由刷新流程 / consumeBack 的 fadeIn 接管
-                    transition.commitGesture()
+
                     if (backStack.size > 1) {
                         vm.closeTrash()
                         backStack.closeTrash()
@@ -168,12 +193,17 @@ fun FileManagerRootScreen(
                         // 根目录之上，退出文件管理器
                         onExit()
                     }
+                    if (gestureAlpha.value < 1f) {
+                        gestureAlpha.animateTo(1f, tween(FmAnimations.FADE_IN_MS))
+                    }
                 } catch (e: CancellationException) {
                     // 手势取消：onBack 协程已被取消，须在 NonCancellable 中执行回弹动画
                     withContext(NonCancellable) {
-                        transition.cancelGesture()
+                        gestureAlpha.animateTo(1f, spring())
                     }
                     throw e
+                } finally {
+                    gestureActive = false
                 }
             }
 

@@ -27,7 +27,6 @@ import com.movtery.zalithlauncher.filemanager.logic.FmResult
 import com.movtery.zalithlauncher.filemanager.logic.ops.ConflictResolution
 import com.movtery.zalithlauncher.filemanager.logic.trash.RestoreResult
 import com.movtery.zalithlauncher.filemanager.logic.trash.TrashItem
-import com.movtery.zalithlauncher.filemanager.ui.animation.FmContentTransition
 import com.movtery.zalithlauncher.filemanager.viewmodel.DialogIntent
 import com.movtery.zalithlauncher.filemanager.viewmodel.FmSnackbar
 import com.movtery.zalithlauncher.filemanager.viewmodel.FmStateStore
@@ -38,11 +37,9 @@ import com.movtery.zalithlauncher.filemanager.viewmodel.TrashViewState
 import com.movtery.zalithlauncher.filemanager.viewmodel.persist
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 
 /** 回收站控制器 */
@@ -50,7 +47,6 @@ class TrashController(
     private val logic: FileManagerLogic,
     private val store: FmStateStore,
     private val browse: BrowseController,
-    private val transition: FmContentTransition,
     private val coroutineScope: CoroutineScope
 ) {
     /** 回收站多选集合 */
@@ -94,28 +90,21 @@ class TrashController(
     }
 
     suspend fun reloadTrash() {
-        transition.fadeOut()
-        try {
-            var result = logic.trashList()
+        var result = logic.trashList()
 
-            while (result is FmResult.Rejected && currentCoroutineContext().isActive) {
-                yield()
-                result = logic.trashList()
+        while (result is FmResult.Rejected && currentCoroutineContext().isActive) {
+            yield()
+            result = logic.trashList()
+        }
+        when (result) {
+            is FmResult.Ok -> updateTrashListView(result.value)
+            is FmResult.Failed -> {
+                store.emitSnackbar(FmSnackbar(result.error.message ?: store.stringResolver(R.string.fm_error_trash_load_failed)))
             }
-            when (result) {
-                is FmResult.Ok -> updateTrashListView(result.value)
-                is FmResult.Failed -> {
-                    store.emitSnackbar(FmSnackbar(result.error.message ?: store.stringResolver(R.string.fm_error_trash_load_failed)))
-                }
-                FmResult.Rejected -> {
-                    store.emitSnackbar(FmSnackbar(store.stringResolver(R.string.fm_task_busy)))
-                }
-                FmResult.Cancelled -> {}
+            FmResult.Rejected -> {
+                store.emitSnackbar(FmSnackbar(store.stringResolver(R.string.fm_task_busy)))
             }
-        } finally {
-            withContext(NonCancellable) {
-                transition.fadeIn()
-            }
+            FmResult.Cancelled -> {}
         }
     }
 

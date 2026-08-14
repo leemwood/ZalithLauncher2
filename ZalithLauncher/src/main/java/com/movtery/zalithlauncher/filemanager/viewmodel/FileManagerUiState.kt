@@ -57,6 +57,8 @@ data class SearchHitView(
 /** 文件管理器状态集合 */
 data class FileManagerUiState(
     val currentDir: Path? = null,
+    /** 刷新流水线是否运行中 */
+    val refreshing: Boolean = false,
     val visibleEntries: List<FmEntry> = emptyList(),
     val rawList: RawList? = null,
     val folderCount: Int = 0,
