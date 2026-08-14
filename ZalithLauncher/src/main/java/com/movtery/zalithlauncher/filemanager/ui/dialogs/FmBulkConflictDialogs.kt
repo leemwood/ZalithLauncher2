@@ -31,6 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemColors
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
@@ -38,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -103,7 +104,10 @@ fun FmBulkActionsDialog(
             FmBulkActionItem(
                 text = stringResource(R.string.generic_delete),
                 icon = painterResource(R.drawable.ic_delete_filled),
-                destructive = true,
+                colors = ListItemDefaults.colors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                    leadingContentColor = MaterialTheme.colorScheme.error
+                ),
                 onClick = {
                     onDismiss()
                     onDelete()
@@ -132,25 +136,21 @@ fun FmBulkActionsDialog(
 private fun FmBulkActionItem(
     text: String,
     icon: Painter,
-    destructive: Boolean = false,
-    destructiveColor: Color = MaterialTheme.colorScheme.error,
+    colors: ListItemColors = ListItemDefaults.colors(),
     onClick: () -> Unit
 ) {
     ListItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
+        colors = colors,
         headlineContent = {
-            Text(
-                text = text,
-                color = if (destructive) destructiveColor else Color.Unspecified
-            )
+            Text(text = text)
         },
         leadingContent = {
             Icon(
                 painter = icon,
-                contentDescription = null,
-                tint = if (destructive) destructiveColor else Color.Unspecified
+                contentDescription = null
             )
         }
     )
