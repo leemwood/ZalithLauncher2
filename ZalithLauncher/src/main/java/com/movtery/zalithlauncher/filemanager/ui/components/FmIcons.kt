@@ -56,6 +56,7 @@ object FmIcons {
     fun IconFor(
         name: String,
         isDirectory: Boolean,
+        modifier: Modifier = Modifier,
         size: Dp = 28.dp,
     ) {
         val painter = if (isDirectory) {
@@ -64,7 +65,7 @@ object FmIcons {
             forFile(name)
         }
         Icon(
-            modifier = Modifier.size(size),
+            modifier = modifier.size(size),
             painter = painter,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.secondary

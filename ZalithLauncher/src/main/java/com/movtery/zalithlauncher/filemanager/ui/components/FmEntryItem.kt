@@ -21,16 +21,16 @@ package com.movtery.zalithlauncher.filemanager.ui.components
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -43,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -81,13 +82,15 @@ fun FmEntryItem(
     val selectionColor = fmSelectionColor()
     val unselectionColor = selectionColor.copy(alpha = 0f)
     val bg by animateColorAsState(
-        if (selected || cutMarked || highlighted) {
+        if (selected || highlighted) {
             selectionColor
         } else {
             unselectionColor
         }
     )
-    val contentAlpha = if (cutMarked) 0.55f else 1f
+    val contentAlpha by animateFloatAsState(
+        if (cutMarked) 0.6f else 1f
+    )
 
     Row(
         modifier = modifier
@@ -122,17 +125,11 @@ fun FmEntryItem(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         //图标
-        Box(contentAlignment = Alignment.BottomEnd) {
-            Box(
-                modifier = Modifier.size(40.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                FmIcons.IconFor(
-                    name = entry.name,
-                    isDirectory = entry.isDirectory,
-                )
-            }
-        }
+        FmIcons.IconFor(
+            modifier = Modifier.alpha(contentAlpha),
+            name = entry.name,
+            isDirectory = entry.isDirectory,
+        )
 
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -154,17 +151,20 @@ fun FmEntryItem(
                 )
             }
 
-            Column {
+            Column(
+                modifier = Modifier.alpha(contentAlpha)
+            ) {
                 Text(
+                    modifier = Modifier.fillMaxWidth(),
                     text = entry.name,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = fmOnCardColor().copy(alpha = contentAlpha),
+                    color = fmOnCardColor(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 EntrySubtitle(
-                    entry = entry,
-                    contentAlpha = contentAlpha
+                    modifier = Modifier.fillMaxWidth(),
+                    entry = entry
                 )
             }
         }
@@ -174,7 +174,6 @@ fun FmEntryItem(
 @Composable
 private fun EntrySubtitle(
     entry: FmEntry,
-    contentAlpha: Float,
     modifier: Modifier = Modifier
 ) {
     @Composable
@@ -184,14 +183,14 @@ private fun EntrySubtitle(
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = fmSecondaryTextColor().copy(alpha = contentAlpha),
+            color = fmSecondaryTextColor(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
     }
 
     Row(
-        modifier = modifier,
+        modifier = modifier.basicMarquee(Int.MAX_VALUE),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
