@@ -286,6 +286,14 @@ class BrowseController(
         refreshCurrentDir()
     }
 
+    /**
+     * 目录被删除后清理导航历史
+     */
+    fun pruneHistory(deleted: Path) {
+        store.history.pruneDeleted(deleted)
+        syncNavState()
+    }
+
     /** 应用排序配置并重算可见列表 */
     fun setSortConfig(config: SortConfig) {
         config.persist()

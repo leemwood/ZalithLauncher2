@@ -64,21 +64,13 @@ class NavHistory(initialCurrent: Path) {
     }
 
     /**
-     * 目录被删除后清理历史：移除位于被删目录内（含自身）的历史条目，
-     * 并截断后退栈中该条目及其以前（更早）的历史，避免导航进入已删除的目录。
+     * 目录被删除后清理历史
      */
     fun pruneDeleted(deleted: Path) {
-        fun inside(p: Path): Boolean = p == deleted || p.startsWith(deleted)
-
-        val back = backStack.toList()
-        val firstInvalid = back.indexOfFirst { inside(it) }
-        if (firstInvalid >= 0) {
-            backStack.clear()
-            back.drop(firstInvalid + 1).filterNot { inside(it) }.forEach { backStack.addLast(it) }
+        fun inside(p: Path): Boolean {
+            return p == deleted || p.startsWith(deleted)
         }
-
-        if (forwardStack.any { inside(it) }) {
-            forwardStack.clear()
-        }
+        backStack.removeAll { inside(it) }
+        forwardStack.removeAll { inside(it) }
     }
 }

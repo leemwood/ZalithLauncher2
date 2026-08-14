@@ -200,7 +200,7 @@ class EntryController(
                 is FmResult.Ok -> {
                     r.value.results
                         .filter { it.success && it.path in dirTargets }
-                        .forEach { store.history.pruneDeleted(it.path) }
+                        .forEach { browse.pruneHistory(it.path) }
                     browse.notifyFileChanged(
                         FileManagerEvent(
                             FileManagerEvent.Type.DELETE,
