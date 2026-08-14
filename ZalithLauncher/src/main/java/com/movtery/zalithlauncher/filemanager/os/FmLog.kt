@@ -120,10 +120,12 @@ object FmLog {
         val formatted = formatMessage(message)
         printToLogcat(message)
 
-        logWriter?.apply {
-            println(formatted)
-            message.throwable?.also { th -> th.printStackTrace(this) }
-            flush()
+        runCatching {
+            logWriter?.apply {
+                println(formatted)
+                message.throwable?.also { th -> th.printStackTrace(this) }
+                flush()
+            }
         }
     }
 

@@ -35,6 +35,7 @@ import com.movtery.zalithlauncher.filemanager.viewmodel.SortConfig
 import com.movtery.zalithlauncher.filemanager.viewmodel.applyVisibility
 import com.movtery.zalithlauncher.filemanager.viewmodel.entryPathKey
 import com.movtery.zalithlauncher.filemanager.viewmodel.persist
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -108,7 +109,14 @@ class BrowseController(
                 }
                 continue
             }
-            refreshOnce(target)
+            try {
+                refreshOnce(target)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                FmLog.warn(TAG, "refresh pipeline error for $target", e)
+                store.emitSnackbar(FmSnackbar(store.stringResolver(R.string.fm_error_browse_failed)))
+            }
         }
     }
 
@@ -142,6 +150,13 @@ class BrowseController(
             is FmResult.Failed -> {
                 FmLog.warn(TAG, "browse failed", result.error)
                 store.emitSnackbar(FmSnackbar(result.error.message ?: store.stringResolver(R.string.fm_error_browse_failed)))
+                // 导航失败，恢复显示最后成功的目录，
+                // 避免路径栏停留在失效路径、内容与路径不一致
+                val lastGood = store.stateValue().rawList?.currentDir
+                if (lastGood != null && target != lastGood) {
+                    FmLog.info(TAG, "browse failed for navigation target, revert to: $lastGood")
+                    store.updateState { it.copy(currentDir = lastGood) }
+                }
             }
             FmResult.Cancelled -> {
                 FmLog.warn(TAG, "browse cancelled")
