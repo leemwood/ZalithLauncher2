@@ -194,6 +194,8 @@ abstract class Launcher(
             put("jdk.lang.Process.launchMechanism", "FORK")
 
             put("sodium.checks.issue2561", "false")
+            
+            put("cpu.name", getSocName())
 
             putJavaArgs()
         }.map { entry ->
@@ -501,4 +503,19 @@ fun getCacioJavaArgs(
     argsList.add(cacioClassPath.toString())
 
     return argsList
+}
+
+/**
+ * 获取设备 SoC 名称，在 API 31+ 读取系统属性 ro.soc.model，若失败则返回 Build.HARDWARE
+ */
+fun getSocName(): String {
+    return runCatching {
+        ProcessBuilder("getprop", "ro.soc.model")
+            .start()
+            .inputStream
+            .bufferedReader()
+            .use { reader ->
+                reader.readLine()
+            }
+    }.getOrNull()?.takeIf { it.isNotBlank() } ?: Build.HARDWARE
 }
