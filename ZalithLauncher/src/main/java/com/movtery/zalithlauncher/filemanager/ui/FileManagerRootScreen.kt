@@ -1,0 +1,209 @@
+/*
+ * Zalith Launcher 2
+ * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/gpl-3.0.txt>.
+ */
+
+package com.movtery.zalithlauncher.filemanager.ui
+
+import androidx.activity.ExperimentalActivityApi
+import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.ui.NavDisplay
+import com.movtery.zalithlauncher.R
+import com.movtery.zalithlauncher.filemanager.ui.components.FmAlertDialog
+import com.movtery.zalithlauncher.filemanager.ui.dialogs.FmProgressDialog
+import com.movtery.zalithlauncher.filemanager.viewmodel.FileManagerViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+
+@Serializable
+sealed interface FmNavKey : NavKey {
+    /**
+     * 文件管理器主页面
+     */
+    @Serializable
+    data object FileManager : FmNavKey
+
+    /**
+     * 回收站页面
+     */
+    @Serializable
+    data object Trash : FmNavKey
+}
+
+/**
+ * 文件管理器根界面
+ * @param initResult 初始化结果
+ * @param vm 文件管理器视图模型
+ * @param onExit 退出文件管理器的回调
+ * @param onToggleOrientation 横竖屏切换回调
+ */
+@OptIn(ExperimentalActivityApi::class)
+@Composable
+fun FileManagerRootScreen(
+    initResult: FileManagerInitResult,
+    vm: FileManagerViewModel?,
+    onExit: () -> Unit = {},
+    onToggleOrientation: () -> Unit = {}
+) {
+    val snackHost = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val uiState = vm?.state?.collectAsStateWithLifecycle()?.value
+
+    LaunchedEffect(uiState?.snackbar) {
+        val s = uiState?.snackbar ?: return@LaunchedEffect
+        scope.launch {
+            snackHost.showSnackbar(
+                message = s.text,
+                withDismissAction = true,
+                duration = if (s.long) SnackbarDuration.Long else SnackbarDuration.Short
+            )
+        }
+        vm.consumeSnackbar()
+    }
+
+    // 错误事件收集
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(vm) {
+        vm?.errorEvents?.collect { errorMessage = it }
+    }
+
+    when {
+        initResult is FileManagerInitResult.Pending -> {
+            InitBox(stringResource(R.string.fm_initializing))
+        }
+        initResult is FileManagerInitResult.Failed -> {
+            InitBox(stringResource(R.string.fm_init_failed, initResult.message))
+        }
+        vm == null || uiState == null -> {
+            InitBox(stringResource(R.string.generic_loading))
+        }
+        else -> {
+            val backStack = remember(vm) { NavBackStack<FmNavKey>(FmNavKey.FileManager) }
+            val saveableStateHolder = rememberSaveableStateHolder()
+
+            val transition = vm.contentTransition
+            val isTrashOpen = backStack.size > 1
+            val atRoot = uiState.rawList?.let { it.currentDir == it.rootDir } ?: false
+            val backHandledInApp = isTrashOpen || uiState.multiSelect || !atRoot
+
+            NavDisplay(
+                backStack = backStack,
+                entryProvider = entryProvider {
+                    entry<FmNavKey.FileManager> {
+                        saveableStateHolder.SaveableStateProvider("fm_main") {
+                            FmMainPage(
+                                vm = vm,
+                                snackHost = snackHost,
+                                transition = transition,
+                                onOpenTrash = { backStack.openTrash() },
+                                onExit = onExit,
+                                onToggleOrientation = onToggleOrientation
+                            )
+                        }
+                    }
+                    entry<FmNavKey.Trash> {
+                        FmTrashScreen(
+                            vm = vm,
+                            snackHost = snackHost,
+                            transition = transition,
+                            onBack = {
+                                vm.closeTrash()
+                                backStack.closeTrash()
+                            },
+                            onExit = onExit,
+                            onToggleOrientation = onToggleOrientation
+                        )
+                    }
+                }
+            )
+
+            PredictiveBackHandler(enabled = backHandledInApp) { progressFlow ->
+                try {
+                    // 流正常结束 = 手势提交
+                    progressFlow.collect { event ->
+                        transition.followGesture(event.progress)
+                    }
+                    // 完成淡出，淡入由刷新流程 / consumeBack 的 fadeIn 接管
+                    transition.commitGesture()
+                    if (backStack.size > 1) {
+                        vm.closeTrash()
+                        backStack.closeTrash()
+                    } else if (!vm.consumeBack()) {
+                        // 根目录之上，退出文件管理器
+                        onExit()
+                    }
+                } catch (e: CancellationException) {
+                    // 手势取消：onBack 协程已被取消，须在 NonCancellable 中执行回弹动画
+                    withContext(NonCancellable) {
+                        transition.cancelGesture()
+                    }
+                    throw e
+                }
+            }
+
+            // 错误对话框
+            errorMessage?.let { message ->
+                FmAlertDialog(
+                    title = stringResource(R.string.generic_error),
+                    text = message,
+                    onDismiss = { errorMessage = null }
+                )
+            }
+
+            // 进度弹窗
+            val progress = uiState.taskProgress
+            if (progress != null && progress.kind.shouldShowProgressDialog) {
+                FmProgressDialog(
+                    progress = progress,
+                    onCancel = { vm.cancelCurrentTask() }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InitBox(text: String) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = text)
+    }
+}
