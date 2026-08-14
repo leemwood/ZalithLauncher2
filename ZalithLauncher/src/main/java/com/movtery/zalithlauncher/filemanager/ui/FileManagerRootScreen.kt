@@ -23,10 +23,14 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -50,6 +55,7 @@ import com.movtery.zalithlauncher.filemanager.ui.components.FmAlertDialog
 import com.movtery.zalithlauncher.filemanager.ui.dialogs.FmProgressDialog
 import com.movtery.zalithlauncher.filemanager.ui.theme.FmAnimations
 import com.movtery.zalithlauncher.filemanager.viewmodel.FileManagerViewModel
+import com.movtery.zalithlauncher.filemanager.viewmodel.FmInitState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
@@ -105,6 +111,7 @@ fun FileManagerRootScreen(
     // 错误事件收集
     var errorMessage by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(vm) {
+        vm?.initialize()
         vm?.errorEvents?.collect { errorMessage = it }
     }
 
@@ -113,127 +120,151 @@ fun FileManagerRootScreen(
             InitBox(stringResource(R.string.fm_initializing))
         }
         initResult is FileManagerInitResult.Failed -> {
-            InitBox(stringResource(R.string.fm_init_failed, initResult.message))
+            InitBox(stringResource(R.string.fm_init_failed, initResult.message), false)
         }
         vm == null || uiState == null -> {
             InitBox(stringResource(R.string.generic_loading))
         }
         else -> {
-            val backStack = remember(vm) { NavBackStack<FmNavKey>(FmNavKey.FileManager) }
-            val saveableStateHolder = rememberSaveableStateHolder()
+            val initState by vm.initState.collectAsStateWithLifecycle()
+            when (val state = initState) {
+                is FmInitState.Pending -> {
+                    InitBox(stringResource(R.string.generic_loading))
+                }
+                is FmInitState.Failed -> {
+                    InitBox(stringResource(R.string.fm_init_failed, state.message), false)
+                }
+                FmInitState.Ready -> {
+                    val backStack = remember(vm) { NavBackStack<FmNavKey>(FmNavKey.FileManager) }
+                    val saveableStateHolder = rememberSaveableStateHolder()
 
-            val isTrashOpen = backStack.size > 1
-            val atRoot = uiState.rawList?.let { it.currentDir == it.rootDir } ?: false
-            val backHandledInApp = isTrashOpen || uiState.multiSelect || !atRoot
+                    val isTrashOpen = backStack.size > 1
+                    val atRoot = uiState.rawList?.let { it.currentDir == it.rootDir } ?: false
+                    val backHandledInApp = isTrashOpen || uiState.multiSelect || !atRoot
 
-            val gestureAlpha = remember { Animatable(1f) }
-            var gestureActive by remember { mutableStateOf(false) }
+                    val gestureAlpha = remember { Animatable(1f) }
+                    var gestureActive by remember { mutableStateOf(false) }
 
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                NavDisplay(
-                    backStack = backStack,
-                    entryProvider = entryProvider {
-                        entry<FmNavKey.FileManager> {
-                            saveableStateHolder.SaveableStateProvider("fm_main") {
-                                FmMainPage(
-                                    vm = vm,
-                                    snackHost = snackHost,
-                                    contentAlpha = gestureAlpha,
-                                    onOpenTrash = { backStack.openTrash() },
-                                    onExit = onExit,
-                                    onToggleOrientation = onToggleOrientation
-                                )
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        NavDisplay(
+                            backStack = backStack,
+                            entryProvider = entryProvider {
+                                entry<FmNavKey.FileManager> {
+                                    saveableStateHolder.SaveableStateProvider("fm_main") {
+                                        FmMainPage(
+                                            vm = vm,
+                                            snackHost = snackHost,
+                                            contentAlpha = gestureAlpha,
+                                            onOpenTrash = { backStack.openTrash() },
+                                            onExit = onExit,
+                                            onToggleOrientation = onToggleOrientation
+                                        )
+                                    }
+                                }
+                                entry<FmNavKey.Trash> {
+                                    FmTrashScreen(
+                                        vm = vm,
+                                        snackHost = snackHost,
+                                        contentAlpha = gestureAlpha,
+                                        onBack = {
+                                            vm.closeTrash()
+                                            backStack.closeTrash()
+                                        },
+                                        onExit = onExit,
+                                        onToggleOrientation = onToggleOrientation
+                                    )
+                                }
                             }
-                        }
-                        entry<FmNavKey.Trash> {
-                            FmTrashScreen(
-                                vm = vm,
-                                snackHost = snackHost,
-                                contentAlpha = gestureAlpha,
-                                onBack = {
-                                    vm.closeTrash()
-                                    backStack.closeTrash()
-                                },
-                                onExit = onExit,
-                                onToggleOrientation = onToggleOrientation
+                        )
+
+                        if (gestureActive) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .pointerInput(Unit) {
+                                        awaitPointerEventScope {
+                                            while (true) {
+                                                awaitPointerEvent().changes.forEach { it.consume() }
+                                            }
+                                        }
+                                    }
                             )
                         }
                     }
-                )
 
-                if (gestureActive) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(Unit) {
-                                awaitPointerEventScope {
-                                    while (true) {
-                                        awaitPointerEvent().changes.forEach { it.consume() }
-                                    }
-                                }
+                    PredictiveBackHandler(enabled = backHandledInApp) { progressFlow ->
+                        gestureActive = true
+                        try {
+                            // 流正常结束 = 手势提交
+                            progressFlow.collect { event ->
+                                gestureAlpha.snapTo(1f - event.progress)
                             }
-                    )
+
+                            if (backStack.size > 1) {
+                                vm.closeTrash()
+                                backStack.closeTrash()
+                            } else if (!vm.consumeBack()) {
+                                // 根目录之上，退出文件管理器
+                                onExit()
+                            }
+                            if (gestureAlpha.value < 1f) {
+                                gestureAlpha.animateTo(1f, tween(FmAnimations.FADE_IN_MS))
+                            }
+                        } catch (e: CancellationException) {
+                            // 手势取消：onBack 协程已被取消，须在 NonCancellable 中执行回弹动画
+                            withContext(NonCancellable) {
+                                gestureAlpha.animateTo(1f, spring())
+                            }
+                            throw e
+                        } finally {
+                            gestureActive = false
+                        }
+                    }
+
+                    // 错误对话框
+                    errorMessage?.let { message ->
+                        FmAlertDialog(
+                            title = stringResource(R.string.generic_error),
+                            text = message,
+                            onDismiss = { errorMessage = null }
+                        )
+                    }
+
+                    // 进度弹窗
+                    val progress = uiState.taskProgress
+                    if (progress != null && progress.kind.shouldShowProgressDialog) {
+                        FmProgressDialog(
+                            progress = progress,
+                            onCancel = { vm.cancelCurrentTask() }
+                        )
+                    }
                 }
-            }
-
-            PredictiveBackHandler(enabled = backHandledInApp) { progressFlow ->
-                gestureActive = true
-                try {
-                    // 流正常结束 = 手势提交
-                    progressFlow.collect { event ->
-                        gestureAlpha.snapTo(1f - event.progress)
-                    }
-
-                    if (backStack.size > 1) {
-                        vm.closeTrash()
-                        backStack.closeTrash()
-                    } else if (!vm.consumeBack()) {
-                        // 根目录之上，退出文件管理器
-                        onExit()
-                    }
-                    if (gestureAlpha.value < 1f) {
-                        gestureAlpha.animateTo(1f, tween(FmAnimations.FADE_IN_MS))
-                    }
-                } catch (e: CancellationException) {
-                    // 手势取消：onBack 协程已被取消，须在 NonCancellable 中执行回弹动画
-                    withContext(NonCancellable) {
-                        gestureAlpha.animateTo(1f, spring())
-                    }
-                    throw e
-                } finally {
-                    gestureActive = false
-                }
-            }
-
-            // 错误对话框
-            errorMessage?.let { message ->
-                FmAlertDialog(
-                    title = stringResource(R.string.generic_error),
-                    text = message,
-                    onDismiss = { errorMessage = null }
-                )
-            }
-
-            // 进度弹窗
-            val progress = uiState.taskProgress
-            if (progress != null && progress.kind.shouldShowProgressDialog) {
-                FmProgressDialog(
-                    progress = progress,
-                    onCancel = { vm.cancelCurrentTask() }
-                )
             }
         }
     }
 }
 
 @Composable
-private fun InitBox(text: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+private fun InitBox(
+    text: String,
+    showProgress: Boolean = true
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize()
     ) {
-        Text(text = text)
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if (showProgress) CircularProgressIndicator()
+                Text(text = text)
+            }
+        }
     }
 }

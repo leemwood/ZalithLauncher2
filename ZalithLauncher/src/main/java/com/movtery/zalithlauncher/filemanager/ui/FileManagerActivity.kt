@@ -29,7 +29,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.os.bundleOf
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.DEFAULT_ARGS_KEY
@@ -37,15 +36,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.MutableCreationExtras
-import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.filemanager.FileManagerLauncher
-import com.movtery.zalithlauncher.filemanager.logic.AccessScope
 import com.movtery.zalithlauncher.filemanager.os.FmLog
 import com.movtery.zalithlauncher.filemanager.viewmodel.FileManagerViewModel
 import com.movtery.zalithlauncher.setting.loadAllSettings
 import com.movtery.zalithlauncher.ui.theme.ZalithLauncherTheme
 import dagger.hilt.android.AndroidEntryPoint
-import java.nio.file.Files
 import java.nio.file.Paths
 
 /**
@@ -53,7 +49,8 @@ import java.nio.file.Paths
  */
 sealed interface FileManagerInitResult {
     data object Pending : FileManagerInitResult
-    data class Ok(val scope: AccessScope, val currentPathHint: String?) : FileManagerInitResult
+    /** Intent 参数解析成功 */
+    data object Ok : FileManagerInitResult
     data class Failed(val message: String) : FileManagerInitResult
 }
 
@@ -63,28 +60,29 @@ sealed interface FileManagerInitResult {
 @AndroidEntryPoint
 class FileManagerActivity : ComponentActivity() {
     private var initResult by mutableStateOf<FileManagerInitResult>(FileManagerInitResult.Pending)
-    @Volatile private var currentPathHint: String? = null
+
+    /** Intent 中的可访问范围目录（仅字符串，作用域校验交给 ViewModel 初始化） */
+    private var rootPathStr: String? = null
+    /** Intent 中的可选初始当前目录（仅字符串） */
+    private var currentPathStr: String? = null
 
     // Compose 可观察，重唤起重建 VM 后自动重组
     private var _vm by mutableStateOf<FileManagerViewModel?>(null)
 
     override val defaultViewModelCreationExtras: CreationExtras
         get() = MutableCreationExtras(super.defaultViewModelCreationExtras).apply {
-            val ok = initResult as? FileManagerInitResult.Ok ?: return@apply
-            set(
-                DEFAULT_ARGS_KEY,
-                bundleOf(
-                    FileManagerViewModel.KEY_ROOT_PATH to ok.scope.rootAbs.toString(),
-                    FileManagerViewModel.KEY_CURRENT_PATH to ok.currentPathHint
-                )
-            )
+            if (initResult !is FileManagerInitResult.Ok) return@apply
+            val bundle = Bundle().apply {
+                putString(FileManagerViewModel.KEY_ROOT_PATH, rootPathStr)
+                currentPathStr?.let { putString(FileManagerViewModel.KEY_CURRENT_PATH, it) }
+            }
+            set(DEFAULT_ARGS_KEY, bundle)
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         loadAllSettings(this, true)
-        applySystemUiByOrientation()
         initializeFromIntent()
 
         setContent {
@@ -107,34 +105,35 @@ class FileManagerActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         loadAllSettings(this, true)
-        applySystemUiByOrientation()
         initializeFromIntent()
     }
 
-    /** 从当前 Intent 初始化作用域与 ViewModel（全新启动与重唤起共用）。 */
+    /** 从当前 Intent 解析参数并重建 ViewModel */
     private fun initializeFromIntent() {
         // 日志初始化
         val logsDir = intent.getStringExtra(FileManagerLauncher.EXTRA_LOGS_DIR)?.let { Paths.get(it) }
         FmLog.init(lifecycleScope, logsDir)
 
-        initResult = runCatching { initializeScope() }.fold(
-            onSuccess = { scope ->
-                FileManagerInitResult.Ok(scope, currentPathHint)
-            },
-            onFailure = { e ->
-                FmLog.error(TAG, "Initialize failed: ${e.message}", e)
-                FileManagerInitResult.Failed(e.message ?: getString(R.string.generic_error))
-            }
-        )
+        initResult = parseIntent()
 
         // 重建 ViewModel
         viewModelStore.clear()
-        val ok = initResult as? FileManagerInitResult.Ok
-        _vm = if (ok != null) {
-            ViewModelProvider(this)[FileManagerViewModel::class.java].also { it.observeTasks() }
+        _vm = if (initResult is FileManagerInitResult.Ok) {
+            ViewModelProvider(this)[FileManagerViewModel::class.java]
         } else {
             null
         }
+    }
+
+    /** 解析 Intent 参数 */
+    private fun parseIntent(): FileManagerInitResult {
+        val root = intent.getStringExtra(FileManagerLauncher.EXTRA_ROOT_PATH)
+        if (root.isNullOrBlank()) {
+            return FileManagerInitResult.Failed("Missing required extra: ROOT_PATH")
+        }
+        rootPathStr = root
+        currentPathStr = intent.getStringExtra(FileManagerLauncher.EXTRA_CURRENT_PATH)
+        return FileManagerInitResult.Ok
     }
 
     override fun onResume() {
@@ -173,25 +172,6 @@ class FileManagerActivity : ComponentActivity() {
         } else {
             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         }
-    }
-
-    private fun initializeScope(): AccessScope {
-        val rootPath = intent.getStringExtra(FileManagerLauncher.EXTRA_ROOT_PATH)
-            ?: throw IllegalStateException("Missing required extra: ROOT_PATH")
-        val scope = AccessScope.ofRoot(rootPath)
-
-        //校验可选“当前访问目录”
-        val currentString = intent.getStringExtra(FileManagerLauncher.EXTRA_CURRENT_PATH)
-        if (currentString != null) {
-            val current = Paths.get(currentString).normalize().toAbsolutePath()
-            if (scope.isUnder(current) && Files.isDirectory(current)) {
-                currentPathHint = current.toString()
-                FmLog.info(TAG, "Initial current dir accepted: $current")
-            } else {
-                FmLog.warn(TAG, "Initial current dir invalid, fallback to root.")
-            }
-        }
-        return scope
     }
 
     companion object {

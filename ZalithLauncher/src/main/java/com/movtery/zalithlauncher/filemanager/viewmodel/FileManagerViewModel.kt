@@ -23,6 +23,7 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.filemanager.config.FmConfig
 import com.movtery.zalithlauncher.filemanager.logic.AccessScope
 import com.movtery.zalithlauncher.filemanager.logic.FileManagerLogic
@@ -32,6 +33,7 @@ import com.movtery.zalithlauncher.filemanager.logic.ops.ConflictResolution
 import com.movtery.zalithlauncher.filemanager.logic.task.TaskManager
 import com.movtery.zalithlauncher.filemanager.logic.task.TaskState
 import com.movtery.zalithlauncher.filemanager.logic.trash.TrashItem
+import com.movtery.zalithlauncher.filemanager.os.FmLog
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.BrowseController
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.CompressController
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.DirectoryScanController
@@ -44,16 +46,33 @@ import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.SelectionCon
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.TrashController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.nio.file.Path
 import java.nio.file.Paths
 import javax.inject.Inject
 
+/** 文件管理器初始化状态 */
+sealed interface FmInitState {
+    /** 初始化中（或尚未开始） */
+    data object Pending : FmInitState
+    /** 初始化完成 */
+    data object Ready : FmInitState
+    /** 初始化失败 */
+    data class Failed(val message: String) : FmInitState
+}
+
 /**
  * 文件管理器数据控制层门面：负责装配各功能控制器并转发 UI 调用。
  * 具体业务逻辑与协程启动由各控制器自行管理。
+ *
+ * 初始化策略：构造器只解析参数并创建纯内存状态容器（零 IO、零协程、零副作用），
+ * 所有文件系统 / MMKV / 协程初始化收敛到 [initialize]，由 UI 在首帧组合提交后调用：
+ * 避免启动早期主线程 IO 与首帧组合竞争（HyperOS 上可导致启动 ANR），
+ * 且初始化失败可展示错误而非崩溃。
  */
 @HiltViewModel
 class FileManagerViewModel @Inject constructor(
@@ -67,35 +86,69 @@ class FileManagerViewModel @Inject constructor(
     /** 可选的初始当前目录；无效时回退根目录。 */
     private val currentPathStr: String? = savedStateHandle[KEY_CURRENT_PATH]
 
-    private val taskManager = TaskManager()
-
-    private val scope: AccessScope = AccessScope(Paths.get(rootPathStr).normalize().toAbsolutePath())
-    private val logic: FileManagerLogic = FileManagerLogic(
-        scope = scope,
-        trashRoot = context.cacheDir.toPath().resolve(TRASH_SUBDIR).normalize().toAbsolutePath(),
-        cacheRoot = context.cacheDir.toPath().normalize().toAbsolutePath(),
-        taskManager = taskManager
-    )
-
     private val store = FmStateStore(context)
 
-    private val browseCtr = BrowseController(logic, scope, store, viewModelScope)
-    private val selectionCtr = SelectionController(store)
-    private val pasteCtr = PasteController(logic, store, browseCtr, viewModelScope)
-    private val compressCtr = CompressController(context, logic, store, browseCtr, viewModelScope)
-    private val extractCtr = ExtractController(context, logic, scope, store, browseCtr, viewModelScope)
-    private val importCtr = ImportController(context, logic, taskManager, store, pasteCtr, browseCtr, viewModelScope)
-    private val searchCtr = SearchController(logic, taskManager, store, viewModelScope)
-    private val directoryScanCtr = DirectoryScanController(store, viewModelScope)
-    private val entryCtr = EntryController(context, logic, store, browseCtr, viewModelScope)
-    private val trashCtr = TrashController(logic, store, browseCtr, viewModelScope)
+    private val _initState = MutableStateFlow<FmInitState>(FmInitState.Pending)
+    /** 初始化状态 */
+    val initState: StateFlow<FmInitState> = _initState.asStateFlow()
+
+    private lateinit var taskManager: TaskManager
+    private lateinit var scope: AccessScope
+    private lateinit var logic: FileManagerLogic
+    private lateinit var browseCtr: BrowseController
+    private lateinit var selectionCtr: SelectionController
+    private lateinit var pasteCtr: PasteController
+    private lateinit var compressCtr: CompressController
+    private lateinit var extractCtr: ExtractController
+    private lateinit var importCtr: ImportController
+    private lateinit var searchCtr: SearchController
+    private lateinit var directoryScanCtr: DirectoryScanController
+    private lateinit var entryCtr: EntryController
+    private lateinit var trashCtr: TrashController
 
     val state: StateFlow<FileManagerUiState> get() = store.state
     val searchUi: StateFlow<SearchUiState> get() = store.searchUi
     val dirScan: StateFlow<DirScanUiState?> get() = store.dirScan
     val errorEvents: SharedFlow<String> get() = store.errorEvents
 
-    init {
+    fun initialize() {
+        if (_initState.value != FmInitState.Pending) return
+        runCatching { createCore() }.fold(
+            onSuccess = {
+                _initState.value = FmInitState.Ready
+                observeTasks()
+                browseCtr.refreshDir(store.history.currentPath)
+            },
+            onFailure = { e ->
+                FmLog.error(TAG, "Initialize failed: ${e.message}", e)
+                _initState.value = FmInitState.Failed(
+                    e.message ?: context.getString(R.string.generic_error)
+                )
+            }
+        )
+    }
+
+    private fun createCore() {
+        taskManager = TaskManager()
+        scope = AccessScope(Paths.get(rootPathStr).normalize().toAbsolutePath())
+        logic = FileManagerLogic(
+            scope = scope,
+            trashRoot = context.cacheDir.toPath().resolve(TRASH_SUBDIR).normalize().toAbsolutePath(),
+            cacheRoot = context.cacheDir.toPath().normalize().toAbsolutePath(),
+            taskManager = taskManager
+        )
+
+        browseCtr = BrowseController(logic, scope, store, viewModelScope)
+        selectionCtr = SelectionController(store)
+        pasteCtr = PasteController(logic, store, browseCtr, viewModelScope)
+        compressCtr = CompressController(context, logic, store, browseCtr, viewModelScope)
+        extractCtr = ExtractController(context, logic, scope, store, browseCtr, viewModelScope)
+        importCtr = ImportController(context, logic, taskManager, store, pasteCtr, browseCtr, viewModelScope)
+        searchCtr = SearchController(logic, taskManager, store, viewModelScope)
+        directoryScanCtr = DirectoryScanController(store, viewModelScope)
+        entryCtr = EntryController(context, logic, store, browseCtr, viewModelScope)
+        trashCtr = TrashController(logic, store, browseCtr, viewModelScope)
+
         store.history = NavHistory(logic.resolveInitialCurrent(currentPathStr?.let { Paths.get(it) }))
         store.updateState {
             it.copy(
@@ -109,7 +162,6 @@ class FileManagerViewModel @Inject constructor(
                 canNavigateForward = store.history.canForward
             )
         }
-        browseCtr.refreshDir(store.history.currentPath)
     }
 
     // ---------------- 浏览 / 导航 ----------------
@@ -292,6 +344,7 @@ class FileManagerViewModel @Inject constructor(
     fun appContext(): Context = context
 
     companion object {
+        private const val TAG = "FileManagerViewModel"
         private const val TRASH_SUBDIR = "fileManagerTrash"
 
         /** [SavedStateHandle] 键：可访问范围目录绝对路径。 */
