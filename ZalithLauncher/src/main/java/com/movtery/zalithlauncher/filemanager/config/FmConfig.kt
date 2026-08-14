@@ -40,7 +40,7 @@ object FmConfig {
     }
 
     /** 是否显示隐藏文件 */
-    fun showHidden(): Boolean = mmkv().decodeBool(KEY_SHOW_HIDDEN, false)
+    fun showHidden(): Boolean = mmkv().decodeBool(KEY_SHOW_HIDDEN, true)
 
     /** 设置主列表的排序字段 */
     fun setSortField(value: String) {
