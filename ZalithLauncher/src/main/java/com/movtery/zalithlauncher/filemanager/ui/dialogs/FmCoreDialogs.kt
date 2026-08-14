@@ -164,7 +164,10 @@ fun FmJumpDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
-    var input by remember { mutableStateOf(currentPath) }
+    // 初始化时默认将光标定位到路径末尾，便于直接追加修改
+    var input by remember {
+        mutableStateOf(TextFieldValue(currentPath, TextRange(currentPath.length)))
+    }
     var error by remember { mutableStateOf<String?>(null) }
     val keyboard = LocalSoftwareKeyboardController.current
     val emptyError = stringResource(R.string.fm_jump_invalid)
@@ -187,11 +190,11 @@ fun FmJumpDialog(
         onDismissRequest = onDismiss,
         onCancel = onDismiss,
         onConfirm = {
-            if (input.isBlank()) {
+            if (input.text.isBlank()) {
                 error = emptyError
             } else {
                 keyboard?.hide()
-                onConfirm(input.trim())
+                onConfirm(input.text.trim())
             }
         }
     )
