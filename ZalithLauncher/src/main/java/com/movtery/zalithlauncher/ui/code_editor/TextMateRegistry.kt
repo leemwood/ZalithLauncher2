@@ -26,6 +26,7 @@ import io.github.rosemoe.sora.langs.textmate.TextMateLanguage
 import io.github.rosemoe.sora.langs.textmate.registry.GrammarRegistry
 import io.github.rosemoe.sora.langs.textmate.registry.ThemeRegistry
 import io.github.rosemoe.sora.langs.textmate.registry.model.DefaultGrammarDefinition
+import io.github.rosemoe.sora.langs.textmate.registry.model.ThemeModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.eclipse.tm4e.core.registry.IGrammarSource
@@ -131,12 +132,12 @@ object TextMateRegistry {
                 }
             }
 
-            listOf(THEME_DARK, THEME_LIGHT).forEach { name ->
+            listOf(THEME_DARK, THEME_LIGHT).forEachIndexed { index, name ->
                 runCatching {
                     val path = "$THEME_DIR/$name.json"
                     themeRegistry.loadTheme(
                         IThemeSource.fromInputStream(assets.open(path), path, StandardCharsets.UTF_8),
-                        false
+                        index == 0
                     )
                 }.onFailure {
                     FmLog.warn(TAG, "Load TextMate theme failed: $name", it)
@@ -194,13 +195,31 @@ object TextMateRegistry {
      */
     suspend fun colorScheme(isDark: Boolean, context: Context): TextMateColorScheme? {
         applyTheme(isDark, context)
-        if (themeRegistry.currentThemeModel == null) return null
+        val themeModel = themeRegistry.currentThemeModel ?: return null
 
         return runCatching {
-            TextMateColorScheme.create(themeRegistry)
+            FmTextMateColorScheme(themeRegistry, themeModel)
         }.getOrElse { e ->
             FmLog.warn(TAG, "Create TextMate color scheme failed", e)
             null
         }
+    }
+}
+
+private class FmTextMateColorScheme(
+    themeRegistry: ThemeRegistry,
+    themeModel: ThemeModel
+) : TextMateColorScheme(themeRegistry, themeModel) {
+
+    override fun setTheme(themeModel: ThemeModel) {
+        super.setTheme(themeModel)
+        setColor(
+            CURRENT_LINE,
+            if (themeModel.isDark) {
+                0x1AFFFFFF
+            } else {
+                0x10000000
+            }
+        )
     }
 }

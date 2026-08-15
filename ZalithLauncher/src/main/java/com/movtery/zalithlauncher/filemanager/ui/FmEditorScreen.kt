@@ -176,8 +176,6 @@ fun FmEditorScreen(
     var replaceExpanded by remember { mutableStateOf(false) }
     var replaceQuery by remember { mutableStateOf("") }
 
-    /** 替换成功后等待重新搜索完成，自动跳转到下一个匹配 */
-    var pendingGotoNext by remember { mutableStateOf(false) }
     /** 搜索选项 */
     var matchCase by remember { mutableStateOf(FmConfig.editorSearchMatchCase()) }
     var wholeWord by remember { mutableStateOf(FmConfig.editorSearchWholeWord()) }
@@ -246,7 +244,6 @@ fun FmEditorScreen(
         searchCurrent = 0
         replaceExpanded = false
         replaceQuery = ""
-        pendingGotoNext = false
         editor?.searcher?.stopSearch()
     }
 
@@ -412,21 +409,6 @@ fun FmEditorScreen(
                     e.subscribeEvent(PublishSearchResultEvent::class.java) { _, _ ->
                         e.post {
                             updateSearchCount()
-                            // 替换成功后自动跳转到下一个匹配
-                            if (pendingGotoNext && e.searcher.hasQuery()) {
-                                pendingGotoNext = false
-                                e.searcher.gotoNext()
-                                updateSearchCount()
-                            } else if (
-                                e.searcher.hasQuery() &&
-                                e.searcher.matchedPositionCount > 0 &&
-                                e.searcher.currentMatchedPositionIndex < 0
-                            ) {
-                                // 搜索完成但尚未定位（初次输入 / 选项切换）：定位到第一个匹配
-                                e.setSelection(0, 0)
-                                e.searcher.gotoNext()
-                                updateSearchCount()
-                            }
                         }
                     }
                 },
@@ -545,8 +527,6 @@ fun FmEditorScreen(
                             },
                             onReplaceOne = {
                                 editor?.searcher?.replaceCurrentMatch(replaceQuery)
-                                // 替换成功后自动跳下一个匹配
-                                pendingGotoNext = true
                                 refreshSearch()
                             },
                             onReplaceAll = {

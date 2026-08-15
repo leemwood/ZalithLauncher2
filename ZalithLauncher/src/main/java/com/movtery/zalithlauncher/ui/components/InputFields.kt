@@ -36,8 +36,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -140,9 +140,9 @@ fun SmallOutlinedEditField(
     leadingIcon: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
-    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    contentColor: Color? = null,
     shape: Shape = OutlinedTextFieldDefaults.shape,
-    textStyle: TextStyle = TextStyle(color = contentColor).copy(fontSize = 12.sp),
+    textStyle: TextStyle = TextStyle(fontSize = 12.sp),
     cursorBrush: Brush = SolidColor(LocalTextSelectionColors.current.handleColor),
     keyboardOptions: KeyboardOptions? = null,
     keyboardActions: KeyboardActions? = null,
@@ -152,6 +152,9 @@ fun SmallOutlinedEditField(
     val interactionSource = interactionSource ?: remember { MutableInteractionSource() }
     val isFocused = interactionSource.collectIsFocusedAsState().value
     val focusManager = LocalFocusManager.current
+
+    val effectiveContentColor = contentColor ?: LocalContentColor.current
+    val effectiveTextStyle = textStyle.copy(color = effectiveContentColor)
 
     val borderWidth by animateDpAsState(
         if (isFocused) 2.dp else 1.dp
@@ -173,7 +176,7 @@ fun SmallOutlinedEditField(
                 if (singleLine) new.toSingleLine() else new
             )
         },
-        textStyle = textStyle,
+        textStyle = effectiveTextStyle,
         cursorBrush = cursorBrush,
         singleLine = singleLine,
         keyboardOptions = keyboardOptions
