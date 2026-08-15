@@ -45,6 +45,8 @@ data class EditorUiState(
     val writable: Boolean = true,
     /** 是否存在未保存的修改 */
     val dirty: Boolean = false,
+    /** 是否正在保存 */
+    val saving: Boolean = false,
     /** 是否请求显示退出确认弹窗 */
     val exitConfirm: Boolean = false,
     /** 打开 / 加载失败的错误提示 */

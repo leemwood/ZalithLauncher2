@@ -29,6 +29,8 @@ import io.github.rosemoe.sora.text.Content
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
@@ -48,6 +50,9 @@ class EditorController(
 ) {
     /** 当前文件使用的编码，保存时按原编码写回 */
     private var charset: Charset = StandardCharsets.UTF_8
+
+    /** 进行中的保存任务 */
+    private var saveJob: Job? = null
 
     /** 打开文件并异步加载内容 */
     fun open(path: Path) {
@@ -77,30 +82,54 @@ class EditorController(
         store.updateEditorUi { it.copy(dirty = true) }
     }
 
-    /** 保存当前内容到文件 */
+    /**
+     * 保存当前内容到文件
+     */
     fun save(onDone: (Boolean) -> Unit = {}) {
+        if (store.editorUiValue().saving) return
         val state = store.editorUiValue()
         val path = state.path ?: return
         val content = (state.state as? EditorState.Success)?.content ?: return
-        coroutineScope.launch {
-            val success = withContext(Dispatchers.IO) {
-                runCatching {
-                    Files.write(path, content.toString().toByteArray(charset))
-                }.isSuccess
+        store.updateEditorUi { it.copy(saving = true) }
+        saveJob = coroutineScope.launch {
+            try {
+                val success = withContext(Dispatchers.IO) {
+                    runCatching {
+                        Files.write(path, content.toString().toByteArray(charset))
+                    }.isSuccess
+                }
+                // 写入完成后若用户已取消（Files.write 为阻塞调用，无法中途中断），
+                // 保持未保存状态，不更新 dirty、不提示结果
+                ensureActive()
+                if (!success) {
+                    FmLog.error(TAG, "Save editor file failed: $path")
+                }
+                store.updateEditorUi { it.copy(dirty = false) }
+                if (success) {
+                    store.emitSnackbar(FmSnackbar(store.stringResolver(R.string.generic_saved), long = false))
+                    // 文件大小 / 修改时间已变化，刷新列表展示
+                    browse.refreshDir()
+                } else {
+                    store.emitSnackbar(FmSnackbar(store.stringResolver(R.string.fm_editor_save_failed)))
+                }
+                onDone(success)
+            } catch (e: CancellationException) {
+                // 用户取消保存：不更新 dirty、不提示结果
+                onDone(false)
+                throw e
+            } finally {
+                store.updateEditorUi { it.copy(saving = false) }
             }
-            if (!success) {
-                FmLog.error(TAG, "Save editor file failed: $path")
-            }
-            store.updateEditorUi { it.copy(dirty = false) }
-            if (success) {
-                store.emitSnackbar(FmSnackbar(store.stringResolver(R.string.generic_saved), long = false))
-                // 文件大小 / 修改时间已变化，刷新列表展示
-                browse.refreshDir()
-            } else {
-                store.emitSnackbar(FmSnackbar(store.stringResolver(R.string.fm_editor_save_failed)))
-            }
-            onDone(success)
         }
+    }
+
+    /**
+     * 取消进行中的保存
+     */
+    fun cancelSave() {
+        saveJob?.cancel()
+        saveJob = null
+        store.updateEditorUi { it.copy(saving = false) }
     }
 
     /** 请求显示退出确认弹窗 */

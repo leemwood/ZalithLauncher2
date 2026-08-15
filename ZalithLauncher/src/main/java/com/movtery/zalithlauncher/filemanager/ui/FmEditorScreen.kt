@@ -53,6 +53,7 @@ import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SnackbarHost
@@ -558,6 +559,27 @@ fun FmEditorScreen(
                 gotoDialog = false
             }
         )
+    }
+
+    // 保存中
+    if (editorUi.saving) {
+        FmDialogSurface(
+            onDismissRequest = { vm.editorCancelSave() }
+        ) {
+            Text(
+                text = stringResource(R.string.generic_saving),
+                style = MaterialTheme.typography.titleMedium
+            )
+            LinearWavyProgressIndicator(
+                modifier = Modifier.fillMaxWidth()
+            )
+            FilledTonalButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { vm.editorCancelSave() }
+            ) {
+                Text(stringResource(R.string.generic_cancel))
+            }
+        }
     }
 
     // 未保存修改的退出确认框

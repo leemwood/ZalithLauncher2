@@ -325,6 +325,8 @@ class FileManagerViewModel @Inject constructor(
     fun editorTextChanged() = editorCtr.onTextChanged()
     /** 保存编辑器内容 */
     fun editorSave(onDone: (Boolean) -> Unit = {}) = editorCtr.save(onDone)
+    /** 取消进行中的保存 */
+    fun editorCancelSave() = editorCtr.cancelSave()
     /** 请求显示未保存修改的退出确认弹窗 */
     fun editorRequestExitConfirm() = editorCtr.requestExitConfirm()
     /** 取消退出确认弹窗 */
