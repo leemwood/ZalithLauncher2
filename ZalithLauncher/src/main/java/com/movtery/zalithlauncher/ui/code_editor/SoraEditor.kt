@@ -22,6 +22,7 @@ import android.graphics.Typeface
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FabPosition
@@ -85,7 +86,9 @@ fun SoraEditor(
     content: (@Composable BoxScope.() -> Unit)? = null,
 ) {
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .imePadding(),
         containerColor = containerColor,
         contentColor = contentColor,
         topBar = topBar,
