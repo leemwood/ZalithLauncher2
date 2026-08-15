@@ -1,5 +1,5 @@
 [versions]
-agp = "9.2.0"
+agp = "9.3.0"
 targetSdk = "34"
 minSdk = "26"
 #noinspection GradleDependency,NewerVersionAvailable
@@ -13,12 +13,13 @@ commonsIo = "2.22.0"
 constraintlayoutCompose = "1.1.1"
 buildKeys = "1.0.0"
 coreSplashscreen = "1.2.0"
+desugarJdkLibs = "2.1.5"
 editorBom = "0.24.6"
 fishnet = "1.1.0"
 gson = "2.14.0"
 haze = "2.0.0-alpha03"
 kotlin = "2.4.0"
-kspPlugin = "2.3.4"
+kspPlugin = "2.3.6"
 coreKtx = "1.19.0"
 kotlinxCoroutinesAndroid = "1.11.0"
 ktor = "3.5.1"
@@ -60,8 +61,10 @@ androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "medi
 buildkeys = { module = "com.github.MovTery.BuildKeys:core", version.ref = "buildKeys" }
 dev-haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 dev-haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 editor = { module = "io.github.rosemoe:editor" }
 editor-bom = { module = "io.github.rosemoe:editor-bom", version.ref = "editorBom" }
+editor-language-textmate = { module = "io.github.rosemoe:language-textmate" }
 fishnet = { module = "io.github.kyant0:fishnet", version.ref = "fishnet" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

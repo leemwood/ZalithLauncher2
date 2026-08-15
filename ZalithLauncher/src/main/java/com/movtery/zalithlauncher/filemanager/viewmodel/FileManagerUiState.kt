@@ -26,12 +26,29 @@ import com.movtery.zalithlauncher.filemanager.logic.ops.PasteRequest
 import com.movtery.zalithlauncher.filemanager.logic.task.TaskProgress
 import com.movtery.zalithlauncher.filemanager.logic.task.TaskState
 import com.movtery.zalithlauncher.filemanager.logic.trash.TrashItem
+import com.movtery.zalithlauncher.ui.code_editor.EditorState
 import java.nio.file.Path
 
 /** 目录属性扫描状态 */
 data class DirScanUiState(
     val running: Boolean,
     val stats: DirStats?
+)
+
+/** 文本编辑器状态 */
+data class EditorUiState(
+    /** 正在编辑的文件路径 */
+    val path: Path? = null,
+    /** 文件内容状态（加载中 / 加载完成） */
+    val state: EditorState = EditorState.Loading,
+    /** 文件是否可写，不可写时以只读方式打开 */
+    val writable: Boolean = true,
+    /** 是否存在未保存的修改 */
+    val dirty: Boolean = false,
+    /** 是否请求显示退出确认弹窗 */
+    val exitConfirm: Boolean = false,
+    /** 打开 / 加载失败的错误提示 */
+    val error: String? = null
 )
 
 /** 搜索状态 */

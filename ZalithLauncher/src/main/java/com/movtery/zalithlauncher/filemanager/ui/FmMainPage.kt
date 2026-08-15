@@ -73,6 +73,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.movtery.zalithlauncher.R
+import com.movtery.zalithlauncher.filemanager.logic.editor.isKnownTextFile
 import com.movtery.zalithlauncher.filemanager.logic.entry.FmEntry
 import com.movtery.zalithlauncher.filemanager.logic.ops.ConflictResolution
 import com.movtery.zalithlauncher.filemanager.os.FmLog
@@ -109,6 +110,7 @@ import com.movtery.zalithlauncher.filemanager.viewmodel.applyVisibility
 import com.movtery.zalithlauncher.utils.file.formatFileSize
 import com.movtery.zalithlauncher.utils.formatDate
 import kotlinx.coroutines.delay
+import java.nio.file.Path
 import kotlin.time.Duration.Companion.milliseconds
 
 private sealed interface FmOperation {
@@ -118,6 +120,8 @@ private sealed interface FmOperation {
     data class Rename(val entry: FmEntry) : FmOperation
     data class Property(val entry: FmEntry) : FmOperation
     data class DeleteConfirm(val count: Int) : FmOperation
+    /** 未知格式文件点击编辑时的确认 */
+    data class EditConfirm(val entry: FmEntry) : FmOperation
     data object BulkActions : FmOperation
     data object RangeSelectHelp : FmOperation
 }
@@ -127,6 +131,7 @@ private sealed interface FmOperation {
  * @param vm 文件管理器视图模型
  * @param snackHost 全局 Snackbar 宿主
  * @param onOpenTrash 打开回收站回调
+ * @param onOpenEditor 打开文本编辑器回调
  * @param onExit 退出文件管理器回调
  * @param onToggleOrientation 横竖屏切换回调
  */
@@ -138,6 +143,7 @@ fun FmMainPage(
     /** 返回手势透明度（1 = 完全可见），仅作用于内容区，不随顶栏 / 底栏 */
     contentAlpha: Animatable<Float, AnimationVector1D>,
     onOpenTrash: () -> Unit,
+    onOpenEditor: (Path) -> Unit,
     onExit: () -> Unit,
     onToggleOrientation: () -> Unit
 ) {
@@ -232,6 +238,7 @@ fun FmMainPage(
                         uiState = uiState,
                         vm = vm,
                         updateOperation = updateOperation,
+                        onOpenEditor = onOpenEditor,
                         listState = listState,
                         gridState = gridState,
                         contentAlpha = contentAlpha
@@ -248,6 +255,7 @@ fun FmMainPage(
                     uiState = uiState,
                     vm = vm,
                     updateOperation = updateOperation,
+                    onOpenEditor = onOpenEditor,
                     listState = listState,
                     gridState = gridState,
                     contentAlpha = contentAlpha
@@ -262,7 +270,8 @@ fun FmMainPage(
         uiState = uiState,
         searchUi = searchUi,
         operation = operation,
-        updateOperation = updateOperation
+        updateOperation = updateOperation,
+        onOpenEditor = onOpenEditor
     )
 }
 
@@ -271,6 +280,7 @@ private fun MainContent(
     uiState: FileManagerUiState,
     vm: FileManagerViewModel,
     updateOperation: (FmOperation) -> Unit,
+    onOpenEditor: (Path) -> Unit,
     listState: LazyListState,
     gridState: LazyGridState,
     contentAlpha: Animatable<Float, AnimationVector1D>
@@ -319,6 +329,7 @@ private fun MainContent(
                             uiState = uiState,
                             vm = vm,
                             updateOperation = updateOperation,
+                            onOpenEditor = onOpenEditor,
                             listState = listState,
                             gridState = gridState
                         )
@@ -350,6 +361,7 @@ private fun EntryList(
     uiState: FileManagerUiState,
     vm: FileManagerViewModel,
     updateOperation: (FmOperation) -> Unit,
+    onOpenEditor: (Path) -> Unit,
     listState: LazyListState,
     gridState: LazyGridState
 ) {
@@ -394,6 +406,14 @@ private fun EntryList(
         vm.stageSingleDelete(entry)
         updateOperation(FmOperation.DeleteConfirm(1))
     }
+    val onEntryEdit: (FmEntry) -> Unit = { entry ->
+        // 已知文本格式直接进入编辑器，未知格式先弹警告确认
+        if (isKnownTextFile(entry.name)) {
+            onOpenEditor(entry.path)
+        } else {
+            updateOperation(FmOperation.EditConfirm(entry))
+        }
+    }
 
     val itemContent: @Composable (FmEntry) -> Unit = { entry ->
         val key = selectionKey(entry)
@@ -408,6 +428,7 @@ private fun EntryList(
             onSwipeTrigger = { onSwipeTrigger(entry) },
             onRename = { updateOperation(FmOperation.Rename(entry)) },
             onProperty = { updateOperation(FmOperation.Property(entry)) },
+            onEdit = { onEntryEdit(entry) },
             onExtract = { vm.showExtract(entry) },
             onShare = { vm.showShare(entry) },
             onCompress = { vm.compressEntry(entry) },
@@ -448,7 +469,8 @@ private fun FmMainDialogs(
     uiState: FileManagerUiState,
     searchUi: SearchUiState,
     operation: FmOperation,
-    updateOperation: (FmOperation) -> Unit
+    updateOperation: (FmOperation) -> Unit,
+    onOpenEditor: (Path) -> Unit
 ) {
     val intent = uiState.dialogIntent
 
@@ -740,6 +762,16 @@ private fun FmMainDialogs(
         FmOperation.RangeSelectHelp -> FmAlertDialog(
             title = stringResource(R.string.fm_range_select_help),
             text = stringResource(R.string.fm_range_select_help_text),
+            onDismiss = { updateOperation(FmOperation.None) }
+        )
+
+        is FmOperation.EditConfirm -> FmAlertDialog(
+            title = stringResource(R.string.fm_edit_unknown_title),
+            text = stringResource(R.string.fm_edit_unknown_message),
+            onConfirm = {
+                updateOperation(FmOperation.None)
+                onOpenEditor(operation.entry.path)
+            },
             onDismiss = { updateOperation(FmOperation.None) }
         )
     }

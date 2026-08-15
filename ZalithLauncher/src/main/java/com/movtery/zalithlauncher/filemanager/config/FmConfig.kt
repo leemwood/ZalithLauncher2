@@ -27,6 +27,15 @@ private const val KEY_FOLDER_FIRST = "folder_first"
 private const val KEY_TRASH_SORT_FIELD = "trash_sort_field"
 private const val KEY_TRASH_SORT_ASC = "trash_sort_ascending"
 private const val KEY_TRASH_FOLDER_FIRST = "trash_folder_first"
+private const val KEY_EDITOR_WORDWRAP = "editor_wordwrap"
+private const val KEY_EDITOR_COMPLETION = "editor_completion"
+private const val KEY_EDITOR_LINE_NUMBER = "editor_line_number"
+private const val KEY_EDITOR_HIGHLIGHT_LINE = "editor_highlight_line"
+private const val KEY_EDITOR_NON_PRINTABLE = "editor_non_printable"
+private const val KEY_EDITOR_FONT_SIZE = "editor_font_size"
+private const val KEY_EDITOR_SEARCH_MATCH_CASE = "editor_search_match_case"
+private const val KEY_EDITOR_SEARCH_WHOLE_WORD = "editor_search_whole_word"
+private const val KEY_EDITOR_SEARCH_REGEX = "editor_search_regex"
 
 /** 文件管理器配置存储 */
 object FmConfig {
@@ -89,6 +98,78 @@ object FmConfig {
 
     /** 回收站列表是否目录优先 */
     fun trashFolderFirst(): Boolean = mmkv().decodeBool(KEY_TRASH_FOLDER_FIRST, true)
+
+    /** 设置编辑器自动换行 */
+    fun setEditorWordwrap(value: Boolean) {
+        mmkv().putBoolean(KEY_EDITOR_WORDWRAP, value)
+    }
+
+    /** 编辑器自动换行 */
+    fun editorWordwrap(): Boolean = mmkv().decodeBool(KEY_EDITOR_WORDWRAP, true)
+
+    /** 设置编辑器代码补全开关 */
+    fun setEditorCompletionEnabled(value: Boolean) {
+        mmkv().putBoolean(KEY_EDITOR_COMPLETION, value)
+    }
+
+    /** 编辑器代码补全开关 */
+    fun editorCompletionEnabled(): Boolean = mmkv().decodeBool(KEY_EDITOR_COMPLETION, true)
+
+    /** 设置编辑器显示行号 */
+    fun setEditorLineNumber(value: Boolean) {
+        mmkv().putBoolean(KEY_EDITOR_LINE_NUMBER, value)
+    }
+
+    /** 编辑器显示行号 */
+    fun editorLineNumber(): Boolean = mmkv().decodeBool(KEY_EDITOR_LINE_NUMBER, true)
+
+    /** 设置编辑器当前行高亮 */
+    fun setEditorHighlightLine(value: Boolean) {
+        mmkv().putBoolean(KEY_EDITOR_HIGHLIGHT_LINE, value)
+    }
+
+    /** 编辑器当前行高亮 */
+    fun editorHighlightLine(): Boolean = mmkv().decodeBool(KEY_EDITOR_HIGHLIGHT_LINE, true)
+
+    /** 设置编辑器显示不可见字符 */
+    fun setEditorNonPrintable(value: Boolean) {
+        mmkv().putBoolean(KEY_EDITOR_NON_PRINTABLE, value)
+    }
+
+    /** 编辑器显示不可见字符 */
+    fun editorNonPrintable(): Boolean = mmkv().decodeBool(KEY_EDITOR_NON_PRINTABLE, false)
+
+    /** 设置编辑器字号（px，0 表示未设置使用默认值） */
+    fun setEditorFontSize(value: Float) {
+        mmkv().putFloat(KEY_EDITOR_FONT_SIZE, value)
+    }
+
+    /** 编辑器字号（px，0 表示未设置使用默认值） */
+    fun editorFontSize(): Float = mmkv().decodeFloat(KEY_EDITOR_FONT_SIZE, 0f)
+
+    /** 设置搜索区分大小写 */
+    fun setEditorSearchMatchCase(value: Boolean) {
+        mmkv().putBoolean(KEY_EDITOR_SEARCH_MATCH_CASE, value)
+    }
+
+    /** 搜索区分大小写 */
+    fun editorSearchMatchCase(): Boolean = mmkv().decodeBool(KEY_EDITOR_SEARCH_MATCH_CASE, false)
+
+    /** 设置搜索全字匹配 */
+    fun setEditorSearchWholeWord(value: Boolean) {
+        mmkv().putBoolean(KEY_EDITOR_SEARCH_WHOLE_WORD, value)
+    }
+
+    /** 搜索全字匹配 */
+    fun editorSearchWholeWord(): Boolean = mmkv().decodeBool(KEY_EDITOR_SEARCH_WHOLE_WORD, false)
+
+    /** 设置搜索正则表达式 */
+    fun setEditorSearchRegex(value: Boolean) {
+        mmkv().putBoolean(KEY_EDITOR_SEARCH_REGEX, value)
+    }
+
+    /** 搜索正则表达式 */
+    fun editorSearchRegex(): Boolean = mmkv().decodeBool(KEY_EDITOR_SEARCH_REGEX, false)
 
     enum class SortField { NAME, SIZE, MODIFIED }
 

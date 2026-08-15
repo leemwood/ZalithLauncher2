@@ -24,8 +24,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,6 +42,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldLabelPosition
+import androidx.compose.material3.TextFieldLabelScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -121,12 +125,20 @@ fun SimpleTextInputField(
     }
 }
 
+private class SimpleTextFieldLabelScope(
+    override val labelMinimizedProgress: Float
+) : TextFieldLabelScope
+
 @Composable
 fun SmallOutlinedEditField(
     modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
-    hint: (@Composable () -> Unit)? = null,
+    labelPosition: TextFieldLabelPosition = TextFieldLabelPosition.Attached(),
+    label: @Composable (TextFieldLabelScope.() -> Unit)? = null,
+    placeholder: @Composable (() -> Unit)? = null,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     shape: Shape = OutlinedTextFieldDefaults.shape,
@@ -147,6 +159,12 @@ fun SmallOutlinedEditField(
     val borderColor by animateColorAsState(
         if (isFocused) colors.focusedIndicatorColor else colors.unfocusedIndicatorColor
     )
+    val labelScope = remember(labelPosition) {
+        SimpleTextFieldLabelScope(
+            if (labelPosition is TextFieldLabelPosition.Attached) 1f else 0f
+        )
+    }
+
     BasicTextField(
         modifier = modifier,
         value = value,
@@ -193,16 +211,37 @@ fun SmallOutlinedEditField(
                     .border(width = borderWidth, color = borderColor, shape = shape),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
+                Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.CenterStart
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    if (value.isEmpty()) {
-                        hint?.invoke()
+                    if (label != null) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            label(labelScope)
+                        }
                     }
-                    innerTextField()
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        leadingIcon?.invoke()
+
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (value.isEmpty() && label == null) {
+                                placeholder?.invoke()
+                            }
+                            innerTextField()
+                        }
+
+                        trailingIcon?.invoke()
+                    }
                 }
             }
         },

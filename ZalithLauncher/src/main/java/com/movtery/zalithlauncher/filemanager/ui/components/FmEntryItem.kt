@@ -69,6 +69,7 @@ fun FmEntryItem(
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
     onSwipeTrigger: () -> Unit = {},
+    onEdit: () -> Unit = {},
     onRename: () -> Unit = {},
     onProperty: () -> Unit = {},
     onExtract: () -> Unit = {},
@@ -140,6 +141,7 @@ fun FmEntryItem(
                     expanded = menuExpanded,
                     onDismiss = { menuExpanded = false },
                     entry = entry,
+                    onEdit = onEdit,
                     onRename = onRename,
                     onProperty = onProperty,
                     onExtract = onExtract,
@@ -210,6 +212,7 @@ private fun FmEntryMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     entry: FmEntry,
+    onEdit: () -> Unit,
     onRename: () -> Unit,
     onProperty: () -> Unit,
     onExtract: () -> Unit,
@@ -249,6 +252,9 @@ private fun FmEntryMenu(
         onDismissRequest = onDismiss
     ) {
         if (entry.archiveType == null) {
+            if (entry.isFile) {
+                MenuItem(R.string.generic_edit, R.drawable.ic_edit_outlined, onEdit, Modifier.fillMaxWidth())
+            }
             Row(Modifier.fillMaxWidth()) {
                 MenuItem(R.string.generic_rename, R.drawable.ic_edit_filled, onRename, Modifier.weight(1f))
                 MenuItem(R.string.fm_archive, R.drawable.ic_archive_filled, onCompress, Modifier.weight(1f))

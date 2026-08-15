@@ -131,7 +131,7 @@
             android:name=".filemanager.ui.FileManagerActivity"
             android:process=":filemanager"
             android:taskAffinity=":filemanager"
-            android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|keyboard|navigation"
+            android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|keyboard|navigation|uiMode|locale|layoutDirection"
             android:windowSoftInputMode="adjustResize"
             android:screenOrientation="sensorLandscape"
             android:enableOnBackInvokedCallback="true"

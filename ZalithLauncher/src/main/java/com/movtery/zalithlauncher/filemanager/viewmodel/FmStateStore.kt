@@ -68,6 +68,9 @@ class FmStateStore(private val context: Context) {
     private val _dirScan = MutableStateFlow<DirScanUiState?>(null)
     val dirScan: StateFlow<DirScanUiState?> = _dirScan.asStateFlow()
 
+    private val _editorUi = MutableStateFlow(EditorUiState())
+    val editorUi: StateFlow<EditorUiState> = _editorUi.asStateFlow()
+
     private val _errorEvents = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val errorEvents: SharedFlow<String> = _errorEvents.asSharedFlow()
 
@@ -89,6 +92,12 @@ class FmStateStore(private val context: Context) {
 
     fun setDirScan(value: DirScanUiState?) {
         _dirScan.value = value
+    }
+
+    fun editorUiValue(): EditorUiState = _editorUi.value
+
+    fun updateEditorUi(transform: (EditorUiState) -> EditorUiState) {
+        _editorUi.value = transform(_editorUi.value)
     }
 
     fun emitSnackbar(s: FmSnackbar) {

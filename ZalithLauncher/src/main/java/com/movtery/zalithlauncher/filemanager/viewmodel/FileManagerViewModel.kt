@@ -37,6 +37,7 @@ import com.movtery.zalithlauncher.filemanager.os.FmLog
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.BrowseController
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.CompressController
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.DirectoryScanController
+import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.EditorController
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.EntryController
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.ExtractController
 import com.movtery.zalithlauncher.filemanager.viewmodel.controllers.ImportController
@@ -105,10 +106,12 @@ class FileManagerViewModel @Inject constructor(
     private lateinit var directoryScanCtr: DirectoryScanController
     private lateinit var entryCtr: EntryController
     private lateinit var trashCtr: TrashController
+    private lateinit var editorCtr: EditorController
 
     val state: StateFlow<FileManagerUiState> get() = store.state
     val searchUi: StateFlow<SearchUiState> get() = store.searchUi
     val dirScan: StateFlow<DirScanUiState?> get() = store.dirScan
+    val editorUi: StateFlow<EditorUiState> get() = store.editorUi
     val errorEvents: SharedFlow<String> get() = store.errorEvents
 
     fun initialize() {
@@ -148,6 +151,7 @@ class FileManagerViewModel @Inject constructor(
         directoryScanCtr = DirectoryScanController(store, viewModelScope)
         entryCtr = EntryController(context, logic, store, browseCtr, viewModelScope)
         trashCtr = TrashController(logic, store, browseCtr, viewModelScope)
+        editorCtr = EditorController(store, browseCtr, viewModelScope)
 
         store.history = NavHistory(logic.resolveInitialCurrent(currentPathStr?.let { Paths.get(it) }))
         store.updateState {
@@ -312,6 +316,21 @@ class FileManagerViewModel @Inject constructor(
     fun clearTrashSelection() = trashCtr.clearTrashSelection()
     fun trashRangeSelect(swipeItem: TrashItem) = trashCtr.trashRangeSelect(swipeItem)
     fun selectedTrashItems(): List<TrashItem> = trashCtr.selectedTrashItems()
+
+    // ---------------- 文本编辑器 ----------------
+
+    /** 打开文件并异步加载内容 */
+    fun editorOpen(path: Path) = editorCtr.open(path)
+    /** 编辑器内容变化回调 */
+    fun editorTextChanged() = editorCtr.onTextChanged()
+    /** 保存编辑器内容 */
+    fun editorSave(onDone: (Boolean) -> Unit = {}) = editorCtr.save(onDone)
+    /** 请求显示未保存修改的退出确认弹窗 */
+    fun editorRequestExitConfirm() = editorCtr.requestExitConfirm()
+    /** 取消退出确认弹窗 */
+    fun editorCancelExitConfirm() = editorCtr.cancelExitConfirm()
+    /** 是否存在未保存的修改 */
+    fun editorHasDirty(): Boolean = editorCtr.hasDirty()
 
     // ---------------- 对话框 / Snackbar ----------------
 

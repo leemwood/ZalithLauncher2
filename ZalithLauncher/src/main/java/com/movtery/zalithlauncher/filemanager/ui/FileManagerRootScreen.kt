@@ -54,6 +54,8 @@ import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.filemanager.ui.components.FmAlertDialog
 import com.movtery.zalithlauncher.filemanager.ui.dialogs.FmProgressDialog
 import com.movtery.zalithlauncher.filemanager.ui.theme.FmAnimations
+import com.movtery.zalithlauncher.filemanager.ui.theme.fmBackgroundColor
+import com.movtery.zalithlauncher.filemanager.ui.theme.fmOnBackgroundColor
 import com.movtery.zalithlauncher.filemanager.viewmodel.FileManagerViewModel
 import com.movtery.zalithlauncher.filemanager.viewmodel.FmInitState
 import kotlinx.coroutines.CancellationException
@@ -61,6 +63,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import java.nio.file.Paths
 
 @Serializable
 sealed interface FmNavKey : NavKey {
@@ -75,6 +78,13 @@ sealed interface FmNavKey : NavKey {
      */
     @Serializable
     data object Trash : FmNavKey
+
+    /**
+     * 文本编辑器页面
+     * @param path 待编辑文件的绝对路径
+     */
+    @Serializable
+    data class Editor(val path: String) : FmNavKey
 }
 
 /**
@@ -145,10 +155,13 @@ fun FileManagerRootScreen(
                     val gestureAlpha = remember { Animatable(1f) }
                     var gestureActive by remember { mutableStateOf(false) }
 
-                    Box(
-                        modifier = Modifier.fillMaxSize()
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = fmBackgroundColor(),
+                        contentColor = fmOnBackgroundColor(),
                     ) {
                         NavDisplay(
+                            modifier = Modifier.fillMaxSize(),
                             backStack = backStack,
                             entryProvider = entryProvider {
                                 entry<FmNavKey.FileManager> {
@@ -158,6 +171,7 @@ fun FileManagerRootScreen(
                                             snackHost = snackHost,
                                             contentAlpha = gestureAlpha,
                                             onOpenTrash = { backStack.openTrash() },
+                                            onOpenEditor = { backStack.openEditor(it) },
                                             onExit = onExit,
                                             onToggleOrientation = onToggleOrientation
                                         )
@@ -172,6 +186,17 @@ fun FileManagerRootScreen(
                                             vm.closeTrash()
                                             backStack.closeTrash()
                                         },
+                                        onExit = onExit,
+                                        onToggleOrientation = onToggleOrientation
+                                    )
+                                }
+                                entry<FmNavKey.Editor> { editorKey ->
+                                    FmEditorScreen(
+                                        path = Paths.get(editorKey.path),
+                                        vm = vm,
+                                        snackHost = snackHost,
+                                        contentAlpha = gestureAlpha,
+                                        onBack = { backStack.closeEditor() },
                                         onExit = onExit,
                                         onToggleOrientation = onToggleOrientation
                                     )
@@ -203,8 +228,26 @@ fun FileManagerRootScreen(
                             }
 
                             if (backStack.size > 1) {
-                                vm.closeTrash()
-                                backStack.closeTrash()
+                                when (backStack.lastOrNull()) {
+                                    is FmNavKey.Trash -> {
+                                        vm.closeTrash()
+                                        backStack.closeTrash()
+                                    }
+
+                                    is FmNavKey.Editor -> {
+                                        // 存在未保存修改时先弹确认框，由编辑器页面处理
+                                        if (vm.editorHasDirty()) {
+                                            vm.editorRequestExitConfirm()
+                                        } else {
+                                            backStack.closeEditor()
+                                        }
+                                    }
+
+                                    else -> {
+                                        backStack.closeTrash()
+                                        backStack.closeEditor()
+                                    }
+                                }
                             } else if (!vm.consumeBack()) {
                                 // 根目录之上，退出文件管理器
                                 onExit()
