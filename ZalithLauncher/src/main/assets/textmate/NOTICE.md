@@ -10,7 +10,11 @@ full text of which appears at the end of this notice.
    html.tmLanguage.json, java.tmLanguage.json, javascript.tmLanguage.json,
    json.tmLanguage.json, markdown.tmLanguage.json, python.tmLanguage.json,
    shellscript.tmLanguage.json, sql.tmLanguage.json, typescript.tmLanguage.json,
-   xml.tmLanguage.json, yaml.tmLanguage.json, dark_vs.json, light_vs.json.
+   xml.tmLanguage.json, dark_vs.json, light_vs.json.
+   Note: markdown.tmLanguage.json has been locally modified to work around
+   tm4e/joni limitations: the `end` patterns of the `bold` and `italic` rules
+   are written without backreferences, the `strikethrough` rule uses a
+   simplified pattern, and a `fenced_code_block_kotlin` rule was added.
 
 2. vscode-kotlin — https://github.com/fwcd/vscode-kotlin
    Copyright (c) 2016 George Fraser
@@ -21,6 +25,16 @@ full text of which appears at the end of this notice.
    Copyright (c) 2015 emilast
    File: log.tmLanguage.json. The upstream file is in plist format; it was
    converted to JSON with the semantics unchanged.
+
+4. YAML-Syntax-Highlighter — https://github.com/RedCMD/YAML-Syntax-Highlighter
+   Copyright (c) 2021 RedCMD
+   Files: yaml.tmLanguage.json, yaml-1.2.tmLanguage.json,
+   yaml-embedded.tmLanguage.json. The YAML grammar is implemented as layered
+   injection grammars: the shell `yaml.tmLanguage.json` references
+   `source.yaml.1.2` and `source.yaml.embedded`, which are provided by the two
+   additional files. Stray `comment` entries (spec-documentation links) inside
+   `beginCaptures` were removed from yaml-1.2.tmLanguage.json and
+   yaml-embedded.tmLanguage.json, as tm4e does not accept them.
 
 MIT License
 

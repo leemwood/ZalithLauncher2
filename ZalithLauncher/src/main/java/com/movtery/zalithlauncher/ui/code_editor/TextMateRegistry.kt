@@ -65,7 +65,9 @@ object TextMateRegistry {
         "sql.tmLanguage.json" to "source.sql",
         "typescript.tmLanguage.json" to "source.ts",
         "xml.tmLanguage.json" to "text.xml",
-        "yaml.tmLanguage.json" to "source.yaml"
+        "yaml.tmLanguage.json" to "source.yaml",
+        "yaml-1.2.tmLanguage.json" to "source.yaml.1.2",
+        "yaml-embedded.tmLanguage.json" to "source.yaml.embedded"
     )
 
     /**
