@@ -823,9 +823,6 @@ private fun EditorSearchBar(
     }
 }
 
-/**
- * 搜索选项开关（小尺寸），长按显示名称提示
- */
 @Composable
 private fun SearchOptionToggle(
     @DrawableRes iconRes: Int,
@@ -852,9 +849,9 @@ private fun SearchOptionToggle(
                 .clip(shape)
                 .background(
                     if (checked) {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    } else {
                         MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.secondaryContainer
                     }
                 )
                 .combinedClickable(
@@ -870,9 +867,9 @@ private fun SearchOptionToggle(
                 contentDescription = contentDescription,
                 modifier = Modifier.size(16.dp),
                 tint = if (checked) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                } else {
                     MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
                 }
             )
         }
