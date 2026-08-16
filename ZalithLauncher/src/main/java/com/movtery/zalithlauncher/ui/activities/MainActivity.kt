@@ -296,7 +296,8 @@ class MainActivity : BaseAppCompatActivity() {
                         FileManagerLauncher.launch(
                             context = this@MainActivity,
                             rootPath = event.rootPath,
-                            currentPath = event.currentPath
+                            currentPath = event.currentPath,
+                            logsDir = PathManager.DIR_LAUNCHER_LOGS.absolutePath
                         )
                     }
                     else -> {

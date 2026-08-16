@@ -82,7 +82,8 @@ object FmLog {
                         writer.println("================ File Manager Log ================")
                         writer.flush()
                         logWriter = writer
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        Log.w("FmLog", "Failed to log the line.", e)
                         // 文件日志失败不影响 logcat 输出
                         logWriter = null
                     }
