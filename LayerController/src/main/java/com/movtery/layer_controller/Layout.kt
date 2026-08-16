@@ -31,15 +31,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.IntSize
@@ -151,6 +156,7 @@ private fun BoxWithConstraintsScope.BaseControlBoxLayout(
     val currentHideLayerWhen by rememberUpdatedState(hideLayerWhen)
 
     val density = LocalDensity.current
+    val layoutPositionInRoot = remember { mutableStateOf(Offset.Zero) }
     val screenSize = remember(maxWidth, maxHeight) {
         with(density) {
             IntSize(
@@ -173,12 +179,16 @@ private fun BoxWithConstraintsScope.BaseControlBoxLayout(
 
     Box(
         modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                layoutPositionInRoot.value = coordinates.positionInRoot()
+            }
             .pointerInput(reversedLayers, hideLayerWhen) {
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+                        val motionEvent = event.motionEvent
 
-                        event.changes.forEach { change ->
+                        event.changes.forEachIndexed { index, change ->
                             val pointerId = change.id
                             //手指抬起，清理该指针所有状态
                             if (!change.pressed) {
@@ -186,11 +196,11 @@ private fun BoxWithConstraintsScope.BaseControlBoxLayout(
                                     //释放该指针事件
                                     widget.onReleaseEvent(eventHandler, reversedLayers)
                                 }
-                                return@forEach
+                                return@forEachIndexed
                             }
 
                             if (change.isConsumed || currentCheckOccupiedPointers(pointerId)) {
-                                return@forEach //跳过已消费或被占用的指针
+                                return@forEachIndexed //跳过已消费或被占用的指针
                             }
 
                             //收集可见控件
@@ -200,9 +210,26 @@ private fun BoxWithConstraintsScope.BaseControlBoxLayout(
                                 isCursorGrabbing = currentIsCursorGrabbing,
                             )
 
+                            // Compose reconstructs Android pointer positions from raw screen
+                            // coordinates. Some devices expose raw and local coordinates with
+                            // different scaling, which corrupts secondary pointer positions.
+                            val position = if (
+                                change.type == PointerType.Touch &&
+                                motionEvent != null &&
+                                index < motionEvent.pointerCount
+                            ) {
+                                Offset(
+                                    x = motionEvent.getX(index) - layoutPositionInRoot.value.x,
+                                    y = motionEvent.getY(index) - layoutPositionInRoot.value.y,
+                                )
+                            } else {
+                                change.position
+                            }
+
                             touchProcessor.processFrame(
                                 session = pointerEventBus,
                                 change = change,
+                                position = position,
                                 visibleWidgets = visibleWidgets,
                                 allLayers = reversedLayers,
                                 consumeEvent = { it.consume() },
