@@ -7,8 +7,13 @@ group = "org.lwjgl.glfw"
 val lwjglVersion = "3.4.1"
 val libsDir = file("libs/lwjgl-${lwjglVersion}")
 val outputDir = file("../../ZalithLauncher/src/main/assets/components/lwjgl3/${lwjglVersion}")
-// 需要单独拆出、不合并进主 jar 的模块（如 LWJGL2 的桥接层 lwjglx，只有 LWJGL2 游戏才需要）
-val excludedModules = listOf("lwjgl-lwjglx.jar")
+val excludedModules = listOf(
+    "jsr305.jar", "lwjgl.jar", "lwjgl-freetype.jar", "lwjgl-jemalloc.jar",
+    "lwjgl-lwjglx.jar", "lwjgl-nanovg.jar", "lwjgl-openal.jar",
+    "lwjgl-shaderc.jar", "lwjgl-spvc.jar", "lwjgl-stb.jar",
+    "lwjgl-tinyfd.jar", "lwjgl-vma.jar", "lwjgl-vulkan.jar",
+    "lwjgl-sdl.jar", "lwjgl-spng.jar"
+)
 
 val fatJarDeps by configurations.creating {
     isCanBeResolved = true
@@ -19,17 +24,16 @@ tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveBaseName.set("lwjgl-${lwjglVersion}-merged-modules")
     destinationDirectory.set(outputDir)
-    // Auto update the version with a timestamp so the project jar gets updated by Pojav
     doLast {
-        val versionFile = outputDir.resolve("version")
-        versionFile.writeText(System.currentTimeMillis().toString())
-        // 将被排除的模块原样复制到产物目录
+        // 被排除的模块原样复制到产物目录（lwjglx 桥接层也在此，仅 LWJGL2 游戏使用）
         fatJarDeps.filter { it.name in excludedModules }.forEach { module ->
             copy {
                 from(module)
                 into(outputDir)
             }
         }
+        // Auto update the version with a timestamp so the project jar gets updated by Pojav
+        outputDir.resolve("version").writeText(System.currentTimeMillis().toString())
     }
     from({
         fatJarDeps.filter { it.name !in excludedModules }.map {
