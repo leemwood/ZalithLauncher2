@@ -31,7 +31,7 @@ enum class Components(
     CACIOCAVALLO17("caciocavallo17", "caciocavallo 17", R.string.unpack_screen_cacio),
     LWJGL336(
         "lwjgl3/3.3.6", "LWJGL 3.3.6", R.string.unpack_screen_lwjgl,
-        companionComponent = "lwjgl-3.3.3-natives"
+        companionComponent = "lwjgl-3.3.6-natives"
     ),
     LWJGL341(
         "lwjgl3/3.4.1", "LWJGL 3.4.1", R.string.unpack_screen_lwjgl,

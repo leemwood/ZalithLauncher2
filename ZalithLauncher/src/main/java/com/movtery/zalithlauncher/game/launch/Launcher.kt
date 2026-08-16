@@ -66,9 +66,9 @@ abstract class Launcher(
     /** LWJGL 组件目录名（3.3.6 / 3.4.1） */
     protected fun getLwjglVersionDir(): String = lwjglVersionDir(lwjglVersion)
 
-    /** LWJGL natives 组件目录名（AAMC 原版布局：lwjgl-3.3.3-natives / lwjgl-3.4.1-natives） */
+    /** LWJGL natives 组件目录名（AAMC 原版布局：lwjgl-3.3.6-natives / lwjgl-3.4.1-natives） */
     protected fun getLwjglNativesDirName(): String =
-        if (lwjglVersion >= 341) "lwjgl-3.4.1-natives" else "lwjgl-3.3.3-natives"
+        if (lwjglVersion >= 341) "lwjgl-3.4.1-natives" else "lwjgl-3.3.6-natives"
 
     /** 当前启动版本的 LWJGL natives 目录（per-version natives，组件解包后） */
     protected val lwjglNativesDir: String
