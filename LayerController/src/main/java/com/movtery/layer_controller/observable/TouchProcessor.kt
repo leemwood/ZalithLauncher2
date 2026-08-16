@@ -44,7 +44,6 @@ class TouchProcessor(
 
     /**
      * 处理单帧指针事件
-     * @param position 当前指针相对于控制布局的位置
      * @param visibleWidgets 预过滤后的可见控件列表
      * @param allLayers 所有控件层
      * @param consumeEvent 消费事件的回调
@@ -53,13 +52,13 @@ class TouchProcessor(
     fun processFrame(
         session: PointerEventBus,
         change: PointerInputChange,
-        position: Offset = change.position,
         visibleWidgets: List<ObservableWidget>,
         allLayers: List<ObservableControlLayer>,
         consumeEvent: (PointerInputChange) -> Unit,
         markPointerAsMoveOnly: (PointerId) -> Unit,
     ) {
         val pointerId = change.id
+        val position = change.position
 
         //获取指针命中的目标控件
         val targets = findTargets(visibleWidgets, position)
