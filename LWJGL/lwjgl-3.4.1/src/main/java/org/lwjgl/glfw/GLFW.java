@@ -309,7 +309,11 @@ public class GLFW
     GLFW_CENTER_CURSOR           = 0x20009,
     GLFW_TRANSPARENT_FRAMEBUFFER = 0x2000A,
     GLFW_HOVERED                 = 0x2000B,
-    GLFW_FOCUS_ON_SHOW           = 0x2000C;
+    GLFW_FOCUS_ON_SHOW           = 0x2000C,
+    GLFW_MOUSE_PASSTHROUGH       = 0x2000D,
+    GLFW_POSITION_X              = 0x2000E,
+    GLFW_POSITION_Y              = 0x2000F,
+    GLFW_SOFT_FULLSCREEN         = 0x20010;
 
     /** Input options. */
     public static final int
@@ -370,8 +374,14 @@ public class GLFW
     /** Init hints. */
     public static final int
     GLFW_JOYSTICK_HAT_BUTTONS  = 0x50001,
+    GLFW_ANGLE_PLATFORM_TYPE   = 0x50002,
+    GLFW_ANY_POSITION          = 0x80000000,
+    GLFW_PLATFORM              = 0x50003,
+    GLFW_MANAGE_PREEDIT_CANDIDATE = 0x50004,
     GLFW_COCOA_CHDIR_RESOURCES = 0x51001,
-    GLFW_COCOA_MENUBAR         = 0x51002;
+    GLFW_COCOA_MENUBAR         = 0x51002,
+    GLFW_X11_XCB_VULKAN_SURFACE = 0x52001,
+    GLFW_X11_ONTHESPOT          = 0x52002;
 
     /** Hint value for {@link #GLFW_PLATFORM PLATFORM} that enables automatic platform selection. */
     public static final int
@@ -412,11 +422,13 @@ public class GLFW
     GLFW_CONTEXT_ROBUSTNESS       = 0x22005,
     GLFW_OPENGL_FORWARD_COMPAT    = 0x22006,
     GLFW_OPENGL_DEBUG_CONTEXT     = 0x22007,
+    GLFW_CONTEXT_DEBUG            = GLFW_OPENGL_DEBUG_CONTEXT,
     GLFW_OPENGL_PROFILE           = 0x22008,
     GLFW_CONTEXT_RELEASE_BEHAVIOR = 0x22009,
     GLFW_CONTEXT_NO_ERROR         = 0x2200A,
     GLFW_CONTEXT_CREATION_API     = 0x2200B,
-    GLFW_SCALE_TO_MONITOR         = 0x2200C;
+    GLFW_SCALE_TO_MONITOR         = 0x2200C,
+    GLFW_SCALE_FRAMEBUFFER        = 0x2200D;
 
     /** Specifies whether to use full resolution framebuffers on Retina displays. This is ignored on other platforms. */
     public static final int GLFW_COCOA_RETINA_FRAMEBUFFER = 0x23001;
@@ -445,6 +457,8 @@ public class GLFW
      * <p>This is ignored on other platforms.</p>
      */
     public static final int GLFW_WIN32_KEYBOARD_MENU = 0x25001;
+
+    public static final int GLFW_WIN32_SHOWDEFAULT = 0x25002;
 
     /** Values for the {@link #GLFW_CLIENT_API CLIENT_API} hint. */
     public static final int
@@ -1056,20 +1070,67 @@ public class GLFW
         int glMajor = 3;
         int glMinor = 3;
 
-        String pojavRenderer = System.getenv("POJAV_RENDERER");
-        // Custom defaults for specific renderers
-        switch (pojavRenderer) {
-            case "vulkan_zink":
-                glMajor = 4;
+        final String glDriver = System.getenv("POJAV_RENDERER");
+        // Custom defaults for specific renderers. Keep in sync with the renderer list in
+        // game/renderer (KopperZink/VirGL/NG-GL4ES etc.) and renderer_v2 plugin configs.
+        if (glDriver != null && glDriver.length() != 0) {
+            if (glDriver.startsWith("vulkan_zink") || glDriver.startsWith("opengles3_desktopgl")) {
+                glMajor = 4; // zink / turnip
                 glMinor = 6;
-                break;
-            case "gallium_virgl":
+            } else if (glDriver.startsWith("gallium_virgl") || glDriver.startsWith("opengles3_virgl")) {
                 glMajor = 4;
-                break;
-            case "opengles3":
+                glMinor = 3;
+            } else if (glDriver.startsWith("opengles3") || glDriver.startsWith("opengles_mobileglues")) {
                 glMajor = 4;
                 glMinor = 0;
-                break;
+            }
+        }
+        // Get the real values properly, but only if they're higher
+        FunctionProvider functionProvider = org.lwjgl.opengl.GL.getFunctionProvider();
+        if (functionProvider != null) {
+            // Save the old context so we can swap back to it later after getting driver info.
+            // Sometimes there are early loading windows like Forge that get a context,
+            // not returning it causes some obvious issues.
+            long oldPtr = glfwGetCurrentContext();
+            // Need to swap context to us so glFuncs work
+            glfwMakeContextCurrent(ptr);
+
+            // We don't assume createCapabilities has been called nor do we call it.
+            long GetError    = functionProvider.getFunctionAddress("glGetError");
+            long GetString   = functionProvider.getFunctionAddress("glGetString");
+            long GetIntegerv = functionProvider.getFunctionAddress("glGetIntegerv");
+
+            // Change the default to whatever GL_VERSION can be extracted to, only if higher ver
+            String versionString = memUTF8Safe(callP(GL_VERSION, GetString));
+            if (versionString != null) {
+                try {
+                    APIVersion apiVersion = apiParseVersion(versionString);
+                    int parsedGlMajor = apiVersion.major;
+                    int parsedGlMinor = apiVersion.minor;
+                    if (3 <= parsedGlMajor && parsedGlMajor <= 4) glMajor = parsedGlMajor;
+                    if (3 <= parsedGlMinor && parsedGlMinor <= 6) glMinor = parsedGlMinor;
+                    System.out.println("Driver "+glDriver+" GL string returned "+ parsedGlMajor + parsedGlMinor);
+                } catch (Throwable ignored){} // In case the string is invalid/garbage
+            }
+            // Try to get values from GL30+ driver directly, only use if higher ver
+            try (MemoryStack stack = stackPush()) {
+                IntBuffer version = stack.ints(0, 0);
+                callPV(0x821B, memAddress(version, 0), GetIntegerv); // GL_MAJOR_VERSION
+                if (callI(GetError) == GL_NO_ERROR) {
+                    int parsedGlMajor = version.get(0);
+                    if (3 <= parsedGlMajor && parsedGlMajor <= 4) glMajor = parsedGlMajor;
+                }
+                callPV(0x821C, memAddress(version, 1), GetIntegerv); // GL_MINOR_VERSION
+                if (callI(GetError) == GL_NO_ERROR) {
+                    int parsedGlMinor = version.get(1);
+                    if (3 <= parsedGlMinor && parsedGlMinor <= 4) glMinor = parsedGlMinor;
+                }
+                System.out.println("Driver "+glDriver+" GL version returned "+ version.get(0) + version.get(1));
+            }
+            System.out.println("Using GL version "+glMajor+"."+glMinor+" for GLFW window context!");
+
+            // We finished getting the driver info, return it back to its original state now
+            glfwMakeContextCurrent(oldPtr);
         }
         win.windowAttribs.put(GLFW_CONTEXT_VERSION_MAJOR, glMajor);
         win.windowAttribs.put(GLFW_CONTEXT_VERSION_MINOR, glMinor);
