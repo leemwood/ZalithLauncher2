@@ -194,7 +194,7 @@ abstract class Launcher(
             put("jdk.lang.Process.launchMechanism", "FORK")
 
             put("sodium.checks.issue2561", "false")
-            
+
             put("cpu.name", getSocName())
 
             putJavaArgs()
@@ -414,6 +414,7 @@ abstract class Launcher(
             map["AWTSTUB_WIDTH"] = screenSize.width.toString()
             map["AWTSTUB_HEIGHT"] = screenSize.height.toString()
             map["MOD_ANDROID_RUNTIME"] = PathManager.DIR_RUNTIME_MOD?.absolutePath ?: ""
+            map["ALSOFT_DRIVERS"] = "opensl"
 
             if (AllSettings.dumpShaders.getValue()) map["LIBGL_VGPU_DUMP"] = "1"
             if (AllSettings.zinkPreferSystemDriver.getValue()) map["POJAV_ZINK_PREFER_SYSTEM_DRIVER"] = "1"
