@@ -136,6 +136,9 @@ import kotlinx.coroutines.withContext
 import org.apache.commons.io.FileUtils
 import java.io.File
 import java.util.Date
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 private class SavesManageViewModel(
     val minecraftVersion: String,
@@ -797,6 +800,11 @@ private fun SaveInfoTooltip(
         //是否使用指令
         if (saveData.allowCommands == true) {
             Text(text = stringResource(R.string.saves_manage_allow_commands))
+        }
+        //游戏时长
+        if (saveData.playTime != null) {
+            val duration = (saveData.playTime / 20).toDuration(DurationUnit.SECONDS)
+            Text(text = stringResource(R.string.saves_manage_playtime,stringResource(R.string.duration_format,duration.inWholeDays,duration.inWholeHours,duration.inWholeMinutes)))
         }
         //世界种子
         val worldSeed = saveData.worldSeed?.toString()
