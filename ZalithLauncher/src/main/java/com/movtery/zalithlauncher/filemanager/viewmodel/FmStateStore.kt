@@ -23,6 +23,7 @@ import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.filemanager.logic.FmFilenameError
 import com.movtery.zalithlauncher.filemanager.logic.FmFilenameException
 import com.movtery.zalithlauncher.filemanager.logic.entry.FmEntry
+import com.movtery.zalithlauncher.filemanager.logic.extract.NotArchiveException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -154,6 +155,7 @@ class FmStateStore(private val context: Context) {
     fun fileOpErrorText(e: Throwable, fallbackRes: Int): String = when (e) {
         is NoSuchFileException -> stringResolver(R.string.fm_error_file_not_found)
         is AccessDeniedException -> stringResolver(R.string.fm_error_access_denied)
+        is NotArchiveException -> stringResolver(R.string.fm_error_not_archive)
         else -> e.message?.takeIf { it.isNotBlank() } ?: stringResolver(fallbackRes)
     }
 }

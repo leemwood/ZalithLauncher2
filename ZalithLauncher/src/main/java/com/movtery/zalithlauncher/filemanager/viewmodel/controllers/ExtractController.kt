@@ -342,6 +342,9 @@ class ExtractController(
         keepBoth: Boolean,
         independentFolder: Boolean
     ) {
+        withContext(Dispatchers.IO) {
+            Files.createDirectories(tempDir)
+        }
         when (target) {
             is OutputTarget.Local -> {
                 if (overwrite && independentFolder) {

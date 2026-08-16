@@ -1409,6 +1409,7 @@
     <string name="fm_error_paste_invalid">Paste operation is invalid</string>
     <string name="fm_error_compress_failed">Compression failed</string>
     <string name="fm_error_extract_failed">Extraction failed</string>
+    <string name="fm_error_not_archive">The file is not a valid archive</string>
     <string name="fm_error_delete_failed">Delete failed</string>
     <string name="fm_error_access_denied">Permission denied</string>
     <string name="fm_error_file_not_found">The file does not exist or has been moved</string>

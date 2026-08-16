@@ -33,15 +33,19 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.CompressorStreamFactory
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
-import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.Paths
 
 private const val TAG = "FmExtract"
 private const val BUFFER_SIZE = 64 * 1024
+
+/** 文件存在，但不是可识别的压缩包格式（或压缩包已损坏无法解析） */
+class NotArchiveException(message: String) : Exception(message)
 
 object Extractor {
     /**
@@ -62,7 +66,6 @@ object Extractor {
         onBytes: (bytesDone: Long, bytesTotal: Long) -> Unit = { _, _ -> }
     ): ExtractSummary {
         // 按内容探测候选格式并依次尝试，失败换下一种
-        var lastError: Exception? = null
         for (type in detectTypes(archive)) {
             try {
                 return extractWithType(
@@ -79,11 +82,15 @@ object Extractor {
             } catch (e: Exception) {
                 if (e is ArchivePasswordException) throw e
                 if (isPasswordError(e)) throw passwordException(options, e)
-                lastError = e
                 FmLog.warn(TAG, "Extract failed as $type, trying next format", e)
             }
         }
-        throw lastError ?: IOException("Unsupported archive format")
+        // 所有候选格式均失败，文件存在时统一提示“不是有效的压缩包”，
+        throw if (Files.exists(archive, LinkOption.NOFOLLOW_LINKS)) {
+            NotArchiveException(archive.toString())
+        } else {
+            NoSuchFileException(archive.toString())
+        }
     }
 
     private suspend fun extractWithType(
@@ -200,6 +207,23 @@ object Extractor {
         }
     }
 
+    /**
+     * 判断文件头部是否具有 ZIP 签名
+     */
+    private fun isZipSignature(archive: Path): Boolean = runCatching {
+        Files.newInputStream(archive).use { input ->
+            val buf = ByteArray(4)
+            var read = 0
+            while (read < buf.size) {
+                val n = input.read(buf, read, buf.size - read)
+                if (n < 0) break
+                read += n
+            }
+            read >= 4 && buf[0] == 'P'.code.toByte() && buf[1] == 'K'.code.toByte() &&
+                (buf[2] == 0x03.toByte() || buf[2] == 0x05.toByte() || buf[2] == 0x07.toByte()) &&
+                buf[3] == 0x04.toByte()
+        }
+    }.getOrDefault(false)
 
     private fun countZip(archive: Path, password: String?): Int {
         return runCatching {
@@ -233,6 +257,11 @@ object Extractor {
             throw e
         }
         zip.use { z ->
+            // zip4j 对无 ZIP 签名的内容（如空文件、纯文本）会宽容地视为空压缩包，
+            // 此处校验签名：不是 zip 时让位给后续格式尝试，最终提示“不是有效的压缩包”
+            if (z.fileHeaders.isEmpty() && !isZipSignature(archive)) {
+                throw ZipException("Zip headers not found. Probably not a zip file")
+            }
             withContext(Dispatchers.IO) {
                 for (header in z.fileHeaders) {
                     checkCancel()

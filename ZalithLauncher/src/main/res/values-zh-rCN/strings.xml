@@ -1391,6 +1391,7 @@
     <string name="fm_error_paste_invalid">粘贴操作无效</string>
     <string name="fm_error_compress_failed">压缩失败</string>
     <string name="fm_error_extract_failed">解压失败</string>
+    <string name="fm_error_not_archive">不是有效的压缩包文件</string>
     <string name="fm_error_delete_failed">删除失败</string>
     <string name="fm_error_access_denied">没有访问权限</string>
     <string name="fm_error_file_not_found">文件不存在或已被移动</string>

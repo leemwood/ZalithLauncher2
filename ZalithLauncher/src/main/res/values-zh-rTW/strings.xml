@@ -1295,6 +1295,7 @@
     <string name="fm_error_create_failed">建立失敗</string>
     <string name="fm_error_delete_failed">刪除失敗</string>
     <string name="fm_error_extract_failed">解壓縮失敗</string>
+    <string name="fm_error_not_archive">不是有效的壓縮檔</string>
     <string name="fm_error_file_not_found">檔案不存在或已被移動</string>
     <string name="fm_error_invalid_target">無效的目標目錄</string>
     <string name="fm_error_out_of_scope">超出範圍或目標不存在</string>
