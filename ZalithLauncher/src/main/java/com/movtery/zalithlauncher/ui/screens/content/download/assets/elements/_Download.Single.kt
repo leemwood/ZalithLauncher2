@@ -318,6 +318,7 @@ private fun DownloadDialog(
                             }
                             Button(
                                 modifier = Modifier.weight(0.5f),
+                                enabled = selectedVersions.isNotEmpty(),
                                 onClick = {
                                     if (selectedVersions.isNotEmpty()) {
                                         onInstall(selectedVersions)
