@@ -296,8 +296,3 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
 }
-
-// assets/app_runtime/lwjgl/
-tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
-    dependsOn(":LWJGL:lwjgl-3.3.3:jar", ":LWJGL:lwjgl-3.4.1:jar")
-}
