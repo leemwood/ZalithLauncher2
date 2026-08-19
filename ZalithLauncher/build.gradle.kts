@@ -117,6 +117,8 @@ android {
     }
 
     compileOptions {
+        // sora-editor language-textmate
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -232,6 +234,7 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.webkit)
+    implementation(libs.documentfile)
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
     implementation(libs.coil.svg)
@@ -246,6 +249,8 @@ dependencies {
     implementation(libs.richtext.ui.material3)
     implementation(platform(libs.editor.bom))
     implementation(libs.editor)
+    implementation(libs.editor.language.textmate)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.dev.haze)
     implementation(libs.dev.haze.blur)
     //Project
@@ -260,6 +265,7 @@ dependencies {
     implementation(libs.commons.codec)
     implementation(libs.commons.compress)
     implementation(libs.xz)
+    implementation(libs.zip4j)
     implementation(libs.okio)
     implementation(libs.okhttp)
     implementation(libs.ktor.http)
