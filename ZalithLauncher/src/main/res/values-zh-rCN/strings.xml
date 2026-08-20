@@ -1272,6 +1272,7 @@
     <string name="festivals_christmas">圣诞节快乐！</string>
 
     <!-- 文件管理器 -->
+    <string name="fm_activity_name">文件管理器</string>
     <string name="fm_initializing">初始化中…</string>
     <string name="fm_init_failed">初始化失败：%s</string>
     <string name="fm_empty_dir">空目录</string>

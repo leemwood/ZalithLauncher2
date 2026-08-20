@@ -18,6 +18,7 @@
 
 package com.movtery.zalithlauncher.filemanager.ui
 
+import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -36,6 +37,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.MutableCreationExtras
+import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.filemanager.FileManagerLauncher
 import com.movtery.zalithlauncher.filemanager.os.FmLog
 import com.movtery.zalithlauncher.filemanager.viewmodel.FileManagerViewModel
@@ -140,6 +142,10 @@ class FileManagerActivity : ComponentActivity() {
         super.onResume()
         loadAllSettings(this, true)
         applySystemUiByOrientation()
+        @Suppress("DEPRECATION")
+        setTaskDescription(
+            ActivityManager.TaskDescription(getString(R.string.fm_activity_name))
+        )
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
