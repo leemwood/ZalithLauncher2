@@ -1384,4 +1384,5 @@
     <string name="fm_property_folders">Pastas</string>
     <string name="fm_calculating">Calculando…</string>
     <string name="fm_name_conflict">Conflito de nomes com uma entrada existente</string>
+    <string name="fm_activity_name">Gerenciador de Arquivos</string>
 </resources>
