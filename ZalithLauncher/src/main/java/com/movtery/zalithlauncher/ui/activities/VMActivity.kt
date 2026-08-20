@@ -121,6 +121,7 @@ private const val INTENT_GAME_CONFIG = "INTENT_GAME_CONFIG"
 private const val INTENT_JAR_INFO = "INTENT_JAR_INFO"
 
 data class LaunchSession(
+    val activityTitle: String,
     val launcher: Launcher,
     val handler: AbstractHandler,
     val inputSender: CharacterSenderStrategy
@@ -202,6 +203,7 @@ class VMViewModel : ViewModel() {
                 sender = LWJGLCharSender
 
                 LaunchSession(
+                    activityTitle = config.version.getVersionName(),
                     launcher = launcher,
                     handler = GameHandler(
                         activity = activity,
@@ -234,6 +236,7 @@ class VMViewModel : ViewModel() {
                 sender = AWTCharSender
 
                 LaunchSession(
+                    activityTitle = activity.getString(R.string.execute_jar_title),
                     launcher = launcher,
                     handler = JVMHandler(
                         jvmLauncher = launcher,
@@ -495,6 +498,12 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
                 }
             }
         }
+    }
+
+    override fun getTaskDescriptionTitle(): String? {
+        return runCatching {
+            vmViewModel.session.activityTitle
+        }.getOrNull()
     }
 
     override fun onResume() {

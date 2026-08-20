@@ -1290,6 +1290,7 @@
     <string name="festivals_christmas">Merry Christmas!</string>
 
     <!-- File Manager -->
+    <string name="fm_activity_name">File Manager</string>
     <string name="fm_initializing">Initializing…</string>
     <string name="fm_init_failed">Failed to initialize: %s</string>
     <string name="fm_empty_dir">Empty directory</string>

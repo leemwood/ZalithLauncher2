@@ -1321,6 +1321,7 @@
     <string name="fm_import_empty">沒有可匯入的內容</string>
     <string name="fm_import_file">匯入檔案</string>
     <string name="fm_init_failed">初始化失敗：%s</string>
+    <string name="fm_activity_name">檔案管理員</string>
     <string name="fm_initializing">初始化中…</string>
     <string name="fm_jump_hint">目標目錄路徑</string>
     <string name="fm_jump_invalid">超出範圍或目標不存在</string>
