@@ -390,6 +390,11 @@ private fun setRendererEnv(envMap: MutableMap<String, String>) {
 
     envMap["POJAV_RENDERER"] = rendererId
 
+    // SDL uses the same graphics and EGL libraries as the GLFW bridge.
+    // Minecraft versions with SDL bindings use these variables during initialization.
+    envMap["SDL_OPENGL_LIBRARY"] = loadGraphicsLibrary() ?: "libGLESv2.so"
+    envMap["SDL_EGL_LIBRARY"] = "${PathManager.DIR_NATIVE_LIB}/${envMap["POJAVEXEC_EGL"] ?: "libEGL.so"}"
+
     if (RendererPluginManager.selectedRendererPlugin != null) return
 
     if (renderer != GL4ESRenderer && renderer != NGGL4ESRenderer) {

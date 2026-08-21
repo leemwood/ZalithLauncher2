@@ -186,7 +186,7 @@ int pojavInitOpenGL() {
 }
 
 // 获取当前线程的 JNIEnv（未附着则先 Attach，不 Detach，保留渲染线程的附着状态）
-static JNIEnv *get_attached_env(JavaVM *jvm) {
+static JNIEnv *get_attached_env_for_renderer(JavaVM *jvm) {
     JNIEnv *jvm_env = NULL;
     jint env_result = (*jvm)->GetEnv(jvm, (void **) &jvm_env, JNI_VERSION_1_4);
     if (env_result == JNI_EDETACHED) {
@@ -200,7 +200,7 @@ static JNIEnv *get_attached_env(JavaVM *jvm) {
 }
 
 EXTERNAL_API int pojavInit() {
-    pojav_environ->glfwThreadVmEnv = get_attached_env(pojav_environ->runtimeJavaVMPtr);
+    pojav_environ->glfwThreadVmEnv = get_attached_env_for_renderer(pojav_environ->runtimeJavaVMPtr);
     if (pojav_environ->glfwThreadVmEnv == NULL) {
         printf("Failed to attach Java-side JNIEnv to GLFW thread\n");
         return 0;
@@ -312,7 +312,7 @@ void calculateFPS() {
 }
 
 EXTERNAL_API JNIEXPORT void JNICALL
-Java_org_lwjgl_vulkan_VK_onVKFrame(ABI_COMPAT JNIEnv *env, ABI_COMPAT jclass thiz) {
+Java_org_lwjgl_vulkan_VK_updateFps(ABI_COMPAT JNIEnv *env, ABI_COMPAT jclass thiz) {
     calculateFPS();
 }
 

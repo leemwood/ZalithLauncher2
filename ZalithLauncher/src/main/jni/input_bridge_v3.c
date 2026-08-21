@@ -32,6 +32,24 @@
 
 static void registerFunctions(JNIEnv *env);
 
+
+/**
+ * org.lwjgl.sdl.SDLInit（游戏 JVM 侧）调用组件版 CallbackBridge.nativeNotifyLauncher 时
+ * 由本实现承接：attach 到 launcher 进程，把 int[] 跨 env 转换后转发给
+ * launcher 侧 CallbackBridge.notifyLauncher（app 版，负责 SDL 集成初始化）。
+ */
+JNIEXPORT jboolean JNICALL Java_org_lwjgl_glfw_CallbackBridge_nativeNotifyLauncher(JNIEnv* env, __attribute__((unused)) jclass clazz, jint type, jintArray action) {
+    TRY_ATTACH_ENV(dvm_env, pojav_environ->dalvikJavaVMPtr, "nativeNotifyLauncher failed!\n",);
+    jboolean result = (*dvm_env)->CallStaticBooleanMethod(dvm_env, pojav_environ->bridgeClazz,
+                                                          pojav_environ->method_notifyLauncher, type, convertIntArrayJVM(env, dvm_env, action));
+    if ((*dvm_env)->ExceptionCheck(dvm_env)) {
+        (*dvm_env)->ExceptionDescribe(dvm_env);
+        (*dvm_env)->ExceptionClear(dvm_env);
+        return JNI_FALSE;
+    }
+    return result;
+}
+
 jint JNI_OnLoad(JavaVM* vm, __attribute__((unused)) void* reserved) {
     if (pojav_environ->dalvikJavaVMPtr == NULL) {
         LOG_TO_I("<%s> %s", "Native", "Saving DVM environ...");
@@ -43,6 +61,7 @@ jint JNI_OnLoad(JavaVM* vm, __attribute__((unused)) void* reserved) {
         pojav_environ->method_onGrabStateChanged = (*pojav_environ->dalvikJNIEnvPtr_ANDROID)->GetStaticMethodID(pojav_environ->dalvikJNIEnvPtr_ANDROID, pojav_environ->bridgeClazz, "onGrabStateChanged", "(Z)V");
         pojav_environ->method_onCursorShapeChanged = (*pojav_environ->dalvikJNIEnvPtr_ANDROID)->GetStaticMethodID(pojav_environ->dalvikJNIEnvPtr_ANDROID, pojav_environ->bridgeClazz, "onCursorShapeChanged", "(I)V");
         pojav_environ->method_onGraphicOutput = (*pojav_environ->dalvikJNIEnvPtr_ANDROID)->GetStaticMethodID(pojav_environ->dalvikJNIEnvPtr_ANDROID, pojav_environ->bridgeClazz, "onGraphicOutput", "()V");
+        pojav_environ->method_notifyLauncher = (*pojav_environ->dalvikJNIEnvPtr_ANDROID)->GetStaticMethodID(pojav_environ->dalvikJNIEnvPtr_ANDROID, pojav_environ->bridgeClazz, "notifyLauncher", "(I[I)Z");
         pojav_environ->isUseStackQueueCall = JNI_FALSE;
     } else if (pojav_environ->dalvikJavaVMPtr != vm) {
         LOG_TO_I("<%s> %s", "Native", "Saving JVM environ...");
@@ -71,7 +90,8 @@ jint JNI_OnLoad(JavaVM* vm, __attribute__((unused)) void* reserved) {
  * initialized yet, and FindClass("org/lwjgl/glfw/GLFW") would trigger its <clinit>,
  * which in turn calls System.loadLibrary("pojavexec") again -> reentry into the still
  * running JNI_OnLoad -> crash. Deferring it here (after the library finished loading)
- * avoids that recursion and matches what AAMC/Amethyst-Android does.
+ * avoids that recursion and follows the reference implementation from
+ * https://github.com/AngelAuraMC/Amethyst-Android.
  */
 JNIEXPORT void JNICALL Java_org_lwjgl_glfw_GLFW_nativeInitializeGLFWNativeBridge(__attribute__((unused)) JNIEnv* env, __attribute__((unused)) jclass clazz) {
     JNIEnv *vmEnv = pojav_environ->runtimeJNIEnvPtr_JRE;
