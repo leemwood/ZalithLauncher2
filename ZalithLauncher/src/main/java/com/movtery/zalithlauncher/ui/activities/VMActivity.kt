@@ -577,6 +577,12 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
         applySizeToSurface?.invoke(windowWidth, windowHeight)
         ZLBridgeStates.onWindowChange()
         CallbackBridge.sendUpdateWindowSize(windowWidth, windowHeight)
+        if (SdlBridge.sdlEnabled) {
+            SDLActivity.getSDLSurface()?.let { surface ->
+                surface.surfaceChanged()
+                surface.nativeResize(windowWidth, windowHeight)
+            }
+        }
 
         return IntSize(windowWidth, windowHeight)
     }
@@ -672,9 +678,7 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     }
 
     override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
-        if (SdlBridge.sdlEnabled) {
-            SDLActivity.getSDLSurface()?.surfaceChanged()
-        }
+        refreshWindowSize(screenSize = IntSize(width, height))
     }
 
     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
@@ -691,13 +695,7 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        // Keep SDL's window size aligned with the physical surface size.
-        if (SdlBridge.sdlEnabled) {
-            SDLActivity.getSDLSurface()?.surfaceChanged(
-                holder, format,
-                CallbackBridge.windowWidth, CallbackBridge.windowHeight
-            )
-        }
+        refreshWindowSize(screenSize = IntSize(width, height))
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {

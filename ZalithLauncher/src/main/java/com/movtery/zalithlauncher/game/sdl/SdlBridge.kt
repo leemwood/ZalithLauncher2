@@ -36,6 +36,11 @@ object SdlBridge {
     private var currentSurface: Surface? = null
 
     @JvmStatic
+    fun setupJNI() {
+        SDL.setupJNI()
+    }
+
+    @JvmStatic
     @Volatile
     var sdlEnabled: Boolean = false
 

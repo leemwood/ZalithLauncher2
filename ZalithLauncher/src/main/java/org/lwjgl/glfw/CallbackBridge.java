@@ -27,6 +27,7 @@ import com.movtery.zalithlauncher.game.input.EfficientAndroidLWJGLKeycode;
 import com.movtery.zalithlauncher.game.sdl.SdlBridge;
 
 import org.libsdl.app.SDLActivity;
+import org.libsdl.app.SDLSurface;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -94,9 +95,16 @@ public class CallbackBridge {
                         LoggerBridge.append("ZalithLauncher: loading SDL2");
                         System.loadLibrary("SDL2");
                         LoggerBridge.append("ZalithLauncher: setting up SDL JNI");
-                        org.libsdl.app.SDL.setupJNI();
+                        SdlBridge.setupJNI();
                         LoggerBridge.append("ZalithLauncher: binding SDL surface");
                         SdlBridge.setSdlEnabled(true);
+                        SDLSurface surface = SDLActivity.getSDLSurface();
+                        if (surface != null) {
+                            surface.surfaceChanged();
+                            if (windowWidth > 0 && windowHeight > 0) {
+                                surface.nativeResize(windowWidth, windowHeight);
+                            }
+                        }
                         LoggerBridge.append("ZalithLauncher: SDL support enabled!");
                         return true;
                     } catch (Throwable e) {
@@ -256,6 +264,8 @@ public class CallbackBridge {
     }
 
     public static void sendUpdateWindowSize(int w, int h) {
+        windowWidth = w;
+        windowHeight = h;
         nativeSendScreenSize(w, h);
     }
 
