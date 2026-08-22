@@ -37,7 +37,7 @@ public class EfficientAndroidLWJGLKeycode {
     //This old version of this class was using an ArrayMap, a generic Key -> Value data structure.
     //The key being the android keycode from a KeyEvent
     //The value its LWJGL equivalent.
-    private static final int KEYCODE_COUNT = 106;
+    private static final int KEYCODE_COUNT = 109;
     private static final int[] sAndroidKeycodes = new int[KEYCODE_COUNT];
     private static final short[] sLwjglKeycodes = new short[KEYCODE_COUNT];
     private static int mTmpCount = 0;
@@ -133,12 +133,15 @@ public class EfficientAndroidLWJGLKeycode {
         add(KeyEvent.KEYCODE_PAGE_DOWN, LwjglGlfwKeycode.GLFW_KEY_PAGE_DOWN);
 
         add(KeyEvent.KEYCODE_ESCAPE, LwjglGlfwKeycode.GLFW_KEY_ESCAPE);
+        add(KeyEvent.KEYCODE_FORWARD_DEL, LwjglGlfwKeycode.GLFW_KEY_DELETE);
 
         // Control keys
         add(KeyEvent.KEYCODE_CTRL_LEFT, LwjglGlfwKeycode.GLFW_KEY_LEFT_CONTROL);
         add(KeyEvent.KEYCODE_CTRL_RIGHT, LwjglGlfwKeycode.GLFW_KEY_RIGHT_CONTROL);
 
         add(KeyEvent.KEYCODE_CAPS_LOCK, LwjglGlfwKeycode.GLFW_KEY_CAPS_LOCK);
+        add(KeyEvent.KEYCODE_SCROLL_LOCK, LwjglGlfwKeycode.GLFW_KEY_SCROLL_LOCK);
+        add(KeyEvent.KEYCODE_SYSRQ, LwjglGlfwKeycode.GLFW_KEY_PRINT_SCREEN);
         add(KeyEvent.KEYCODE_BREAK, LwjglGlfwKeycode.GLFW_KEY_PAUSE);
         add(KeyEvent.KEYCODE_MOVE_HOME, LwjglGlfwKeycode.GLFW_KEY_HOME);
         add(KeyEvent.KEYCODE_MOVE_END, LwjglGlfwKeycode.GLFW_KEY_END);
@@ -241,7 +244,31 @@ public class EfficientAndroidLWJGLKeycode {
     public static int getAndroidKeycode(int lwjglGlfwKeycode){
         if (lwjglGlfwKeycode == LwjglGlfwKeycode.GLFW_KEY_2) return KeyEvent.KEYCODE_2;
         if (lwjglGlfwKeycode == LwjglGlfwKeycode.GLFW_KEY_3) return KeyEvent.KEYCODE_3;
-        return sAndroidKeycodes[getIndexByValue(lwjglGlfwKeycode)];
+        int index = getIndexByValue(lwjglGlfwKeycode);
+        return index >= 0 && index < sAndroidKeycodes.length
+                ? sAndroidKeycodes[index]
+                : KeyEvent.KEYCODE_UNKNOWN;
+    }
+
+    public static int getSdlAndroidKeycode(int lwjglGlfwKeycode) {
+        switch (lwjglGlfwKeycode) {
+            case LwjglGlfwKeycode.GLFW_KEY_ESCAPE:
+                return KeyEvent.KEYCODE_ESCAPE;
+            case LwjglGlfwKeycode.GLFW_KEY_HOME:
+                return KeyEvent.KEYCODE_MOVE_HOME;
+            case LwjglGlfwKeycode.GLFW_KEY_END:
+                return KeyEvent.KEYCODE_MOVE_END;
+            case LwjglGlfwKeycode.GLFW_KEY_KP_ADD:
+                return KeyEvent.KEYCODE_NUMPAD_ADD;
+            case LwjglGlfwKeycode.GLFW_KEY_KP_DECIMAL:
+                return KeyEvent.KEYCODE_NUMPAD_DOT;
+            case LwjglGlfwKeycode.GLFW_KEY_KP_ENTER:
+                return KeyEvent.KEYCODE_NUMPAD_ENTER;
+            case LwjglGlfwKeycode.GLFW_KEY_DELETE:
+                return KeyEvent.KEYCODE_FORWARD_DEL;
+            default:
+                return getAndroidKeycode(lwjglGlfwKeycode);
+        }
     }
 
     /**

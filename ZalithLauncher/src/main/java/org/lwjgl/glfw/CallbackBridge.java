@@ -10,6 +10,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Choreographer;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 
 import androidx.annotation.Keep;
@@ -47,7 +48,7 @@ public class CallbackBridge {
     private static final int GLFW_ARROW_CURSOR = 0x36001;
 
     private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
-    private static boolean isGrabbing = false;
+    private static volatile boolean isGrabbing = false;
     private static final Consumer<Boolean> grabListener = isGrabbing ->
             ZLBridgeStates.changeCursorMode(isGrabbing ? CURSOR_DISABLED : CURSOR_ENABLED);
 
@@ -156,19 +157,21 @@ public class CallbackBridge {
     public static void sendCursorPos(float x, float y) {
         mouseX = x;
         mouseY = y;
+        deltaX = 0f;
+        deltaY = 0f;
         nativeSendCursorPos(mouseX, mouseY);
-        // SDL 输入双路：HOVER_MOVE 与 MOVE 在 SDL 中等价
         if (!SdlBridge.getSdlEnabled()) return;
-        if (!isGrabbing())
-            SDLActivity.onNativeMouse(0, MotionEvent.ACTION_MOVE, x, y, false);
-        else
-            SDLActivity.onNativeMouse(0, MotionEvent.ACTION_MOVE, deltaX, deltaY, true);
+        SDLActivity.onNativeMouse(0, MotionEvent.ACTION_MOVE, x, y, false);
     }
 
     public static void sendCursorDelta(float x, float y) {
         deltaX = x;
         deltaY = y;
-        sendCursorPos(mouseX + x, mouseY + y);
+        mouseX += x;
+        mouseY += y;
+        nativeSendCursorPos(mouseX, mouseY);
+        if (!SdlBridge.getSdlEnabled()) return;
+        SDLActivity.onNativeMouse(0, MotionEvent.ACTION_MOVE, x, y, true);
     }
 
     public static void sendKeycode(int keycode, char keychar, int scancode, int modifiers, boolean isDown) {
@@ -178,22 +181,22 @@ public class CallbackBridge {
             nativeSendCharMods(keychar, modifiers);
             nativeSendChar(keychar);
         }
-        // SDL 输入双路
         if (!SdlBridge.getSdlEnabled()) return;
-        if (isDown) {
-            SDLActivity.onNativeKeyDown(EfficientAndroidLWJGLKeycode.getAndroidKeycode(keycode));
-        } else {
-            SDLActivity.onNativeKeyUp(EfficientAndroidLWJGLKeycode.getAndroidKeycode(keycode));
+        int androidKeycode = EfficientAndroidLWJGLKeycode.getSdlAndroidKeycode(keycode);
+        if (androidKeycode == KeyEvent.KEYCODE_UNKNOWN) return;
+        try {
+            if (isDown) {
+                SDLActivity.onNativeKeyDown(androidKeycode);
+            } else {
+                SDLActivity.onNativeKeyUp(androidKeycode);
+            }
+        } catch (RuntimeException ignored) {
         }
     }
 
     public static void sendChar(char keychar, int modifiers){
-        nativeSendCharMods(keychar,modifiers);
+        nativeSendCharMods(keychar, modifiers);
         nativeSendChar(keychar);
-        // SDL 输入双路
-        if (!SdlBridge.getSdlEnabled()) return;
-        SDLActivity.onNativeKeyDown(EfficientAndroidLWJGLKeycode.getAndroidKeycode(keychar));
-        SDLActivity.onNativeKeyUp(EfficientAndroidLWJGLKeycode.getAndroidKeycode(keychar));
     }
 
     public static void sendKeyPress(int keyCode, int modifiers, boolean status) {
@@ -274,6 +277,20 @@ public class CallbackBridge {
         return isGrabbing;
     }
 
+    public static void resetInputState() {
+        if (SdlBridge.getSdlEnabled() && sMouseButtonState != 0) {
+            SDLActivity.onNativeMouse(0, MotionEvent.ACTION_UP, mouseX, mouseY, false);
+        }
+        deltaX = 0f;
+        deltaY = 0f;
+        sMouseButtonState = 0;
+        holdingAlt = false;
+        holdingCapslock = false;
+        holdingCtrl = false;
+        holdingNumlock = false;
+        holdingShift = false;
+    }
+
     // Called from JRE side
     @SuppressWarnings("unused")
     @Keep
@@ -343,7 +360,10 @@ public class CallbackBridge {
     @SuppressWarnings("unused")
     @Keep
     private static void onGrabStateChanged(final boolean grabbing) {
+        System.out.println("Grab callback received: " + grabbing);
         isGrabbing = grabbing;
+        deltaX = 0f;
+        deltaY = 0f;
         postFrameCallbackDelayed((time) -> {
             // If the grab re-changed, skip notify process
             if(isGrabbing != grabbing) return;
@@ -432,6 +452,7 @@ public class CallbackBridge {
     @Keep @CriticalNative private static native void nativeSendScroll(double xoffset, double yoffset);
     @Keep @CriticalNative private static native void nativeSendScreenSize(int width, int height);
     @Keep public static native void nativeSetWindowAttrib(int attrib, int value);
+    @Keep public static native void nativeSetGrabbing(boolean grab);
     @Keep public static native int getCurrentFps();
 
     static {

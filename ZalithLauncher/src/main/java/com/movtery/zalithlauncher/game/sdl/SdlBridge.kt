@@ -26,11 +26,15 @@ import org.libsdl.app.SDL
 import org.libsdl.app.SDLActivity
 import org.libsdl.app.SDLSurface
 import java.lang.ref.WeakReference
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Owns the SDL integration state shared by the launcher and game JVM.
  */
 object SdlBridge {
+    private val _enabled = MutableStateFlow(false)
+    val enabled = _enabled.asStateFlow()
     private var activityRef: WeakReference<Activity>? = null
     private var layoutRef: WeakReference<ViewGroup>? = null
     private var currentSurface: Surface? = null
@@ -43,6 +47,10 @@ object SdlBridge {
     @JvmStatic
     @Volatile
     var sdlEnabled: Boolean = false
+        set(value) {
+            field = value
+            _enabled.value = value
+        }
 
     @JvmStatic
     @MainThread
