@@ -323,6 +323,13 @@ public class CallbackBridge {
     }
 
 
+    @SuppressWarnings("unused")
+    @Keep
+    public static float getAndroidDPI() {
+        android.util.DisplayMetrics metrics = ContextsKt.getGlobalContext().getResources().getDisplayMetrics();
+        return metrics.density;
+    }
+
     public static int getCurrentMods() {
         int currMods = 0;
         if (holdingAlt) {

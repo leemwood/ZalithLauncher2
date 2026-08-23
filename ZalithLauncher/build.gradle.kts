@@ -141,6 +141,7 @@ androidComponents {
                 val variantName = variant.name.replaceFirstChar { it.uppercaseChar() }
                 afterEvaluate {
                     val task = tasks.named("merge${variantName}Assets").get() as MergeSourceSetFolders
+                    task.dependsOn(":LWJGL:lwjgl-3.3.3:jar", ":LWJGL:lwjgl-3.4.1:jar")
                     task.inputs.property("lwjglArch", projectArch)
                     task.doLast {
                         val assetsDir = task.outputDir.get().asFile

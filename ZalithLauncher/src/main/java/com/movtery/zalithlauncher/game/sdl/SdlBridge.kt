@@ -108,14 +108,14 @@ object SdlBridge {
 
     @JvmStatic
     @MainThread
-    fun beginSurfaceDestroy(source: Any?): Boolean {
-        return source == null || currentSource === source
+    fun beginSurfaceDestroy(source: Any?, surface: Surface?): Boolean {
+        return source != null && currentSource === source && surface != null && currentSurface === surface
     }
 
     @JvmStatic
     @MainThread
     fun unregisterSurface(surface: Surface?) {
-        if (surface == null || currentSurface === surface) {
+        if (surface != null && currentSurface === surface) {
             currentSurface = null
             currentSource = null
         }

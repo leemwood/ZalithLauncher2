@@ -687,11 +687,12 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     }
 
     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-        if (SdlBridge.beginSurfaceDestroy(surface)) {
+        val nativeSurface = SDLSurface.getNativeSurface()
+        if (SdlBridge.beginSurfaceDestroy(surface, nativeSurface)) {
             if (SdlBridge.sdlEnabled) {
                 SDLActivity.getSDLSurface()?.surfaceDestroyed()
             }
-            SdlBridge.unregisterSurface(SDLSurface.getNativeSurface())
+            SdlBridge.unregisterSurface(nativeSurface)
         }
         withHandler { mIsSurfaceDestroyed = true }
         return true
@@ -728,11 +729,12 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        if (SdlBridge.beginSurfaceDestroy(holder)) {
+        val nativeSurface = holder.surface
+        if (SdlBridge.beginSurfaceDestroy(holder, nativeSurface)) {
             if (SdlBridge.sdlEnabled) {
                 SDLActivity.getSDLSurface()?.surfaceDestroyed(holder)
             }
-            SdlBridge.unregisterSurface(SDLSurface.getNativeSurface())
+            SdlBridge.unregisterSurface(nativeSurface)
         }
         withHandler { mIsSurfaceDestroyed = true }
     }
