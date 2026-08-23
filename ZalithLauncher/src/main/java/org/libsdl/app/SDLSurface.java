@@ -111,8 +111,17 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     }
 
     public static void setNativeSurface(Surface nativeSurface) {
+        // Only accept valid surfaces; stale surfaces must not reach native registration.
+        if (nativeSurface == null || !nativeSurface.isValid()) {
+            return;
+        }
         mNativeSurface = nativeSurface;
         SDLActivity.getSDLSurface().surfaceCreated(null);
+    }
+
+    /** 清空静态 native surface 引用（SdlBridge teardown/reset 时调用） */
+    public static void clearNativeSurface() {
+        mNativeSurface = null;
     }
 
     // Called when we have a valid drawing surface
@@ -129,15 +138,16 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
-        if (!SdlBridge.getSdlEnabled()) return;
-        Log.v("SDL", "surfaceDestroyed()");
+        if (SdlBridge.getSdlEnabled()) {
+            // Transition to pause, if needed
+            SDLActivity.mNextNativeState = SDLActivity.NativeState.PAUSED;
+            SDLActivity.handleNativeState();
 
-        // Transition to pause, if needed
-        SDLActivity.mNextNativeState = SDLActivity.NativeState.PAUSED;
-        SDLActivity.handleNativeState();
-
-        mIsSurfaceReady = false;
-        SDLActivity.onNativeSurfaceDestroyed();
+            mIsSurfaceReady = false;
+            SDLActivity.onNativeSurfaceDestroyed();
+        }
+        // Clear stale reference after destroy.
+        mNativeSurface = null;
     }
 
     public void surfaceChanged(){

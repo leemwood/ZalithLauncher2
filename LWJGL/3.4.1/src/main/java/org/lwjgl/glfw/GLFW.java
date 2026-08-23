@@ -556,7 +556,7 @@ public class GLFW
     public static boolean mGLFWIsInputReady;
     private static boolean mGLFWInputPumping;
     private static boolean mGLFWWindowVisibleOnCreation = true;
-    public static final ByteBuffer keyDownBuffer = ByteBuffer.allocateDirect(317);
+    public static final ByteBuffer keyDownBuffer = ByteBuffer.allocateDirect(318);
     public static final ByteBuffer mouseDownBuffer = ByteBuffer.allocateDirect(8);
 
     public static long mainContext = 0;
@@ -1385,13 +1385,16 @@ public class GLFW
     }
 
     public static int glfwGetKey(@NativeType("GLFWwindow *") long window, int key) {
-        // This is jank, anything asking for int 348 results in an IndexOutOfBounds because idk.
-        // Probably an off-by-one error. This is the 'fix'
-        if (key == GLFW_KEY_LAST){return GLFW_KEY_LAST;}
-        return keyDownBuffer.get(Math.max(0, key-31));
+        if (key < 31 || key > GLFW_KEY_LAST) {
+            return 0;
+        }
+        return keyDownBuffer.get(key - 31);
     }
 
     public static int glfwGetMouseButton(@NativeType("GLFWwindow *") long window, int button) {
+        if (button < 0 || button >= mouseDownBuffer.capacity()) {
+            return 0;
+        }
         return mouseDownBuffer.get(button);
     }
     public static void glfwGetCursorPos(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("double *") DoubleBuffer xpos, @Nullable @NativeType("double *") DoubleBuffer ypos) {

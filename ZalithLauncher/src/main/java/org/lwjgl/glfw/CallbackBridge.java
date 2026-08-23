@@ -90,6 +90,9 @@ public class CallbackBridge {
         switch (type) {
             case NOTIF_TYPE_SDL:
                 if (action[0] == ACTION_INIT_LAUNCHER_INTEGRATION) {
+                    if (!SdlBridge.markSdlInitialized()) {
+                        return true;
+                    }
                     try {
                         LoggerBridge.append("ZalithLauncher: loading SDL3");
                         System.loadLibrary("SDL3");
@@ -110,6 +113,7 @@ public class CallbackBridge {
                         return true;
                     } catch (Throwable e) {
                         SdlBridge.setSdlEnabled(false);
+                        SdlBridge.clearSdlInitialized();
                         StringWriter trace = new StringWriter();
                         e.printStackTrace(new PrintWriter(trace));
                         LoggerBridge.append("ZalithLauncher: SDL launcher integration is unavailable:\n" + trace);
@@ -175,8 +179,9 @@ public class CallbackBridge {
     }
 
     public static void sendKeycode(int keycode, char keychar, int scancode, int modifiers, boolean isDown) {
-        // TODO CHECK: This may cause input issue, not receive input!
-        if (keycode != 0) nativeSendKey(keycode, scancode, isDown ? 1 : 0, modifiers);
+        if (keycode > LwjglGlfwKeycode.GLFW_KEY_UNKNOWN && keycode <= LwjglGlfwKeycode.GLFW_KEY_LAST) {
+            nativeSendKey(keycode, scancode, isDown ? 1 : 0, modifiers);
+        }
         if (isDown && !Character.isISOControl(keychar)) {
             nativeSendCharMods(keychar, modifiers);
             nativeSendChar(keychar);
@@ -278,6 +283,7 @@ public class CallbackBridge {
     }
 
     public static void resetInputState() {
+        nativeResetInputState();
         if (SdlBridge.getSdlEnabled() && sMouseButtonState != 0) {
             SDLActivity.onNativeMouse(0, MotionEvent.ACTION_UP, mouseX, mouseY, false);
         }
@@ -449,6 +455,7 @@ public class CallbackBridge {
     // private static native void nativeSendCursorEnter(int entered);
     @Keep @CriticalNative private static native void nativeSendCursorPos(float x, float y);
     @Keep @CriticalNative private static native void nativeSendMouseButton(int button, int action, int mods);
+    @Keep @CriticalNative private static native void nativeResetInputState();
     @Keep @CriticalNative private static native void nativeSendScroll(double xoffset, double yoffset);
     @Keep @CriticalNative private static native void nativeSendScreenSize(int width, int height);
     @Keep public static native void nativeSetWindowAttrib(int attrib, int value);

@@ -58,6 +58,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.movtery.zalithlauncher.game.sdl.SdlBridge;
+import com.movtery.zalithlauncher.ui.control.input.TouchCharInput;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -384,30 +385,36 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     public static boolean isUsingSDLTextEdit(){
         return mTextEdit != null;
     }
+
     public static void enableSDLEditKeyboard(){
         if (mTextEdit == null) return;
 
         mTextEdit.setInputType(TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_NORMAL);
-
         mTextEdit.setVisibility(View.VISIBLE);
-        mTextEdit.requestFocus();
+        if (!mTextEdit.hasFocus()) {
+            mTextEdit.requestFocus();
+        }
 
         InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.showSoftInput(mTextEdit, 0);
-
         if (imm.isAcceptingText()) {
             onNativeScreenKeyboardShown();
         }
     }
+
     public static void disableSDLEditKeyboard(){
+        if (mTextEdit == null) return;
         mTextEdit.setLayoutParams(new FrameLayout.LayoutParams(0, 0));
+        mTextEdit.setVisibility(View.INVISIBLE);
+        mTextEdit.clearFocus();
 
         InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(mTextEdit.getWindowToken(), 0);
-
         onNativeScreenKeyboardHidden();
 
-        mSurface.requestFocus();
+        if (mSurface != null) {
+            mSurface.requestFocus();
+        }
     }
 
 
@@ -1034,19 +1041,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 //                }
                 break;
             case COMMAND_TEXTEDIT_HIDE:
-                if (mTextEdit != null) {
-                    // Note: On some devices setting view to GONE creates a flicker in landscape.
-                    // Setting the View's sizes to 0 is similar to GONE but without the flicker.
-                    // The sizes will be set to useful values when the keyboard is shown again.
-                    mTextEdit.setLayoutParams(new FrameLayout.LayoutParams(0, 0));
-
-                    InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(mTextEdit.getWindowToken(), 0);
-
-                    onNativeScreenKeyboardHidden();
-
-                    mSurface.requestFocus();
-                }
+                disableSDLEditKeyboard();
                 break;
             case COMMAND_SET_KEEP_SCREEN_ON:
             {
@@ -1503,6 +1498,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         @Override
         public void run() {
             if (!SdlBridge.getSdlEnabled()) return;
+            TouchCharInput.disableActiveInput();
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(w, h + HEIGHT_PADDING);
             params.leftMargin = x;
             params.topMargin = y;

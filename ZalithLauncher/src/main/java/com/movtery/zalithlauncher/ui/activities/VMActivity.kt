@@ -541,6 +541,9 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus) {
+            CallbackBridge.resetInputState()
+        }
         CallbackBridge.nativeSetWindowAttrib(LwjglGlfwKeycode.GLFW_FOCUSED, if (hasFocus) 1 else 0)
     }
 
@@ -591,6 +594,7 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     override fun onDestroy() {
         stopAllService()
         withHandler { onDestroy() }
+        SdlBridge.reset()
         super.onDestroy()
     }
 
@@ -657,7 +661,7 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
 
     override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
         val nativeSurface = Surface(surface)
-        SdlBridge.prepareSurface(this, nativeSurface, gameSurfaceView?.parent as? ViewGroup)
+        SdlBridge.prepareSurface(this, nativeSurface, gameSurfaceView?.parent as? ViewGroup, surface)
         if (vmViewModel.isRunning) {
             ZLBridge.setupBridgeWindow(nativeSurface)
             return
@@ -683,11 +687,12 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     }
 
     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-        val nativeSurface = SDLActivity.getSDLSurface()?.let { SDLSurface.getNativeSurface() }
-        if (SdlBridge.sdlEnabled) {
-            SDLActivity.getSDLSurface()?.surfaceDestroyed()
+        if (SdlBridge.beginSurfaceDestroy(surface)) {
+            if (SdlBridge.sdlEnabled) {
+                SDLActivity.getSDLSurface()?.surfaceDestroyed()
+            }
+            SdlBridge.unregisterSurface(SDLSurface.getNativeSurface())
         }
-        SdlBridge.unregisterSurface(nativeSurface)
         withHandler { mIsSurfaceDestroyed = true }
         return true
     }
@@ -701,7 +706,7 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         val surface = holder.surface
-        SdlBridge.prepareSurface(this, surface, gameSurfaceView?.parent as? ViewGroup)
+        SdlBridge.prepareSurface(this, surface, gameSurfaceView?.parent as? ViewGroup, holder)
         if (vmViewModel.isRunning) {
             ZLBridge.setupBridgeWindow(surface)
             return
@@ -723,11 +728,12 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        val surface = holder.surface
-        if (SdlBridge.sdlEnabled) {
-            SDLActivity.getSDLSurface()?.surfaceDestroyed(holder)
+        if (SdlBridge.beginSurfaceDestroy(holder)) {
+            if (SdlBridge.sdlEnabled) {
+                SDLActivity.getSDLSurface()?.surfaceDestroyed(holder)
+            }
+            SdlBridge.unregisterSurface(SDLSurface.getNativeSurface())
         }
-        SdlBridge.unregisterSurface(surface)
         withHandler { mIsSurfaceDestroyed = true }
     }
 

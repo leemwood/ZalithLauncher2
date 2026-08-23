@@ -37,7 +37,7 @@ public class EfficientAndroidLWJGLKeycode {
     //This old version of this class was using an ArrayMap, a generic Key -> Value data structure.
     //The key being the android keycode from a KeyEvent
     //The value its LWJGL equivalent.
-    private static final int KEYCODE_COUNT = 109;
+    private static final int KEYCODE_COUNT = 112;
     private static final int[] sAndroidKeycodes = new int[KEYCODE_COUNT];
     private static final short[] sLwjglKeycodes = new short[KEYCODE_COUNT];
     private static int mTmpCount = 0;
@@ -125,8 +125,8 @@ public class EfficientAndroidLWJGLKeycode {
         add(KeyEvent.KEYCODE_APOSTROPHE, LwjglGlfwKeycode.GLFW_KEY_APOSTROPHE);
         add(KeyEvent.KEYCODE_SLASH, LwjglGlfwKeycode.GLFW_KEY_SLASH); //76
         add(KeyEvent.KEYCODE_AT, LwjglGlfwKeycode.GLFW_KEY_2);
-
         add(KeyEvent.KEYCODE_PLUS, LwjglGlfwKeycode.GLFW_KEY_KP_ADD);
+        add(KeyEvent.KEYCODE_MENU, LwjglGlfwKeycode.GLFW_KEY_MENU);
 
         // Page keys
         add(KeyEvent.KEYCODE_PAGE_UP, LwjglGlfwKeycode.GLFW_KEY_PAGE_UP); //92
@@ -141,6 +141,8 @@ public class EfficientAndroidLWJGLKeycode {
 
         add(KeyEvent.KEYCODE_CAPS_LOCK, LwjglGlfwKeycode.GLFW_KEY_CAPS_LOCK);
         add(KeyEvent.KEYCODE_SCROLL_LOCK, LwjglGlfwKeycode.GLFW_KEY_SCROLL_LOCK);
+        add(KeyEvent.KEYCODE_META_LEFT, LwjglGlfwKeycode.GLFW_KEY_LEFT_SUPER);
+        add(KeyEvent.KEYCODE_META_RIGHT, LwjglGlfwKeycode.GLFW_KEY_RIGHT_SUPER);
         add(KeyEvent.KEYCODE_SYSRQ, LwjglGlfwKeycode.GLFW_KEY_PRINT_SCREEN);
         add(KeyEvent.KEYCODE_BREAK, LwjglGlfwKeycode.GLFW_KEY_PAUSE);
         add(KeyEvent.KEYCODE_MOVE_HOME, LwjglGlfwKeycode.GLFW_KEY_HOME);
@@ -181,7 +183,8 @@ public class EfficientAndroidLWJGLKeycode {
         add(KeyEvent.KEYCODE_NUMPAD_DOT, LwjglGlfwKeycode.GLFW_KEY_KP_DECIMAL);
         add(KeyEvent.KEYCODE_NUMPAD_COMMA, LwjglGlfwKeycode.GLFW_KEY_COMMA);
         add(KeyEvent.KEYCODE_NUMPAD_ENTER, LwjglGlfwKeycode.GLFW_KEY_KP_ENTER);
-        add(KeyEvent.KEYCODE_NUMPAD_EQUALS, LwjglGlfwKeycode.GLFW_KEY_EQUAL); //161
+        add(KeyEvent.KEYCODE_NUMPAD_EQUALS, LwjglGlfwKeycode.GLFW_KEY_KP_EQUAL); //161
+
     }
 
     public static boolean containsIndex(int index){
@@ -196,12 +199,11 @@ public class EfficientAndroidLWJGLKeycode {
         CallbackBridge.holdingNumlock = keyEvent.isNumLockOn();
         CallbackBridge.holdingShift = keyEvent.isShiftPressed();
 
-        System.out.println(keyEvent.getKeyCode() + " " +keyEvent.getDisplayLabel());
         char key = (char)(keyEvent.getUnicodeChar() != 0 ? keyEvent.getUnicodeChar() : '\u0000');
         sendKeyPress(
                 getValueByIndex(valueIndex),
                 key,
-                0,
+                keyEvent.getScanCode(),
                 CallbackBridge.getCurrentMods(),
                 keyEvent.getAction() == KeyEvent.ACTION_DOWN);
     }
@@ -225,7 +227,7 @@ public class EfficientAndroidLWJGLKeycode {
         for (int i = 0; i < sLwjglKeycodes.length; i++) {
             if(sLwjglKeycodes[i] == lwjglKey) return i;
         }
-        return 0;
+        return -1;
     }
 
     private static void add(int androidKeycode, short LWJGLKeycode){
@@ -266,6 +268,14 @@ public class EfficientAndroidLWJGLKeycode {
                 return KeyEvent.KEYCODE_NUMPAD_ENTER;
             case LwjglGlfwKeycode.GLFW_KEY_DELETE:
                 return KeyEvent.KEYCODE_FORWARD_DEL;
+            case LwjglGlfwKeycode.GLFW_KEY_KP_EQUAL:
+                return KeyEvent.KEYCODE_NUMPAD_EQUALS;
+            case LwjglGlfwKeycode.GLFW_KEY_LEFT_SUPER:
+                return KeyEvent.KEYCODE_META_LEFT;
+            case LwjglGlfwKeycode.GLFW_KEY_RIGHT_SUPER:
+                return KeyEvent.KEYCODE_META_RIGHT;
+            case LwjglGlfwKeycode.GLFW_KEY_MENU:
+                return KeyEvent.KEYCODE_MENU;
             default:
                 return getAndroidKeycode(lwjglGlfwKeycode);
         }

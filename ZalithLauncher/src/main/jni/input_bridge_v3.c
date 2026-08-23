@@ -462,7 +462,7 @@ void noncritical_send_cursor_pos(__attribute__((unused)) JNIEnv* env, __attribut
      _a > _b ? _a : _b; })
 void critical_send_key(jint key, jint scancode, jint action, jint mods) {
     if (pojav_environ->GLFW_invoke_Key && pojav_environ->isInputReady) {
-        if (key >= 31 && key < 348) {
+        if (key >= 31 && key <= 348 && pojav_environ->keyDownBuffer != NULL) {
             pojav_environ->keyDownBuffer[key - 31] = (jbyte) action;
         }
         if (pojav_environ->isUseStackQueueCall) {
@@ -478,7 +478,9 @@ void noncritical_send_key(__attribute__((unused)) JNIEnv* env, __attribute__((un
 
 void critical_send_mouse_button(jint button, jint action, jint mods) {
     if (pojav_environ->GLFW_invoke_MouseButton && pojav_environ->isInputReady) {
-        pojav_environ->mouseDownBuffer[max(0, button)] = (jbyte) action;
+        if (button >= 0 && button < 8 && pojav_environ->mouseDownBuffer != NULL) {
+            pojav_environ->mouseDownBuffer[button] = (jbyte) action;
+        }
         if (pojav_environ->isUseStackQueueCall) {
             sendData(EVENT_TYPE_MOUSE_BUTTON, button, action, mods, 0);
         } else {
@@ -489,6 +491,19 @@ void critical_send_mouse_button(jint button, jint action, jint mods) {
 
 void noncritical_send_mouse_button(__attribute__((unused)) JNIEnv* env, __attribute__((unused)) jclass clazz, jint button, jint action, jint mods) {
     critical_send_mouse_button(button, action, mods);
+}
+
+void critical_reset_input_state(void) {
+    if (pojav_environ->keyDownBuffer != NULL) {
+        memset(pojav_environ->keyDownBuffer, 0, 318);
+    }
+    if (pojav_environ->mouseDownBuffer != NULL) {
+        memset(pojav_environ->mouseDownBuffer, 0, 8);
+    }
+}
+
+void noncritical_reset_input_state(__attribute__((unused)) JNIEnv* env, __attribute__((unused)) jclass clazz) {
+    critical_reset_input_state();
 }
 
 void critical_send_screen_size(jint width, jint height) {
@@ -566,6 +581,7 @@ const static JNINativeMethod critical_fcns[] = {
         {"nativeSendKey", "(IIII)V", critical_send_key},
         {"nativeSendCursorPos", "(FF)V", critical_send_cursor_pos},
         {"nativeSendMouseButton", "(III)V", critical_send_mouse_button},
+        {"nativeResetInputState", "()V", critical_reset_input_state},
         {"nativeSendScroll", "(DD)V", critical_send_scroll},
         {"nativeSendScreenSize", "(II)V", critical_send_screen_size}
 };
@@ -577,6 +593,7 @@ const static JNINativeMethod noncritical_fcns[] = {
         {"nativeSendKey", "(IIII)V", noncritical_send_key},
         {"nativeSendCursorPos", "(FF)V", noncritical_send_cursor_pos},
         {"nativeSendMouseButton", "(III)V", noncritical_send_mouse_button},
+        {"nativeResetInputState", "()V", noncritical_reset_input_state},
         {"nativeSendScroll", "(DD)V", noncritical_send_scroll},
         {"nativeSendScreenSize", "(II)V", noncritical_send_screen_size}
 };

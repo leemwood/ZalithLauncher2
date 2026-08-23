@@ -9,8 +9,8 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/gpl-3.0.txt>.
@@ -39,9 +39,37 @@ object SdlBridge {
     private var layoutRef: WeakReference<ViewGroup>? = null
     private var currentSurface: Surface? = null
 
+    /** 当前注册 Surface 的来源 */
+    private var currentSource: Any? = null
+
+    /** 每次注册新 Surface 递增，供生命周期观测 */
+    private var surfaceGeneration = 0L
+    private var jniReady = false
+    private var sdlInitialized = false
+
     @JvmStatic
-    fun setupJNI() {
+    @Synchronized
+    fun setupJNI(): Boolean {
+        if (jniReady) {
+            return true
+        }
         SDL.setupJNI()
+        jniReady = true
+        return true
+    }
+
+    @JvmStatic
+    @Synchronized
+    fun markSdlInitialized(): Boolean {
+        if (sdlInitialized) return false
+        sdlInitialized = true
+        return true
+    }
+
+    @JvmStatic
+    @Synchronized
+    fun clearSdlInitialized() {
+        sdlInitialized = false
     }
 
     @JvmStatic
@@ -54,10 +82,12 @@ object SdlBridge {
 
     @JvmStatic
     @MainThread
-    fun prepareSurface(activity: Activity, surface: Surface, layout: ViewGroup?) {
+    fun prepareSurface(activity: Activity, surface: Surface, layout: ViewGroup?, source: Any? = null) {
         activityRef = WeakReference(activity)
         layoutRef = WeakReference(layout)
         currentSurface = surface
+        currentSource = source
+        surfaceGeneration++
 
         if (SDLActivity.getSDLSurface() == null) {
             SDL.initialize()
@@ -78,10 +108,32 @@ object SdlBridge {
 
     @JvmStatic
     @MainThread
+    fun beginSurfaceDestroy(source: Any?): Boolean {
+        return source == null || currentSource === source
+    }
+
+    @JvmStatic
+    @MainThread
     fun unregisterSurface(surface: Surface?) {
         if (surface == null || currentSurface === surface) {
             currentSurface = null
+            currentSource = null
         }
     }
 
+    @JvmStatic
+    @MainThread
+    @Synchronized
+    fun reset() {
+        currentSurface = null
+        currentSource = null
+        surfaceGeneration = 0L
+        activityRef = null
+        layoutRef = null
+        jniReady = false
+        sdlInitialized = false
+        sdlEnabled = false
+        SDLSurface.clearNativeSurface()
+        SDL.initialize()
+    }
 }
