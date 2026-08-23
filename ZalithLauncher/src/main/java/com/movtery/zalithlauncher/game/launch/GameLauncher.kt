@@ -39,6 +39,7 @@ import com.movtery.zalithlauncher.game.download.game.parseLibraryComponents
 import com.movtery.zalithlauncher.game.multirt.Runtime
 import com.movtery.zalithlauncher.game.multirt.RuntimesManager
 import com.movtery.zalithlauncher.game.path.GamePathManager
+import com.movtery.zalithlauncher.game.plugin.Plugin
 import com.movtery.zalithlauncher.game.plugin.driver.DriverPluginManager
 import com.movtery.zalithlauncher.game.plugin.renderer.RendererPluginManager
 import com.movtery.zalithlauncher.game.renderer.Renderers
@@ -180,14 +181,6 @@ class GameLauncher(
         }
         if (Renderers.isCurrentRendererValid()) {
             setRendererEnv(envMap)
-
-            // SDL 环境变量
-            val rendererId = Renderers.getCurrentRenderer().getRendererLibrary()
-            envMap["SDL_OPENGL_LIBRARY"] = rendererId
-            val eglLib = envMap["POJAVEXEC_EGL"]
-            if (eglLib != null) {
-                envMap["SDL_EGL_LIBRARY"] = "${PathManager.DIR_NATIVE_LIB}/$eglLib"
-            }
         }
         envMap["ZALITH_VERSION_CODE"] = BuildConfig.VERSION_CODE.toString()
         return envMap
@@ -382,6 +375,9 @@ private fun setRendererEnv(envMap: MutableMap<String, String>) {
     val renderer = Renderers.getCurrentRenderer()
     val rendererId = renderer.getRendererId()
 
+    // SDL 环境变量
+    envMap["SDL_OPENGL_LIBRARY"] = rendererId
+
     if (rendererId.startsWith("opengles2")) {
         envMap["LIBGL_ES"] = "2"
         envMap["LIBGL_MIPMAP"] = "3"
@@ -394,6 +390,14 @@ private fun setRendererEnv(envMap: MutableMap<String, String>) {
 
     renderer.getRendererEGL()?.let { eglName ->
         envMap["POJAVEXEC_EGL"] = eglName
+
+        // 指定 SDL EGL
+        val nativeLibPath = if (renderer is Plugin) {
+            renderer.getNativeLibPath()
+        } else {
+            PathManager.DIR_NATIVE_LIB
+        }
+        envMap["SDL_EGL_LIBRARY"] = "$nativeLibPath/$eglName"
     }
 
     envMap["POJAV_RENDERER"] = rendererId
