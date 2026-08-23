@@ -241,7 +241,7 @@ public class EfficientAndroidLWJGLKeycode {
     private static final char[] buffer = new char[1];
 
     /**
-     * Takes a GLFW keycode and returns equivalent android keycode（SDL 输入转发用）。
+     * Takes a GLFW keycode and returns equivalent android keycode.
      */
     public static int getAndroidKeycode(int lwjglGlfwKeycode){
         if (lwjglGlfwKeycode == LwjglGlfwKeycode.GLFW_KEY_2) return KeyEvent.KEYCODE_2;
@@ -253,36 +253,24 @@ public class EfficientAndroidLWJGLKeycode {
     }
 
     public static int getSdlAndroidKeycode(int lwjglGlfwKeycode) {
-        switch (lwjglGlfwKeycode) {
-            case LwjglGlfwKeycode.GLFW_KEY_ESCAPE:
-                return KeyEvent.KEYCODE_ESCAPE;
-            case LwjglGlfwKeycode.GLFW_KEY_HOME:
-                return KeyEvent.KEYCODE_MOVE_HOME;
-            case LwjglGlfwKeycode.GLFW_KEY_END:
-                return KeyEvent.KEYCODE_MOVE_END;
-            case LwjglGlfwKeycode.GLFW_KEY_KP_ADD:
-                return KeyEvent.KEYCODE_NUMPAD_ADD;
-            case LwjglGlfwKeycode.GLFW_KEY_KP_DECIMAL:
-                return KeyEvent.KEYCODE_NUMPAD_DOT;
-            case LwjglGlfwKeycode.GLFW_KEY_KP_ENTER:
-                return KeyEvent.KEYCODE_NUMPAD_ENTER;
-            case LwjglGlfwKeycode.GLFW_KEY_DELETE:
-                return KeyEvent.KEYCODE_FORWARD_DEL;
-            case LwjglGlfwKeycode.GLFW_KEY_KP_EQUAL:
-                return KeyEvent.KEYCODE_NUMPAD_EQUALS;
-            case LwjglGlfwKeycode.GLFW_KEY_LEFT_SUPER:
-                return KeyEvent.KEYCODE_META_LEFT;
-            case LwjglGlfwKeycode.GLFW_KEY_RIGHT_SUPER:
-                return KeyEvent.KEYCODE_META_RIGHT;
-            case LwjglGlfwKeycode.GLFW_KEY_MENU:
-                return KeyEvent.KEYCODE_MENU;
-            default:
-                return getAndroidKeycode(lwjglGlfwKeycode);
-        }
+        return switch (lwjglGlfwKeycode) {
+            case LwjglGlfwKeycode.GLFW_KEY_ESCAPE -> KeyEvent.KEYCODE_ESCAPE;
+            case LwjglGlfwKeycode.GLFW_KEY_HOME -> KeyEvent.KEYCODE_MOVE_HOME;
+            case LwjglGlfwKeycode.GLFW_KEY_END -> KeyEvent.KEYCODE_MOVE_END;
+            case LwjglGlfwKeycode.GLFW_KEY_KP_ADD -> KeyEvent.KEYCODE_NUMPAD_ADD;
+            case LwjglGlfwKeycode.GLFW_KEY_KP_DECIMAL -> KeyEvent.KEYCODE_NUMPAD_DOT;
+            case LwjglGlfwKeycode.GLFW_KEY_KP_ENTER -> KeyEvent.KEYCODE_NUMPAD_ENTER;
+            case LwjglGlfwKeycode.GLFW_KEY_DELETE -> KeyEvent.KEYCODE_FORWARD_DEL;
+            case LwjglGlfwKeycode.GLFW_KEY_KP_EQUAL -> KeyEvent.KEYCODE_NUMPAD_EQUALS;
+            case LwjglGlfwKeycode.GLFW_KEY_LEFT_SUPER -> KeyEvent.KEYCODE_META_LEFT;
+            case LwjglGlfwKeycode.GLFW_KEY_RIGHT_SUPER -> KeyEvent.KEYCODE_META_RIGHT;
+            case LwjglGlfwKeycode.GLFW_KEY_MENU -> KeyEvent.KEYCODE_MENU;
+            default -> getAndroidKeycode(lwjglGlfwKeycode);
+        };
     }
 
     /**
-     * Takes a char and returns equivalent android keycode（SDL 输入转发用）。
+     * Takes a char and returns equivalent android keycode.
      */
     public static int getAndroidKeycode(char c){
         buffer[0] = c;

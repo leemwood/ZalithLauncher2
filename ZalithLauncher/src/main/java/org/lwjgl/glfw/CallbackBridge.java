@@ -215,6 +215,9 @@ public class CallbackBridge {
     public static void sendChar(char keychar, int modifiers){
         nativeSendCharMods(keychar, modifiers);
         nativeSendChar(keychar);
+        if (!SdlBridge.getSdlEnabled()) return;
+        SDLActivity.onNativeKeyDown(EfficientAndroidLWJGLKeycode.getAndroidKeycode(keychar));
+        SDLActivity.onNativeKeyUp(EfficientAndroidLWJGLKeycode.getAndroidKeycode(keychar));
     }
 
     public static void sendKeyPress(int keyCode, int modifiers, boolean status) {
@@ -333,16 +336,6 @@ public class CallbackBridge {
                 break;
         }
         return result;
-    }
-
-
-    @SuppressWarnings("unused")
-    @Keep
-    public static float getAndroidDPI() {
-        float density = ContextsKt.getGlobalContext().getResources().getDisplayMetrics().density;
-        // 窗口坐标空间随启动器分辨率缩放（getDisplayFriendlyRes），content scale 需同步
-        // （与 AAMC 的 density * PREF_SCALE_FACTOR 同构）
-        return density * (AllSettings.INSTANCE.getResolutionRatio().getState() / 100f);
     }
 
     public static int getCurrentMods() {

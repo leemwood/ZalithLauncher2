@@ -62,6 +62,5 @@ public class CallbackBridge {
     public static native boolean nativeEnableGamepadDirectInput();
     public static native ByteBuffer nativeCreateGamepadButtonBuffer();
     public static native ByteBuffer nativeCreateGamepadAxisBuffer();
-    public static native float nativeGetAndroidDPI();
 }
 

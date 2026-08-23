@@ -19,8 +19,7 @@
 package com.movtery.zalithlauncher.game.sdl;
 
 /**
- * 游戏请求 GLFW direct gamepad 输入（{@code glfwJoystickIsGamepad} 等）时的启用通知。
- * 参考实现：https://github.com/AngelAuraMC/Amethyst-Android
+ * 游戏请求 GLFW direct gamepad 输入时的回调
  */
 public interface DirectGamepadEnableHandler {
     void onDirectGamepadEnabled();

@@ -932,10 +932,10 @@ public class GLFW
     }
 
     public static void glfwGetWindowContentScale(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("float *") FloatBuffer xscale, @Nullable @NativeType("float *") FloatBuffer yscale) {
-        // 窗口坐标空间随启动器分辨率缩放（getDisplayFriendlyRes），content scale 需同步（与 AAMC density * scale factor 同构）
-        float scale = CallbackBridge.nativeGetAndroidDPI();
-        if (xscale != null) xscale.put(scale);
-        if (yscale != null) yscale.put(scale);
+        if (xscale != null && yscale != null) {
+            xscale.put(1f);
+            yscale.put(1f);
+        }
     }
 
     @Nullable
@@ -1638,11 +1638,9 @@ public class GLFW
 
     /** Array version of: {@link #glfwGetWindowContentScale GetWindowContentScale} */
     public static void glfwGetWindowContentScale(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("float *") float[] xscale, @Nullable @NativeType("float *") float[] yscale) {
-        // 窗口坐标空间随启动器分辨率缩放（getDisplayFriendlyRes），content scale 需同步（与 AAMC density * scale factor 同构）
-        float scale = CallbackBridge.nativeGetAndroidDPI();
         if (xscale != null && yscale != null) {
-            xscale[0] = scale;
-            yscale[0] = scale;
+            xscale[0] = 1f;
+            yscale[0] = 1f;
         }
     }
 

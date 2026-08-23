@@ -36,8 +36,8 @@ import com.movtery.zalithlauncher.game.launch.GameLauncher
 import com.movtery.zalithlauncher.game.launch.LaunchConfig
 import com.movtery.zalithlauncher.game.launch.MCOptions
 import com.movtery.zalithlauncher.game.launch.loadLanguage
-import com.movtery.zalithlauncher.game.sdl.DirectGamepad
 import com.movtery.zalithlauncher.game.sdl.SdlBridge
+import com.movtery.zalithlauncher.game.sdl.handleGamepadKeyEvent
 import com.movtery.zalithlauncher.game.version.installed.GraphicsApi
 import com.movtery.zalithlauncher.game.version.installed.utils.isLowerVer
 import com.movtery.zalithlauncher.setting.AllSettings
@@ -164,7 +164,7 @@ class GameHandler(
             if (AllSettings.gamepadControl.state && AllSettings.gamepadInputMode.state == GamepadInputMode.SdlDirect) {
                 //SDL 直通模式下，按键原样交给 SDL native
                 if (SdlBridge.sdlEnabled) {
-                    DirectGamepad.handleKeyEvent(event)
+                    handleGamepadKeyEvent(event)
                     try {
                         SDLActivity.handleKeyEvent(null, event.keyCode, event, null)
                     } catch (_: UnsatisfiedLinkError) {

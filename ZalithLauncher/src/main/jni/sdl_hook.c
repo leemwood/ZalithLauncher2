@@ -1,10 +1,4 @@
-// SDL3 launcher integration hook.
-// Reference implementation: https://github.com/AngelAuraMC/Amethyst-Android
-//
-// 通过 bytehook 拦截 libSDL3.so 的 SDL_InitSubSystem：
-// 游戏（如 MC 26.3）初始化 SDL 时，通知 launcher 的 Java 侧完成 SDL 集成
-// （动态加载 libSDL3.so、初始化 SDL JNI、把 native surface 尺寸同步给 SDLSurface）。
-// 此后 CallbackBridge 会把输入事件同时转发给 GLFW 与 SDL。
+// Reference AAMC: https://github.com/AngelAuraMC/Amethyst-Android/blob/360d708262ff703d9b52782d20cd348410a33df5/app_pojavlauncher/src/main/jni/native_hooks/sdl_hook.c
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -43,10 +37,9 @@ DECL_DLSYM(SDL_GetWindowFromID)
 // --- SDL 事件窗口解析修正 ---
 
 // SDL 的 Android 后端中，鼠标焦点（mouse->focus）会被 SDL_UpdateMouseFocus 的坐标越界
-// 判定意外清除（虚拟鼠标坐标经分辨率缩放后可超过 SDL window 尺寸），导致后续按钮事件的
-// windowID=0；MC 的 SDLEventHandler 对 handle==0 的事件直接丢弃，UP 事件因此丢失，游戏表现为"一直按住鼠标"
+// 判定意外清除（虚拟鼠标坐标经分辨率缩放后可超过 SDL window 尺寸）
+// Android 同一时刻只会有一个窗口，事件解析失败时回落为之前成功解析出的唯一窗口
 
-// Android 同一时刻只会有一个窗口，事件解析失败时回落为之前成功解析出的唯一窗口，使按钮事件能被 MC 正常消费
 static SDL_Window *sdlLastEventWindow = NULL;
 
 static SDL_Window *custom_SDL_GetWindowFromEvent_Func(const void *event) {

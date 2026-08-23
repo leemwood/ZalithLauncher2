@@ -36,8 +36,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.movtery.inputmap.keycodes.ControlEventKeycode
 import com.movtery.layer_controller.event.ClickEvent
 import com.movtery.zalithlauncher.game.keycodes.mapToControlEvent
-import com.movtery.zalithlauncher.game.sdl.DirectGamepad
 import com.movtery.zalithlauncher.game.sdl.SdlBridge
+import com.movtery.zalithlauncher.game.sdl.handleGamepadMotionEvent
 import com.movtery.zalithlauncher.setting.AllSettings
 import com.movtery.zalithlauncher.setting.enums.GamepadInputMode
 import com.movtery.zalithlauncher.ui.control.event.LAUNCHER_EVENT_SCROLL_DOWN_SINGLE
@@ -117,7 +117,7 @@ fun SimpleGamepadCapture(
             } else if (event.isGamepadEvent() && event.action == MotionEvent.ACTION_MOVE) {
                 if (AllSettings.gamepadControl.state && AllSettings.gamepadInputMode.state == GamepadInputMode.SdlDirect) {
                     if (SdlBridge.sdlEnabled) {
-                        DirectGamepad.handleMotionEvent(event)
+                        handleGamepadMotionEvent(event)
                         try {
                             SDLActivity.forwardGenericMotionToSDL(motionView, event)
                         } catch (_: UnsatisfiedLinkError) {

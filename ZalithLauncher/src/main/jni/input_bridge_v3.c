@@ -33,11 +33,6 @@
 static void registerFunctions(JNIEnv *env);
 
 
-/**
- * org.lwjgl.sdl.SDLInit（游戏 JVM 侧）调用组件版 CallbackBridge.nativeNotifyLauncher 时
- * 由本实现承接：attach 到 launcher 进程，把 int[] 跨 env 转换后转发给
- * launcher 侧 CallbackBridge.notifyLauncher（app 版，负责 SDL 集成初始化）。
- */
 JNIEXPORT jboolean JNICALL Java_org_lwjgl_glfw_CallbackBridge_nativeNotifyLauncher(JNIEnv* env, __attribute__((unused)) jclass clazz, jint type, jintArray action) {
     TRY_ATTACH_ENV(dvm_env, pojav_environ->dalvikJavaVMPtr, "nativeNotifyLauncher failed!\n",);
     jboolean result = (*dvm_env)->CallStaticBooleanMethod(dvm_env, pojav_environ->bridgeClazz,
@@ -417,19 +412,6 @@ Java_org_lwjgl_glfw_CallbackBridge_nativeCreateGamepadButtonBuffer(JNIEnv* env, 
 JNIEXPORT jobject JNICALL
 Java_org_lwjgl_glfw_CallbackBridge_nativeCreateGamepadAxisBuffer(JNIEnv* env, __attribute__((unused)) jclass clazz) {
     return (*env)->NewDirectByteBuffer(env, pojav_environ->gamepadState.axes, sizeof(pojav_environ->gamepadState.axes));
-}
-
-JNIEXPORT jfloat JNICALL
-Java_org_lwjgl_glfw_CallbackBridge_nativeGetAndroidDPI(JNIEnv* env, __attribute__((unused)) jclass clazz) {
-    if (pojav_environ->dalvikJavaVMPtr == NULL || pojav_environ->bridgeClazz == NULL) return 1.0f;
-    JNIEnv *dalvikEnv = get_attached_env(pojav_environ->dalvikJavaVMPtr);
-    if (dalvikEnv == NULL) return 1.0f;
-    jmethodID method = (*dalvikEnv)->GetStaticMethodID(dalvikEnv, pojav_environ->bridgeClazz, "getAndroidDPI", "()F");
-    if (method == NULL) {
-        (*dalvikEnv)->ExceptionClear(dalvikEnv);
-        return 1.0f;
-    }
-    return (*dalvikEnv)->CallStaticFloatMethod(dalvikEnv, pojav_environ->bridgeClazz, method);
 }
 
 JNIEXPORT void JNICALL
