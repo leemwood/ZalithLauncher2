@@ -388,6 +388,14 @@ public class CallbackBridge {
         sDirectGamepadEnableHandler = new WeakReference<>(handler);
     }
 
+    public static void clearSdlBridgeState() {
+        sGamepadDirectInput = false;
+        sDirectGamepadEnableHandler = null;
+        sMouseButtonState = 0;
+        deltaX = 0f;
+        deltaY = 0f;
+    }
+
     //Called from JRE side
     @SuppressWarnings("unused")
     @Keep

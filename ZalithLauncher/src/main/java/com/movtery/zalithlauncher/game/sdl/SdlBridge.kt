@@ -25,6 +25,7 @@ import androidx.annotation.MainThread
 import org.libsdl.app.SDL
 import org.libsdl.app.SDLActivity
 import org.libsdl.app.SDLSurface
+import org.lwjgl.glfw.CallbackBridge
 import java.lang.ref.WeakReference
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -133,6 +134,7 @@ object SdlBridge {
         jniReady = false
         sdlInitialized = false
         sdlEnabled = false
+        CallbackBridge.clearSdlBridgeState()
         SDLSurface.clearNativeSurface()
         SDL.initialize()
     }

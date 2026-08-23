@@ -687,6 +687,7 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     }
 
     override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
+        if (withHandler { mIsSurfaceDestroyed }) return
         refreshWindowSize(screenSize = IntSize(width, height))
     }
 
@@ -706,6 +707,7 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        if (withHandler { mIsSurfaceDestroyed }) return
         refreshWindowSize(screenSize = IntSize(width, height))
     }
 
