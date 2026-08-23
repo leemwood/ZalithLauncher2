@@ -25,6 +25,10 @@ void SDL_SetError(const char *fmt, ...);
 const char *SDL_GetError(void);
 SDL_Window *SDL_GetWindowFromEvent(const void *event);
 SDL_Window *SDL_GetWindowFromID(uint32_t id);
+bool SDL_GL_SetAttribute(int attr, int value);
+void *SDL_LoadFunction(void *handle, const char *name);
+SDL_Window *SDL_CreateWindow(const char *title, int w, int h, uint32_t flags);
+SDL_Window *SDL_CreateWindowWithProperties(uint32_t props);
 
 DECL_DLSYM(SDL_InitSubSystem)
 DECL_DLSYM(SDL_SetHint);
@@ -33,6 +37,30 @@ DECL_DLSYM(SDL_SetError);
 DECL_DLSYM(SDL_GetError);
 DECL_DLSYM(SDL_GetWindowFromEvent)
 DECL_DLSYM(SDL_GetWindowFromID)
+DECL_DLSYM(SDL_GL_SetAttribute)
+DECL_DLSYM(SDL_LoadFunction)
+DECL_DLSYM(SDL_CreateWindow)
+DECL_DLSYM(SDL_CreateWindowWithProperties)
+
+typedef void *EGLDisplay;
+typedef void *EGLConfig;
+typedef int EGLint;
+typedef int EGLBoolean;
+typedef EGLBoolean (*eglChooseConfig_t)(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs,
+                                        EGLint config_size, EGLint *num_config);
+typedef void *(*eglCreateContext_t)(EGLDisplay dpy, EGLConfig config, void *share, const EGLint *attrib_list);
+
+// EGL 常量（EGL/egl.h），避免引入完整 EGL 头
+#define EGL_NONE              0x3038
+#define EGL_RENDERABLE_TYPE   0x3040
+#define EGL_OPENGL_BIT        0x0008
+#define EGL_OPENGL_ES2_BIT    0x0004
+#define EGL_OPENGL_ES3_BIT    0x0040
+#define EGL_CONTEXT_CLIENT_VERSION    0x3098
+#define EGL_CONTEXT_MAJOR_VERSION_KHR 0x30FB
+#define EGL_CONTEXT_MINOR_VERSION_KHR 0x30FC
+
+
 
 // --- SDL 事件窗口解析修正 ---
 
@@ -66,6 +94,120 @@ static SDL_Window *custom_SDL_GetWindowFromID_Func(uint32_t id) {
 
 // --- SDL 事件窗口解析修正 ---
 
+// --- 移动渲染器（ES 实现）下 SDL 创建 GL 上下文的宿主 EGL 兼容 ---
+
+// 部分宿主 libEGL 不接受 RENDERABLE_TYPE 携带 ES3_BIT/OPENGL_BIT 的请求。
+// 统一归一化为 ES2_BIT 以放宽 config 匹配；实际上下文版本由后续的
+// EGL_CONTEXT_CLIENT_VERSION 决定，不受影响。
+static EGLBoolean normalizeEglChooseConfigList(const EGLint *attrib_list, EGLint *fixed, int cap) {
+    if (attrib_list == NULL) return 0;
+    int n = 0;
+    for (int i = 0; n < cap - 2; i += 2) {
+        EGLint attr = attrib_list[i];
+        EGLint val = attrib_list[i + 1];
+        if (attr == EGL_NONE) {
+            fixed[n] = EGL_NONE;
+            fixed[n + 1] = 0;
+            n += 2;
+            break;
+        }
+        if (attr == EGL_RENDERABLE_TYPE) {
+            if ((val & (EGL_OPENGL_ES3_BIT | EGL_OPENGL_BIT)) != 0 && (val & EGL_OPENGL_ES2_BIT) == 0) {
+                val = (val & ~(EGL_OPENGL_ES3_BIT | EGL_OPENGL_BIT)) | EGL_OPENGL_ES2_BIT;
+            }
+        }
+        fixed[n] = attr;
+        fixed[n + 1] = val;
+        n += 2;
+    }
+    return n > 0;
+}
+
+// 部分宿主 libEGL 不识别 EGL_CONTEXT_MAJOR/MINOR_VERSION_KHR，
+// 属性表携带即报 EGL_BAD_ATTRIBUTE。此处将其剔除，仅保留 CLIENT_VERSION：
+// 对 "≥3.0" 类请求，驱动本就返回其支持的最高 3.x 版本，语义不变。
+// 返回请求的主版本号供降级重试使用（无版本属性时为 0）。
+static int normalizeEglContextAttribs(const EGLint *attrib_list, EGLint *fixed, int cap) {
+    int version = 0;
+    if (attrib_list == NULL) return 0;
+    int n = 0;
+    for (int i = 0; n < cap - 2; i += 2) {
+        EGLint attr = attrib_list[i];
+        EGLint val = attrib_list[i + 1];
+        if (attr == EGL_NONE) {
+            fixed[n] = EGL_NONE;
+            fixed[n + 1] = 0;
+            n += 2;
+            break;
+        }
+        if (attr == EGL_CONTEXT_MAJOR_VERSION_KHR) {
+            // 版本信息并入 CLIENT_VERSION 后丢弃本项
+            if (version == 0) version = val;
+            continue;
+        }
+        if (attr == EGL_CONTEXT_MINOR_VERSION_KHR) continue;
+        if (attr == EGL_CONTEXT_CLIENT_VERSION && version == 0) version = val;
+        fixed[n] = attr;
+        fixed[n + 1] = val;
+        n += 2;
+    }
+    return version;
+}
+
+// --- SDL 的 EGL 函数解析接管 ---
+// SDL 经 SDL_LoadFunction 取得 EGL 函数指针后直接调用（不走 PLT），
+// 故在其解析 eglChooseConfig/eglCreateContext 时注入代理，
+// 使上述归一化对所有调用路径生效。
+static eglChooseConfig_t sOrigEglChooseConfig = NULL;
+static eglCreateContext_t sOrigEglCreateContext = NULL;
+
+static void *proxyEglCreateContext(EGLDisplay dpy, EGLConfig config, void *share, const EGLint *attrib_list) {
+    EGLint fixed[64];
+    const EGLint *use_list = attrib_list;
+    int version = normalizeEglContextAttribs(attrib_list, fixed, 64);
+    if (version > 0) use_list = fixed;
+
+    void *ctx = sOrigEglCreateContext(dpy, config, share, use_list);
+    if (ctx == NULL && version > 2) {
+        // ES3 上下文创建失败时的降级重试
+        LOG_TO_W("SDL_Hook: eglCreateContext failed with CV=%d, retrying with CV=2", version);
+        EGLint es2[3] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+        ctx = sOrigEglCreateContext(dpy, config, share, es2);
+    }
+    return ctx;
+}
+
+static EGLBoolean proxyEglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs,
+                                       EGLint config_size, EGLint *num_config) {
+    // 归一化 RENDERABLE_TYPE 后转发（见 normalizeEglChooseConfigList）
+    EGLint fixed[64];
+    const EGLint *use_list = attrib_list;
+    if (normalizeEglChooseConfigList(attrib_list, fixed, 64)) {
+        use_list = fixed;
+    }
+    return sOrigEglChooseConfig(dpy, use_list, configs, config_size, num_config);
+}
+
+// 接管 SDL 的 EGL 函数解析，注入上述代理
+static void *custom_SDL_LoadFunction_Func(void *handle, const char *name) {
+    void *r = BYTEHOOK_CALL_PREV(custom_SDL_LoadFunction_Func, SDL_LoadFunction_t, handle, name);
+    BYTEHOOK_POP_STACK();
+    if (name != NULL) {
+        if (strcmp(name, "eglChooseConfig") == 0) {
+            if (sOrigEglChooseConfig == NULL && r != NULL) {
+                sOrigEglChooseConfig = (eglChooseConfig_t) r;
+            }
+            r = (void *) proxyEglChooseConfig;
+        } else if (strcmp(name, "eglCreateContext") == 0) {
+            if (sOrigEglCreateContext == NULL && r != NULL) {
+                sOrigEglCreateContext = (eglCreateContext_t) r;
+            }
+            r = (void *) proxyEglCreateContext;
+        }
+    }
+    return r;
+}
+
 static bool custom_SDL_InitSubSystem_Func(SDL_InitFlags flags) {
     // Call notifyLauncher on SDL_InitSubSystem, this sets up all the JNI stuff needed by SDL.
     TRY_ATTACH_ENV(dvm_env, pojav_environ->dalvikJavaVMPtr, "SDL_InitSubSystem failed!",
@@ -95,10 +237,34 @@ static bool custom_SDL_InitSubSystem_Func(SDL_InitFlags flags) {
     bool r = BYTEHOOK_CALL_PREV(custom_SDL_InitSubSystem_Func, SDL_InitSubSystem_t, flags);
     if (!r){
         SET_DLSYM_PTR(dlopen("libSDL3.so", RTLD_NOLOAD), SDL_GetError);
-        LOG_TO_E("SDL_Hook", "SDL_InitSubsystem Error: %s", SDL_GetError_p());
+        LOG_TO_E("SDL_Hook: SDL_InitSubsystem Error: %s", SDL_GetError_p());
     }
     BYTEHOOK_POP_STACK();
     return r;
+}
+
+// 移动渲染器均为 OpenGL ES 实现，而游戏按桌面 GL 惯例初始化 SDL，
+// 非 ES 的 profile 请求会被宿主拒绝。因此在每次窗口创建前
+// 将 GL profile 强制为 ES。
+static void forceEglProfileEs(void) {
+    SET_DLSYM_PTR(dlopen("libSDL3.so", RTLD_NOLOAD), SDL_GL_SetAttribute);
+    if (SDL_GL_SetAttribute_p) {
+        SDL_GL_SetAttribute_p(20 /* SDL_GL_CONTEXT_PROFILE_MASK */, 4 /* SDL_GL_CONTEXT_PROFILE_ES */);
+    }
+}
+
+static SDL_Window *custom_SDL_CreateWindow_Func(const char *title, int w, int h, uint32_t flags) {
+    forceEglProfileEs();
+    SDL_Window *wnd = BYTEHOOK_CALL_PREV(custom_SDL_CreateWindow_Func, SDL_CreateWindow_t, title, w, h, flags);
+    BYTEHOOK_POP_STACK();
+    return wnd;
+}
+
+static SDL_Window *custom_SDL_CreateWindowWithProperties_Func(uint32_t props) {
+    forceEglProfileEs();
+    SDL_Window *wnd = BYTEHOOK_CALL_PREV(custom_SDL_CreateWindowWithProperties_Func, SDL_CreateWindowWithProperties_t, props);
+    BYTEHOOK_POP_STACK();
+    return wnd;
 }
 
 void create_sdl_hooks(bytehook_stub_t (*bytehook_hook_all_p)(const char *callee_path_name, const char *sym_name, void *new_func,
@@ -107,5 +273,10 @@ void create_sdl_hooks(bytehook_stub_t (*bytehook_hook_all_p)(const char *callee_
     bytehook_stub_t stub_SDL_InitSubSystem = bytehook_hook_all_p(NULL, "SDL_InitSubSystem", &custom_SDL_InitSubSystem_Func, NULL, NULL);
     bytehook_stub_t stub_SDL_GetWindowFromEvent = bytehook_hook_all_p(NULL, "SDL_GetWindowFromEvent", &custom_SDL_GetWindowFromEvent_Func, NULL, NULL);
     bytehook_stub_t stub_SDL_GetWindowFromID = bytehook_hook_all_p(NULL, "SDL_GetWindowFromID", &custom_SDL_GetWindowFromID_Func, NULL, NULL);
-    LOG_TO_I("SDL_Hook", "Successfully initialized SDL hooks, stubs: InitSubSystem=%p GetWindowFromEvent=%p GetWindowFromID=%p", stub_SDL_InitSubSystem, stub_SDL_GetWindowFromEvent, stub_SDL_GetWindowFromID);
+    // 窗口创建前强制 ES profile（覆盖 SDL3 的两种窗口创建入口）
+    bytehook_stub_t stub_SDL_CreateWindow = bytehook_hook_all_p(NULL, "SDL_CreateWindow", &custom_SDL_CreateWindow_Func, NULL, NULL);
+    bytehook_stub_t stub_SDL_CreateWindowWithProperties = bytehook_hook_all_p(NULL, "SDL_CreateWindowWithProperties", &custom_SDL_CreateWindowWithProperties_Func, NULL, NULL);
+    // 接管 SDL 的 EGL 函数解析，注入归一化代理
+    bytehook_stub_t stub_SDL_LoadFunction = bytehook_hook_all_p(NULL, "SDL_LoadFunction", &custom_SDL_LoadFunction_Func, NULL, NULL);
+    LOG_TO_I("SDL_Hook: Successfully initialized SDL hooks, stubs: InitSubSystem=%p GetWindowFromEvent=%p GetWindowFromID=%p LoadFunction=%p CreateWindow=%p CreateWindowWithProps=%p", stub_SDL_InitSubSystem, stub_SDL_GetWindowFromEvent, stub_SDL_GetWindowFromID, stub_SDL_LoadFunction, stub_SDL_CreateWindow, stub_SDL_CreateWindowWithProperties);
 }
