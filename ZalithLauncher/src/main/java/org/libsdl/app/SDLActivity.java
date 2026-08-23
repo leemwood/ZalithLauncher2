@@ -42,6 +42,7 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.InputDevice;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.PointerIcon;
 import android.view.Surface;
 import android.view.View;
@@ -255,6 +256,10 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         }
 
         return mMotionListener;
+    }
+
+    public static boolean forwardGenericMotionToSDL(View view, MotionEvent event) {
+        return getMotionListener().onGenericMotion(view, event);
     }
 
     /**

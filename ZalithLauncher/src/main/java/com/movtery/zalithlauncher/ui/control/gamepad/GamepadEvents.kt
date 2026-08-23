@@ -36,7 +36,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.movtery.inputmap.keycodes.ControlEventKeycode
 import com.movtery.layer_controller.event.ClickEvent
 import com.movtery.zalithlauncher.game.keycodes.mapToControlEvent
+import com.movtery.zalithlauncher.game.sdl.DirectGamepad
+import com.movtery.zalithlauncher.game.sdl.SdlBridge
 import com.movtery.zalithlauncher.setting.AllSettings
+import com.movtery.zalithlauncher.setting.enums.GamepadInputMode
 import com.movtery.zalithlauncher.ui.control.event.LAUNCHER_EVENT_SCROLL_DOWN_SINGLE
 import com.movtery.zalithlauncher.ui.control.event.LAUNCHER_EVENT_SCROLL_UP_SINGLE
 import com.movtery.zalithlauncher.ui.control.joystick.allAction
@@ -48,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import org.libsdl.app.SDLActivity
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -104,21 +108,33 @@ fun SimpleGamepadCapture(
     }
 
     DisposableEffect(view, gamepadViewModel) {
-        val motionListener = View.OnGenericMotionListener { _, event ->
+        val motionListener = View.OnGenericMotionListener { motionView, event ->
             if (isBinding()) {
                 remapperViewModel.sendEvent(
                     GamepadRemapperViewModel.Event.Axis(event)
                 )
                 true
             } else if (event.isGamepadEvent() && event.action == MotionEvent.ACTION_MOVE) {
-                val deviceName = event.getDeviceName()
-                val remapper = remapperViewModel.findMapping(deviceName)
-                if (remapper == null) {
-                    remapperViewModel.startRemapperUI(deviceName)
+                if (AllSettings.gamepadControl.state && AllSettings.gamepadInputMode.state == GamepadInputMode.SdlDirect) {
+                    if (SdlBridge.sdlEnabled) {
+                        DirectGamepad.handleMotionEvent(event)
+                        try {
+                            SDLActivity.forwardGenericMotionToSDL(motionView, event)
+                        } catch (_: UnsatisfiedLinkError) {
+                            //SDL native 未就绪时忽略
+                        }
+                    }
+                    true
                 } else {
-                    remapper.handleMotionEventInput(event, gamepadViewModel)
+                    val deviceName = event.getDeviceName()
+                    val remapper = remapperViewModel.findMapping(deviceName)
+                    if (remapper == null) {
+                        remapperViewModel.startRemapperUI(deviceName)
+                    } else {
+                        remapper.handleMotionEventInput(event, gamepadViewModel)
+                    }
+                    true
                 }
-                true
             } else false
         }
 

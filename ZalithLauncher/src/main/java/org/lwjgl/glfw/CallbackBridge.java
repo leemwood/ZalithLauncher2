@@ -25,6 +25,7 @@ import com.movtery.zalithlauncher.bridge.ZLBridgeStates;
 import com.movtery.zalithlauncher.bridge.ZLNativeInvoker;
 import com.movtery.zalithlauncher.context.ContextsKt;
 import com.movtery.zalithlauncher.game.input.EfficientAndroidLWJGLKeycode;
+import com.movtery.zalithlauncher.game.sdl.DirectGamepadEnableHandler;
 import com.movtery.zalithlauncher.game.sdl.SdlBridge;
 
 import org.libsdl.app.SDLActivity;
@@ -32,6 +33,10 @@ import org.libsdl.app.SDLSurface;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.function.Consumer;
 
 import dalvik.annotation.optimization.CriticalNative;
@@ -143,6 +148,13 @@ public class CallbackBridge {
     public volatile static boolean holdingAlt, holdingCapslock, holdingCtrl,
             holdingNumlock, holdingShift;
 
+    // GLFW direct gamepad 共享缓冲
+    public static final ByteBuffer sGamepadButtonBuffer;
+    public static final FloatBuffer sGamepadAxisBuffer;
+    public static boolean sGamepadDirectInput = false;
+    // Use a weak reference here to avoid possibly statically referencing a Context.
+    private static @Nullable WeakReference<DirectGamepadEnableHandler> sDirectGamepadEnableHandler;
+
     public static void putMouseEventWithCoords(int button, float x, float y) {
         sendCursorPos(x, y);
         putMouseEvent(button);
@@ -195,7 +207,7 @@ public class CallbackBridge {
             } else {
                 SDLActivity.onNativeKeyUp(androidKeycode);
             }
-        } catch (RuntimeException ignored) {
+        } catch (Throwable ignored) {
         }
     }
 
@@ -369,6 +381,23 @@ public class CallbackBridge {
         }
     }
 
+    public static void setDirectGamepadEnableHandler(@Nullable DirectGamepadEnableHandler handler) {
+        sDirectGamepadEnableHandler = new WeakReference<>(handler);
+    }
+
+    //Called from JRE side
+    @SuppressWarnings("unused")
+    @Keep
+    private static void onDirectInputEnable() {
+        LoggerBridge.append("ZalithLauncher: Direct gamepad input enabled");
+        sGamepadDirectInput = true;
+        DirectGamepadEnableHandler enableHandler =
+                sDirectGamepadEnableHandler == null ? null : sDirectGamepadEnableHandler.get();
+        if (enableHandler != null) {
+            enableHandler.onDirectGamepadEnabled();
+        }
+    }
+
     //Called from JRE side
     @SuppressWarnings("unused")
     @Keep
@@ -469,8 +498,13 @@ public class CallbackBridge {
     @Keep public static native void nativeSetGrabbing(boolean grab);
     @Keep public static native int getCurrentFps();
 
+    private static native ByteBuffer nativeCreateGamepadButtonBuffer();
+    private static native ByteBuffer nativeCreateGamepadAxisBuffer();
+
     static {
         NativeLibraryLoader.loadPojavLib();
+        sGamepadButtonBuffer = nativeCreateGamepadButtonBuffer();
+        sGamepadAxisBuffer = nativeCreateGamepadAxisBuffer().order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
     }
 }
 

@@ -1457,7 +1457,7 @@ public class GLFW
             gamepadDataPointer = internalGetGamepadDataPointer();
             gamepadButtonData = CallbackBridge.nativeCreateGamepadButtonBuffer();
             gamepadAxisData = CallbackBridge.nativeCreateGamepadAxisBuffer().order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
-            CallbackBridge.nativeEnableGamepadDirectInput();
+            CallbackBridge.enableGamepadDirectInput();
         }
     }
 

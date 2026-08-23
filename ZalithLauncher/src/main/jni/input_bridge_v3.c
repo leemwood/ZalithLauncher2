@@ -61,6 +61,7 @@ jint JNI_OnLoad(JavaVM* vm, __attribute__((unused)) void* reserved) {
         pojav_environ->method_onGrabStateChanged = (*pojav_environ->dalvikJNIEnvPtr_ANDROID)->GetStaticMethodID(pojav_environ->dalvikJNIEnvPtr_ANDROID, pojav_environ->bridgeClazz, "onGrabStateChanged", "(Z)V");
         pojav_environ->method_onCursorShapeChanged = (*pojav_environ->dalvikJNIEnvPtr_ANDROID)->GetStaticMethodID(pojav_environ->dalvikJNIEnvPtr_ANDROID, pojav_environ->bridgeClazz, "onCursorShapeChanged", "(I)V");
         pojav_environ->method_onGraphicOutput = (*pojav_environ->dalvikJNIEnvPtr_ANDROID)->GetStaticMethodID(pojav_environ->dalvikJNIEnvPtr_ANDROID, pojav_environ->bridgeClazz, "onGraphicOutput", "()V");
+        pojav_environ->method_onDirectInputEnable = (*pojav_environ->dalvikJNIEnvPtr_ANDROID)->GetStaticMethodID(pojav_environ->dalvikJNIEnvPtr_ANDROID, pojav_environ->bridgeClazz, "onDirectInputEnable", "()V");
         pojav_environ->method_notifyLauncher = (*pojav_environ->dalvikJNIEnvPtr_ANDROID)->GetStaticMethodID(pojav_environ->dalvikJNIEnvPtr_ANDROID, pojav_environ->bridgeClazz, "notifyLauncher", "(I[I)Z");
         pojav_environ->isUseStackQueueCall = JNI_FALSE;
     } else if (pojav_environ->dalvikJavaVMPtr != vm) {
@@ -385,7 +386,27 @@ Java_org_lwjgl_glfw_GLFW_internalGetGamepadDataPointer(__attribute__((unused)) J
 
 JNIEXPORT jboolean JNICALL
 Java_org_lwjgl_glfw_CallbackBridge_nativeEnableGamepadDirectInput(__attribute__((unused)) JNIEnv* env, __attribute__((unused)) jclass clazz) {
+    TRY_ATTACH_ENV(dvm_env, pojav_environ->dalvikJavaVMPtr, "nativeEnableGamepadDirectInput failed!\n", return JNI_FALSE;);
+    (*dvm_env)->CallStaticVoidMethod(dvm_env, pojav_environ->bridgeClazz, pojav_environ->method_onDirectInputEnable);
     return JNI_TRUE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_movtery_zalithlauncher_game_sdl_SdlBridge_initializeControllerSubsystems(__attribute__((unused)) JNIEnv* env, __attribute__((unused)) jclass clazz) {
+    typedef int (*SDL_Init_Func)(unsigned int flags);
+    void* handle = dlopen("libSDL3.so", RTLD_NOW);
+    if (handle == NULL) {
+        LOG_TO_E("<%s> %s", "SDL", "initializeControllerSubsystems: libSDL3.so dlopen failed");
+        return;
+    }
+    SDL_Init_Func SDL_Init = (SDL_Init_Func) dlsym(handle, "SDL_Init");
+    if (SDL_Init == NULL) {
+        LOG_TO_E("<%s> %s", "SDL", "initializeControllerSubsystems: SDL_Init not found");
+        return;
+    }
+    // SDL3: SDL_INIT_GAMEPAD=0x2000 | SDL_INIT_JOYSTICK=0x200 | SDL_INIT_EVENTS=0x4000
+    SDL_Init(0x2000u | 0x200u | 0x4000u);
+    LOG_TO_I("<%s> %s", "SDL", "initializeControllerSubsystems: SDL controller subsystems initialized");
 }
 
 JNIEXPORT jobject JNICALL

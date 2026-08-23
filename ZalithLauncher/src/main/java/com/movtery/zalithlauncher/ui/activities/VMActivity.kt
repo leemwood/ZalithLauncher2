@@ -662,6 +662,10 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
     override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
         val nativeSurface = Surface(surface)
         SdlBridge.prepareSurface(this, nativeSurface, gameSurfaceView?.parent as? ViewGroup, surface)
+        //游戏请求 GLFW direct gamepad 时的通知接收方
+        CallbackBridge.setDirectGamepadEnableHandler {
+            LoggerBridge.append("ZalithLauncher: Direct gamepad handler enabled")
+        }
         if (vmViewModel.isRunning) {
             ZLBridge.setupBridgeWindow(nativeSurface)
             return

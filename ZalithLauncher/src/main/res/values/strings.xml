@@ -977,6 +977,11 @@
     <string name="settings_control_gyroscope_invert_y_summary">When enabled, rotating the device up or down will control the camera in the opposite direction</string>
     <string name="settings_gamepad_title">Gamepad Control</string>
     <string name="settings_gamepad_summary">Enable or disable gamepad control. If another device is mistakenly recognized as a gamepad, please turn off this option.</string>
+    <string name="settings_gamepad_input_mode_title">Gamepad Input Mode</string>
+    <string name="settings_gamepad_input_mode_mapped">Mapped (Virtual Keys)</string>
+    <string name="settings_gamepad_input_mode_mapped_summary">Gamepad buttons and joysticks act as virtual keyboard and mouse</string>
+    <string name="settings_gamepad_input_mode_sdl">SDL Direct</string>
+    <string name="settings_gamepad_input_mode_sdl_summary">Raw gamepad input is delivered to the game via the SDL/GLFW gamepad API; button remapping is bypassed</string>
     <string name="settings_gamepad_deadzone_title">Gamepad Deadzone Scaling</string>
     <string name="settings_gamepad_deadzone_summary">Set the ratio of the joystick\'s non-responsive center area</string>
     <string name="settings_gamepad_joystick_mode_title">Joystick Operation Mode</string>

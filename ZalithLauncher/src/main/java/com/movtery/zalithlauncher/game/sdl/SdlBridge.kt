@@ -136,4 +136,7 @@ object SdlBridge {
         SDLSurface.clearNativeSurface()
         SDL.initialize()
     }
+
+    @JvmStatic
+    external fun initializeControllerSubsystems()
 }

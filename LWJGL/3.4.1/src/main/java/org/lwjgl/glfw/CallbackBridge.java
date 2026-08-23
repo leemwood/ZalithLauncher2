@@ -23,6 +23,8 @@ public class CallbackBridge {
 
     public static final boolean INPUT_DEBUG_ENABLED;
 
+    public static boolean sGamepadDirectEnabled;
+
     // TODO send grab state event to Android
 
     static {
@@ -43,6 +45,11 @@ public class CallbackBridge {
 */
     }
 
+
+    public static void enableGamepadDirectInput() {
+        if (sGamepadDirectEnabled) return;
+        sGamepadDirectEnabled = nativeEnableGamepadDirectInput();
+    }
 
     public static void sendData(int type, String data) {
         nativeSendData(false, type, data);

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.setting.AllSettings
+import com.movtery.zalithlauncher.setting.enums.GamepadInputMode
 import com.movtery.zalithlauncher.setting.enums.GestureActionType
 import com.movtery.zalithlauncher.setting.enums.MouseControlMode
 import com.movtery.zalithlauncher.setting.unit.floatRange
@@ -537,6 +538,9 @@ private fun ControlGamepad(
     contentColor: Color = onCardColor(),
 ) {
     val listState = rememberLazyListState()
+    //重映射相关设置仅在映射模式下可用
+    val remapEnabled = AllSettings.gamepadControl.state &&
+        AllSettings.gamepadInputMode.state == GamepadInputMode.Mapped
     LazyColumn(
         modifier = modifier.lazyScrollWithBar(listState),
         state = listState,
@@ -555,6 +559,29 @@ private fun ControlGamepad(
             )
         }
 
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        //手柄输入模式
+        item {
+            MenuListLayout(
+                modifier = Modifier.fillMaxWidth(),
+                title = stringResource(R.string.settings_gamepad_input_mode_title),
+                items = GamepadInputMode.entries,
+                currentItem = AllSettings.gamepadInputMode.state,
+                onItemChange = { AllSettings.gamepadInputMode.save(it) },
+                getItemText = { stringResource(it.titleRes) },
+                color = color,
+                contentColor = contentColor,
+                enabled = AllSettings.gamepadControl.state,
+            )
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         //手柄死区缩放
         item {
             MenuSliderLayout(
@@ -562,7 +589,7 @@ private fun ControlGamepad(
                 title = stringResource(R.string.settings_gamepad_deadzone_title),
                 value = AllSettings.gamepadDeadZoneScale.state,
                 valueRange = AllSettings.gamepadDeadZoneScale.floatRange,
-                enabled = AllSettings.gamepadControl.state,
+                enabled = remapEnabled,
                 onValueChange = { AllSettings.gamepadDeadZoneScale.updateState(it) },
                 onValueChangeFinished = { AllSettings.gamepadDeadZoneScale.save(it) },
                 suffix = "%",
@@ -578,7 +605,7 @@ private fun ControlGamepad(
                 title = stringResource(R.string.settings_gamepad_cursor_sensitivity_title),
                 value = AllSettings.gamepadCursorSensitivity.state,
                 valueRange = AllSettings.gamepadCursorSensitivity.floatRange,
-                enabled = AllSettings.gamepadControl.state,
+                enabled = remapEnabled,
                 onValueChange = { AllSettings.gamepadCursorSensitivity.updateState(it) },
                 onValueChangeFinished = { AllSettings.gamepadCursorSensitivity.save(it) },
                 suffix = "%",
@@ -594,7 +621,7 @@ private fun ControlGamepad(
                 title = stringResource(R.string.settings_gamepad_camera_sensitivity_title),
                 value = AllSettings.gamepadCameraSensitivity.state,
                 valueRange = AllSettings.gamepadCameraSensitivity.floatRange,
-                enabled = AllSettings.gamepadControl.state,
+                enabled = remapEnabled,
                 onValueChange = { AllSettings.gamepadCameraSensitivity.updateState(it) },
                 onValueChangeFinished = { AllSettings.gamepadCameraSensitivity.save(it) },
                 suffix = "%",
@@ -622,7 +649,7 @@ private fun ControlGamepad(
                     getItemText = { it },
                     color = color,
                     contentColor = contentColor,
-                    enabled = AllSettings.gamepadControl.state,
+                    enabled = remapEnabled,
                 )
             } else {
                 MenuTextButton(
