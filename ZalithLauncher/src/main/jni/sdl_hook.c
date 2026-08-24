@@ -26,6 +26,8 @@ const char *SDL_GetError(void);
 SDL_Window *SDL_GetWindowFromEvent(const void *event);
 SDL_Window *SDL_GetWindowFromID(uint32_t id);
 bool SDL_GL_SetAttribute(int attr, int value);
+void *SDL_LoadObject(const char *path);
+void SDL_UnloadObject(void *handle);
 void *SDL_LoadFunction(void *handle, const char *name);
 SDL_Window *SDL_CreateWindow(const char *title, int w, int h, uint32_t flags);
 SDL_Window *SDL_CreateWindowWithProperties(uint32_t props);
@@ -38,6 +40,8 @@ DECL_DLSYM(SDL_GetError);
 DECL_DLSYM(SDL_GetWindowFromEvent)
 DECL_DLSYM(SDL_GetWindowFromID)
 DECL_DLSYM(SDL_GL_SetAttribute)
+DECL_DLSYM(SDL_LoadObject)
+DECL_DLSYM(SDL_UnloadObject)
 DECL_DLSYM(SDL_LoadFunction)
 DECL_DLSYM(SDL_CreateWindow)
 DECL_DLSYM(SDL_CreateWindowWithProperties)
@@ -208,6 +212,36 @@ static void *custom_SDL_LoadFunction_Func(void *handle, const char *name) {
     return r;
 }
 
+// --- Vulkan 加载器一致性 ---
+// 启动器经 EGLBridge 将 LWJGL 的 Vulkan 句柄重定向到私有命名空间中的
+// 加载器副本（Turnip 链路，句柄记录于 VULKAN_PTR 环境变量）。
+// MC 26.3 起 RenderPearl 要求 SDL 与 LWJGL 使用同一加载器实例
+// （校验 vkGetInstanceProcAddr 指针一致），而 SDL 仅能按路径加载，
+// 无法触及该私有实例。此处在 SDL 加载 Vulkan loader 时改还 VULKAN_PTR
+// 句柄；对应句柄的引用计数由启动器持有，忽略 SDL 侧的卸载。
+static void *custom_SDL_LoadObject_Func(const char *path) {
+    if (path != NULL && strstr(path, "libvulkan") != NULL) {
+        const char *vkptr = getenv("VULKAN_PTR");
+        if (vkptr != NULL && vkptr[0] != '\0') {
+            void *handle = (void *) (uintptr_t) strtoull(vkptr, NULL, 16);
+            if (handle != NULL) return handle;
+        }
+    }
+    void *r = BYTEHOOK_CALL_PREV(custom_SDL_LoadObject_Func, SDL_LoadObject_t, path);
+    BYTEHOOK_POP_STACK();
+    return r;
+}
+
+static void custom_SDL_UnloadObject_Func(void *handle) {
+    const char *vkptr = getenv("VULKAN_PTR");
+    if (vkptr != NULL && vkptr[0] != '\0') {
+        void *vulkan_handle = (void *) (uintptr_t) strtoull(vkptr, NULL, 16);
+        if (handle == vulkan_handle) return;
+    }
+    BYTEHOOK_CALL_PREV(custom_SDL_UnloadObject_Func, SDL_UnloadObject_t, handle);
+    BYTEHOOK_POP_STACK();
+}
+
 static bool custom_SDL_InitSubSystem_Func(SDL_InitFlags flags) {
     // Call notifyLauncher on SDL_InitSubSystem, this sets up all the JNI stuff needed by SDL.
     TRY_ATTACH_ENV(dvm_env, pojav_environ->dalvikJavaVMPtr, "SDL_InitSubSystem failed!",
@@ -282,5 +316,8 @@ void create_sdl_hooks(bytehook_stub_t (*bytehook_hook_all_p)(const char *callee_
     bytehook_stub_t stub_SDL_CreateWindowWithProperties = bytehook_hook_all_p(NULL, "SDL_CreateWindowWithProperties", &custom_SDL_CreateWindowWithProperties_Func, NULL, NULL);
     // 接管 SDL 的 EGL 函数解析，注入归一化代理
     bytehook_stub_t stub_SDL_LoadFunction = bytehook_hook_all_p(NULL, "SDL_LoadFunction", &custom_SDL_LoadFunction_Func, NULL, NULL);
-    LOG_TO_I("SDL_Hook: Successfully initialized SDL hooks, stubs: InitSubSystem=%p GetWindowFromEvent=%p GetWindowFromID=%p LoadFunction=%p CreateWindow=%p CreateWindowWithProps=%p", stub_SDL_InitSubSystem, stub_SDL_GetWindowFromEvent, stub_SDL_GetWindowFromID, stub_SDL_LoadFunction, stub_SDL_CreateWindow, stub_SDL_CreateWindowWithProperties);
+    // Vulkan 加载器一致性：SDL 侧改用启动器重定向的加载器句柄
+    bytehook_stub_t stub_SDL_LoadObject = bytehook_hook_all_p(NULL, "SDL_LoadObject", &custom_SDL_LoadObject_Func, NULL, NULL);
+    bytehook_stub_t stub_SDL_UnloadObject = bytehook_hook_all_p(NULL, "SDL_UnloadObject", &custom_SDL_UnloadObject_Func, NULL, NULL);
+    LOG_TO_I("SDL_Hook: Successfully initialized SDL hooks, stubs: InitSubSystem=%p GetWindowFromEvent=%p GetWindowFromID=%p LoadFunction=%p CreateWindow=%p CreateWindowWithProps=%p LoadObject=%p UnloadObject=%p", stub_SDL_InitSubSystem, stub_SDL_GetWindowFromEvent, stub_SDL_GetWindowFromID, stub_SDL_LoadFunction, stub_SDL_CreateWindow, stub_SDL_CreateWindowWithProperties, stub_SDL_LoadObject, stub_SDL_UnloadObject);
 }
