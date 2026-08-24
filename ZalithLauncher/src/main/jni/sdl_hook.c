@@ -232,6 +232,10 @@ static bool custom_SDL_InitSubSystem_Func(SDL_InitFlags flags) {
     if (egl && strcmp(egl, "libmobileglues.so") == 0) {
         SDL_SetHint_p("SDL_OPENGL_FORCE_SRGB_FRAMEBUFFER", "0");
     }
+    // MC 按桌面惯例设置 SDL_ENABLE_SCREEN_KEYBOARD=0 来禁用平台软键盘（改用自绘 IME UI），
+    // 但移动端依赖 SDL 唤起输入法；MC 在 SDL_Init 之前设置此 hint，
+    // 本 hook 于 SDL_Init 时执行，此处覆盖回启用。
+    if (SDL_SetHint_p) SDL_SetHint_p("SDL_ENABLE_SCREEN_KEYBOARD", "1");
 
     // Call original func after doing all the needed setup
     bool r = BYTEHOOK_CALL_PREV(custom_SDL_InitSubSystem_Func, SDL_InitSubSystem_t, flags);
