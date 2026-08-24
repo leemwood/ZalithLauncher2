@@ -164,6 +164,8 @@ class GameHandler(
             if (AllSettings.gamepadControl.state && AllSettings.gamepadInputMode.state == GamepadInputMode.SdlDirect) {
                 //SDL 直通模式下，按键原样交给 SDL native
                 if (SdlBridge.sdlEnabled) {
+                    //让控制布局等注册方感知到手柄使用中
+                    gamepadViewModel.notifyActivity()
                     handleGamepadKeyEvent(event)
                     try {
                         SDLActivity.handleKeyEvent(null, event.keyCode, event, null)

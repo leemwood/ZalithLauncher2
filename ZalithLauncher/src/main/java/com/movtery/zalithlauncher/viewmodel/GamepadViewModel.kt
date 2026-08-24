@@ -73,6 +73,28 @@ class GamepadViewModel : ViewModel() {
 
     private val eventListeners = mutableListOf<(Event) -> Unit>()
 
+    private val actionListeners = mutableListOf<() -> Unit>()
+
+    /**
+     * 注册一个手柄活动监听者
+     */
+    fun registerActionListener(listener: () -> Unit) {
+        actionListeners.add(listener)
+    }
+
+    /**
+     * 移除已注册的手柄活动监听者
+     */
+    fun unregisterActionListener(listener: () -> Unit) {
+        actionListeners.remove(listener)
+    }
+
+    private fun sendActionEvent() {
+        actionListeners.forEach { listener ->
+            listener()
+        }
+    }
+
     private val listMMKV = keyMappingListMMKV()
     private val oldMMKV = keyMappingMMKV()
 
@@ -120,12 +142,20 @@ class GamepadViewModel : ViewModel() {
 
     /** 激活状态更新 */
     private fun onActive() {
+        notifyActivity()
         val wasInactive = !gamepadEngaged
         lastActivityTime = System.nanoTime()
         if (wasInactive) {
             gamepadEngaged = true
             pollLevel = PollLevel.High
         }
+    }
+
+    /**
+     * 通知手柄活动
+     */
+    fun notifyActivity() {
+        sendActionEvent()
     }
 
     fun reloadAllMappings() {

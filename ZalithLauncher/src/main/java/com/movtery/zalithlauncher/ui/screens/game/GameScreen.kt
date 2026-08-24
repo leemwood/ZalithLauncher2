@@ -92,6 +92,7 @@ import com.movtery.zalithlauncher.ui.control.MinecraftHotbar
 import com.movtery.zalithlauncher.ui.control.event.launcherEvent
 import com.movtery.zalithlauncher.ui.control.event.lwjglEvent
 import com.movtery.zalithlauncher.ui.control.gamepad.GamepadKeyListener
+import com.movtery.zalithlauncher.ui.control.gamepad.GamepadOnActionListener
 import com.movtery.zalithlauncher.ui.control.gamepad.GamepadStickMovementListener
 import com.movtery.zalithlauncher.ui.control.gamepad.SimpleGamepadCapture
 import com.movtery.zalithlauncher.ui.control.gyroscope.GyroscopeReader
@@ -541,6 +542,15 @@ fun GameScreen(
         val screenSize = rememberBoxSize()
 
         if (!viewModel.isEditingLayout) {
+            if (AllSettings.gamepadControl.state) {
+                GamepadOnActionListener(
+                    gamepadViewModel = gamepadViewModel,
+                    onAction = {
+                        viewModel.switchControlLayer(HideLayerWhen.WhenGamepad)
+                    }
+                )
+            }
+
             if (AllSettings.gamepadControl.state && gamepadViewModel.gamepadEngaged) {
                 //手柄事件监听
                 GamepadKeyListener(
@@ -550,9 +560,6 @@ fun GameScreen(
                         events.forEach { event ->
                             viewModel.onKeyEvent(event, pressed)
                         }
-                    },
-                    onAction = {
-                        viewModel.switchControlLayer(HideLayerWhen.WhenGamepad)
                     }
                 )
 

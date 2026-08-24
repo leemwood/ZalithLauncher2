@@ -117,6 +117,7 @@ fun SimpleGamepadCapture(
             } else if (event.isGamepadEvent() && event.action == MotionEvent.ACTION_MOVE) {
                 if (AllSettings.gamepadControl.state && AllSettings.gamepadInputMode.state == GamepadInputMode.SdlDirect) {
                     if (SdlBridge.sdlEnabled) {
+                        gamepadViewModel.notifyActivity()
                         handleGamepadMotionEvent(event)
                         try {
                             SDLActivity.forwardGenericMotionToSDL(motionView, event)
@@ -186,17 +187,36 @@ private fun GamepadEventListener(
 }
 
 /**
+ * 手柄活动监听者
+ */
+@Composable
+fun GamepadOnActionListener(
+    gamepadViewModel: GamepadViewModel,
+    onAction: () -> Unit
+) {
+    val currentOnAction by rememberUpdatedState(onAction)
+
+    DisposableEffect(gamepadViewModel) {
+        val listener: () -> Unit = {
+            currentOnAction()
+        }
+        gamepadViewModel.registerActionListener(listener)
+        onDispose {
+            gamepadViewModel.unregisterActionListener(listener)
+        }
+    }
+}
+
+/**
  * 统一实现的手柄按键事件监听器
  * @param isGrabbing 用于判断是否处于游戏中，区分游戏内、菜单内的按键绑定
  * @param onKeyEvent 键盘映射事件回调
- * @param onAction 手柄触发任意操作时
  */
 @Composable
 fun GamepadKeyListener(
     gamepadViewModel: GamepadViewModel,
     isGrabbing: Boolean,
-    onKeyEvent: (targets: List<ClickEvent>, pressed: Boolean) -> Unit,
-    onAction: () -> Unit
+    onKeyEvent: (targets: List<ClickEvent>, pressed: Boolean) -> Unit
 ) {
     fun guessEvent(event: String): ClickEvent {
         return when (event) {
@@ -214,7 +234,6 @@ fun GamepadKeyListener(
 
     val inGame by rememberUpdatedState(isGrabbing)
     val currentOnKeyEvent by rememberUpdatedState(onKeyEvent)
-    val currentOnAction by rememberUpdatedState(onAction)
 
     val lastPressKey = remember { mutableStateMapOf<Int, List<ClickEvent>>() }
     val lastPressDpad = remember { mutableStateMapOf<DpadDirection, List<ClickEvent>>() }
@@ -222,8 +241,6 @@ fun GamepadKeyListener(
     GamepadEventListener(
         gamepadViewModel = gamepadViewModel,
         listener = { event ->
-            currentOnAction()
-
             when (event) {
                 is GamepadViewModel.Event.Button -> {
                     if (!event.pressed) {
