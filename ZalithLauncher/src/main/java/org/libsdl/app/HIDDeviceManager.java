@@ -5,6 +5,8 @@
 
 package org.libsdl.app;
 
+import androidx.annotation.Keep;
+
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -29,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+@Keep
 public class HIDDeviceManager {
     private static final String TAG = "hidapi";
     private static final String ACTION_USB_PERMISSION = "org.libsdl.app.USB_PERMISSION";

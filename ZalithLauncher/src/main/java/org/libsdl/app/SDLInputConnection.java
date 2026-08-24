@@ -5,12 +5,15 @@
 
 package org.libsdl.app;
 
+import androidx.annotation.Keep;
+
 import android.text.Editable;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.BaseInputConnection;
 import android.widget.EditText;
 
+@Keep
 class SDLInputConnection extends BaseInputConnection
 {
     protected EditText mEditText;

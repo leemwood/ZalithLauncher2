@@ -5,6 +5,8 @@
 
 package org.libsdl.app;
 
+import androidx.annotation.Keep;
+
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -29,6 +31,7 @@ import java.util.regex.Pattern;
 
 //import com.android.internal.util.HexDump;
 
+@Keep
 class HIDDeviceBLESteamController extends BluetoothGattCallback implements HIDDevice {
 
     private static final String TAG = "hidapi";

@@ -22,6 +22,7 @@ import android.app.Activity
 import android.view.Surface
 import android.view.ViewGroup
 import androidx.annotation.MainThread
+import androidx.annotation.Keep
 import com.movtery.zalithlauncher.setting.AllSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +35,7 @@ import java.lang.ref.WeakReference
 /**
  * Owns the SDL integration state shared by the launcher and game JVM.
  */
+@Keep
 object SdlBridge {
     private val _enabled = MutableStateFlow(false)
     val enabled = _enabled.asStateFlow()

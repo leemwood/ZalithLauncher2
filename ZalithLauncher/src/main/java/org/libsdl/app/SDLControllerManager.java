@@ -5,6 +5,8 @@
 
 package org.libsdl.app;
 
+import androidx.annotation.Keep;
+
 import android.content.Context;
 import android.graphics.Color;
 import android.hardware.Sensor;
@@ -30,6 +32,7 @@ import java.util.Comparator;
 import java.util.List;
 
 
+@Keep
 public class SDLControllerManager
 {
 

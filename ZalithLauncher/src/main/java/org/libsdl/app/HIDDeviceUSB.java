@@ -5,6 +5,8 @@
 
 package org.libsdl.app;
 
+import androidx.annotation.Keep;
+
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
@@ -15,6 +17,7 @@ import android.util.Log;
 import java.util.Arrays;
 import java.util.Locale;
 
+@Keep
 class HIDDeviceUSB implements HIDDevice {
 
     private static final String TAG = "hidapi";

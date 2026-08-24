@@ -5,6 +5,8 @@
 
 package org.libsdl.app;
 
+import androidx.annotation.Keep;
+
 import android.content.Context;
 import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
@@ -12,6 +14,7 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.util.Log;
 
+@Keep
 class SDLAudioManager {
     protected static final String TAG = "SDLAudio";
 

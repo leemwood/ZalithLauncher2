@@ -66,10 +66,13 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Locale;
 
+import androidx.annotation.Keep;
+
 
 /**
     SDL Activity
 */
+@Keep
 public class SDLActivity extends Activity implements View.OnSystemUiVisibilityChangeListener {
     private static final String TAG = "SDL";
     private static final int SDL_MAJOR_VERSION = 3;
