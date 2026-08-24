@@ -22,13 +22,14 @@ import android.app.Activity
 import android.view.Surface
 import android.view.ViewGroup
 import androidx.annotation.MainThread
+import com.movtery.zalithlauncher.setting.AllSettings
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.libsdl.app.SDL
 import org.libsdl.app.SDLActivity
 import org.libsdl.app.SDLSurface
 import org.lwjgl.glfw.CallbackBridge
 import java.lang.ref.WeakReference
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Owns the SDL integration state shared by the launcher and game JVM.
@@ -80,6 +81,12 @@ object SdlBridge {
             field = value
             _enabled.value = value
         }
+
+    /**
+     * SDL 请求唤起输入法时，启动器侧是否响应
+     */
+    @JvmStatic
+    fun getSdlImeAutoShowEnabled(): Boolean = AllSettings.sdlAutoShowIme.state
 
     @JvmStatic
     @MainThread

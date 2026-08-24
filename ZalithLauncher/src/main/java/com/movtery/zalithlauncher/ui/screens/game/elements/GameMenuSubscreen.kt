@@ -39,6 +39,8 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.movtery.zalithlauncher.R
+import com.movtery.zalithlauncher.game.sdl.SdlBridge
 import com.movtery.zalithlauncher.setting.AllSettings
 import com.movtery.zalithlauncher.setting.enums.GamepadInputMode
 import com.movtery.zalithlauncher.setting.enums.GestureActionType
@@ -346,6 +349,8 @@ private fun ControlOverview(
     onEditLayout: () -> Unit
 ) {
     val listState = rememberLazyListState()
+    val sdlEnabled by SdlBridge.enabled.collectAsState()
+
     LazyColumn(
         modifier = modifier.lazyScrollWithBar(listState),
         state = listState,
@@ -365,6 +370,23 @@ private fun ControlOverview(
                 contentColor = contentColor,
             )
         }
+        //自动唤起输入法（SDL）
+        item {
+            MenuSwitchButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.game_menu_option_auto_show_ime),
+                switch = AllSettings.sdlAutoShowIme.state,
+                onSwitch = { AllSettings.sdlAutoShowIme.save(it) },
+                enabled = sdlEnabled,
+                color = color,
+                contentColor = contentColor,
+            )
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         //发送键值
         item {
             MenuTextButton(

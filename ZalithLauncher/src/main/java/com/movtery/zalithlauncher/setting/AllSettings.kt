@@ -249,6 +249,11 @@ object AllSettings : SettingsRegistry() {
     val gamepadControl = boolSetting("gamepadControl", true)
 
     /**
+     * SDL 下是否允许自动唤起输入法
+     */
+    val sdlAutoShowIme = boolSetting("sdlAutoShowIme", true)
+
+    /**
      * 手柄输入模式（映射虚拟按键 / SDL 直通）
      */
     val gamepadInputMode = enumSetting("gamepadInputMode", GamepadInputMode.Mapped)

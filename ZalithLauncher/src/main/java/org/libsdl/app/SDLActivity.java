@@ -1533,6 +1533,9 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
      * This method is called by SDL using JNI.
      */
     public static boolean showTextInput(int input_type, int x, int y, int w, int h) {
+        // Launcher-side setting may reject auto-showing the IME
+        // native-side state stays untouched.
+        if (!SdlBridge.getSdlImeAutoShowEnabled()) return false;
         // Transfer the task to the main thread as a Runnable
         return commandHandler.post(new ShowTextInputTask(input_type, x, y, w, h));
     }

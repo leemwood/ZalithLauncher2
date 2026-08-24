@@ -409,6 +409,7 @@
     <string name="game_menu_option_force_close_text">强制关闭正在运行的游戏可能导致存档损坏或设置无法保存，除特殊情况外请避免此操作。</string>
     <string name="game_menu_option_switch_log">日志输出</string>
     <string name="game_menu_option_input_method">切换输入法</string>
+    <string name="game_menu_option_auto_show_ime">自动唤起输入法（SDL）</string>
     <string name="game_menu_option_switch_fps">帧率显示</string>
     <string name="game_menu_option_switch_memory">内存显示</string>
     <string name="game_menu_option_menu_ball_opacity">菜单悬浮窗不透明度</string>
