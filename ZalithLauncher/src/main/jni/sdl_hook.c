@@ -283,11 +283,6 @@ static bool custom_SDL_InitSubSystem_Func(SDL_InitFlags flags) {
     // 本 hook 于 SDL_Init 时执行，此处覆盖回启用。
     if (SDL_SetHint_p) SDL_SetHint_p("SDL_ENABLE_SCREEN_KEYBOARD", "1");
 
-    // SDL Android 后端在创建窗口（及切换 resizable）时会按窗口宽高动态设置 Activity 方向
-    // hint 为空且窗口固定时，w<=h 将锁成竖屏，覆盖 manifest 声明的 sensorLandscape
-    // 声明仅允许横向后，方向不再依赖窗口尺寸。
-    if (SDL_SetHint_p) SDL_SetHint_p("SDL_ORIENTATIONS", "LandscapeLeft LandscapeRight");
-
     // Call original func after doing all the needed setup
     bool r = BYTEHOOK_CALL_PREV(custom_SDL_InitSubSystem_Func, SDL_InitSubSystem_t, flags);
     if (!r){
