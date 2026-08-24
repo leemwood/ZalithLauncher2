@@ -31,6 +31,7 @@ void SDL_UnloadObject(void *handle);
 void *SDL_LoadFunction(void *handle, const char *name);
 SDL_Window *SDL_CreateWindow(const char *title, int w, int h, uint32_t flags);
 SDL_Window *SDL_CreateWindowWithProperties(uint32_t props);
+void SDL_DestroyWindow(SDL_Window *window);
 
 DECL_DLSYM(SDL_InitSubSystem)
 DECL_DLSYM(SDL_SetHint);
@@ -45,6 +46,7 @@ DECL_DLSYM(SDL_UnloadObject)
 DECL_DLSYM(SDL_LoadFunction)
 DECL_DLSYM(SDL_CreateWindow)
 DECL_DLSYM(SDL_CreateWindowWithProperties)
+DECL_DLSYM(SDL_DestroyWindow)
 
 typedef void *EGLDisplay;
 typedef void *EGLConfig;
@@ -242,6 +244,16 @@ static void custom_SDL_UnloadObject_Func(void *handle) {
     BYTEHOOK_POP_STACK();
 }
 
+// 首个成功创建的 SDL 窗口，后续创建请求将重定向到它
+static SDL_Window *sPrimaryWindow = NULL;
+
+static void custom_SDL_DestroyWindow_Func(SDL_Window *window) {
+    // 主窗口销毁后清除记录，后续创建请求恢复正常创建流程
+    if (window == sPrimaryWindow) sPrimaryWindow = NULL;
+    BYTEHOOK_CALL_PREV(custom_SDL_DestroyWindow_Func, SDL_DestroyWindow_t, window);
+    BYTEHOOK_POP_STACK();
+}
+
 static bool custom_SDL_InitSubSystem_Func(SDL_InitFlags flags) {
     // Call notifyLauncher on SDL_InitSubSystem, this sets up all the JNI stuff needed by SDL.
     TRY_ATTACH_ENV(dvm_env, pojav_environ->dalvikJavaVMPtr, "SDL_InitSubSystem failed!",
@@ -271,6 +283,11 @@ static bool custom_SDL_InitSubSystem_Func(SDL_InitFlags flags) {
     // 本 hook 于 SDL_Init 时执行，此处覆盖回启用。
     if (SDL_SetHint_p) SDL_SetHint_p("SDL_ENABLE_SCREEN_KEYBOARD", "1");
 
+    // SDL Android 后端在创建窗口（及切换 resizable）时会按窗口宽高动态设置 Activity 方向
+    // hint 为空且窗口固定时，w<=h 将锁成竖屏，覆盖 manifest 声明的 sensorLandscape
+    // 声明仅允许横向后，方向不再依赖窗口尺寸。
+    if (SDL_SetHint_p) SDL_SetHint_p("SDL_ORIENTATIONS", "LandscapeLeft LandscapeRight");
+
     // Call original func after doing all the needed setup
     bool r = BYTEHOOK_CALL_PREV(custom_SDL_InitSubSystem_Func, SDL_InitSubSystem_t, flags);
     if (!r){
@@ -291,16 +308,34 @@ static void forceEglProfileEs(void) {
     }
 }
 
+// --- Android 单窗口约束下的主窗口复用 ---
+
+// SDL Android 后端同一进程内只支持一个窗口，而 MC 26.3 ss9 起 RenderPearl 在设备
+// 初始化时会先创建一个隐藏工具窗口（GL 上下文依附其上），随后的主窗口创建将被拒绝
+// 销毁工具窗口又会使其上的 GL surface 失效。故将后续创建请求重定向到首个窗口。
+
+// 尺寸与方向均无需额外处理：
+// 前者由 Android Surface 决定（创建时即取 Surface 尺寸，与请求值无关）
+// 后者由 SDL_ORIENTATIONS hint 统一控制。
+static SDL_Window *reusePrimaryWindow(void) {
+    LOG_TO_I("SDL_Hook: reusing primary window %p", sPrimaryWindow);
+    return sPrimaryWindow;
+}
+
 static SDL_Window *custom_SDL_CreateWindow_Func(const char *title, int w, int h, uint32_t flags) {
     forceEglProfileEs();
+    if (sPrimaryWindow != NULL) return reusePrimaryWindow();
     SDL_Window *wnd = BYTEHOOK_CALL_PREV(custom_SDL_CreateWindow_Func, SDL_CreateWindow_t, title, w, h, flags);
+    if (wnd != NULL) sPrimaryWindow = wnd;
     BYTEHOOK_POP_STACK();
     return wnd;
 }
 
 static SDL_Window *custom_SDL_CreateWindowWithProperties_Func(uint32_t props) {
     forceEglProfileEs();
+    if (sPrimaryWindow != NULL) return reusePrimaryWindow();
     SDL_Window *wnd = BYTEHOOK_CALL_PREV(custom_SDL_CreateWindowWithProperties_Func, SDL_CreateWindowWithProperties_t, props);
+    if (wnd != NULL) sPrimaryWindow = wnd;
     BYTEHOOK_POP_STACK();
     return wnd;
 }
@@ -319,5 +354,7 @@ void create_sdl_hooks(bytehook_stub_t (*bytehook_hook_all_p)(const char *callee_
     // Vulkan 加载器一致性：SDL 侧改用启动器重定向的加载器句柄
     bytehook_stub_t stub_SDL_LoadObject = bytehook_hook_all_p(NULL, "SDL_LoadObject", &custom_SDL_LoadObject_Func, NULL, NULL);
     bytehook_stub_t stub_SDL_UnloadObject = bytehook_hook_all_p(NULL, "SDL_UnloadObject", &custom_SDL_UnloadObject_Func, NULL, NULL);
-    LOG_TO_I("SDL_Hook: Successfully initialized SDL hooks, stubs: InitSubSystem=%p GetWindowFromEvent=%p GetWindowFromID=%p LoadFunction=%p CreateWindow=%p CreateWindowWithProps=%p LoadObject=%p UnloadObject=%p", stub_SDL_InitSubSystem, stub_SDL_GetWindowFromEvent, stub_SDL_GetWindowFromID, stub_SDL_LoadFunction, stub_SDL_CreateWindow, stub_SDL_CreateWindowWithProperties, stub_SDL_LoadObject, stub_SDL_UnloadObject);
+    // 主窗口销毁跟踪，配合窗口复用（见 custom_SDL_DestroyWindow_Func）
+    bytehook_stub_t stub_SDL_DestroyWindow = bytehook_hook_all_p(NULL, "SDL_DestroyWindow", &custom_SDL_DestroyWindow_Func, NULL, NULL);
+    LOG_TO_I("SDL_Hook: Successfully initialized SDL hooks, stubs: InitSubSystem=%p GetWindowFromEvent=%p GetWindowFromID=%p LoadFunction=%p CreateWindow=%p CreateWindowWithProps=%p LoadObject=%p UnloadObject=%p DestroyWindow=%p", stub_SDL_InitSubSystem, stub_SDL_GetWindowFromEvent, stub_SDL_GetWindowFromID, stub_SDL_LoadFunction, stub_SDL_CreateWindow, stub_SDL_CreateWindowWithProperties, stub_SDL_LoadObject, stub_SDL_UnloadObject, stub_SDL_DestroyWindow);
 }
