@@ -33,6 +33,9 @@ SDL_Window *SDL_CreateWindow(const char *title, int w, int h, uint32_t flags);
 SDL_Window *SDL_CreateWindowWithProperties(uint32_t props);
 void SDL_DestroyWindow(SDL_Window *window);
 
+// egl_bridge.c（libpojavexec.so），SDL 路径下经 EGL 交换代理计帧
+void calculateFPS(void);
+
 DECL_DLSYM(SDL_InitSubSystem)
 DECL_DLSYM(SDL_SetHint);
 DECL_DLSYM(SDL_SetTextInputArea);
@@ -55,6 +58,7 @@ typedef int EGLBoolean;
 typedef EGLBoolean (*eglChooseConfig_t)(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs,
                                         EGLint config_size, EGLint *num_config);
 typedef void *(*eglCreateContext_t)(EGLDisplay dpy, EGLConfig config, void *share, const EGLint *attrib_list);
+typedef EGLBoolean (*eglSwapBuffers_t)(EGLDisplay dpy, void *surface);
 
 // EGL 常量（EGL/egl.h），避免引入完整 EGL 头
 #define EGL_NONE              0x3038
@@ -166,6 +170,7 @@ static int normalizeEglContextAttribs(const EGLint *attrib_list, EGLint *fixed, 
 // 使上述归一化对所有调用路径生效。
 static eglChooseConfig_t sOrigEglChooseConfig = NULL;
 static eglCreateContext_t sOrigEglCreateContext = NULL;
+static eglSwapBuffers_t sOrigEglSwapBuffers = NULL;
 
 static void *proxyEglCreateContext(EGLDisplay dpy, EGLConfig config, void *share, const EGLint *attrib_list) {
     EGLint fixed[64];
@@ -194,6 +199,11 @@ static EGLBoolean proxyEglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list
     return sOrigEglChooseConfig(dpy, use_list, configs, config_size, num_config);
 }
 
+static EGLBoolean proxyEglSwapBuffers(EGLDisplay dpy, void *surface) {
+    calculateFPS();
+    return sOrigEglSwapBuffers(dpy, surface);
+}
+
 // 接管 SDL 的 EGL 函数解析，注入上述代理
 static void *custom_SDL_LoadFunction_Func(void *handle, const char *name) {
     void *r = BYTEHOOK_CALL_PREV(custom_SDL_LoadFunction_Func, SDL_LoadFunction_t, handle, name);
@@ -209,6 +219,11 @@ static void *custom_SDL_LoadFunction_Func(void *handle, const char *name) {
                 sOrigEglCreateContext = (eglCreateContext_t) r;
             }
             r = (void *) proxyEglCreateContext;
+        } else if (strcmp(name, "eglSwapBuffers") == 0) {
+            if (sOrigEglSwapBuffers == NULL && r != NULL) {
+                sOrigEglSwapBuffers = (eglSwapBuffers_t) r;
+            }
+            r = (void *) proxyEglSwapBuffers;
         }
     }
     return r;
