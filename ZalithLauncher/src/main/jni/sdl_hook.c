@@ -32,6 +32,7 @@ void *SDL_LoadFunction(void *handle, const char *name);
 SDL_Window *SDL_CreateWindow(const char *title, int w, int h, uint32_t flags);
 SDL_Window *SDL_CreateWindowWithProperties(uint32_t props);
 void SDL_DestroyWindow(SDL_Window *window);
+void *SDL_EGL_GetProcAddress(const char *proc);
 
 // egl_bridge.c（libpojavexec.so），SDL 路径下经 EGL 交换代理计帧
 void calculateFPS(void);
@@ -50,6 +51,7 @@ DECL_DLSYM(SDL_LoadFunction)
 DECL_DLSYM(SDL_CreateWindow)
 DECL_DLSYM(SDL_CreateWindowWithProperties)
 DECL_DLSYM(SDL_DestroyWindow)
+DECL_DLSYM(SDL_EGL_GetProcAddress)
 
 typedef void *EGLDisplay;
 typedef void *EGLConfig;
@@ -106,9 +108,8 @@ static SDL_Window *custom_SDL_GetWindowFromID_Func(uint32_t id) {
 
 // --- 移动渲染器（ES 实现）下 SDL 创建 GL 上下文的宿主 EGL 兼容 ---
 
-// 部分宿主 libEGL 不接受 RENDERABLE_TYPE 携带 ES3_BIT/OPENGL_BIT 的请求。
-// 统一归一化为 ES2_BIT 以放宽 config 匹配；实际上下文版本由后续的
-// EGL_CONTEXT_CLIENT_VERSION 决定，不受影响。
+// 部分宿主 libEGL 不接受 RENDERABLE_TYPE 携带 ES3_BIT/OPENGL_BIT，
+// 归一化为 ES2_BIT；仅用于首选请求失败后的兼容重试
 static EGLBoolean normalizeEglChooseConfigList(const EGLint *attrib_list, EGLint *fixed, int cap) {
     if (attrib_list == NULL) return 0;
     int n = 0;
@@ -122,6 +123,7 @@ static EGLBoolean normalizeEglChooseConfigList(const EGLint *attrib_list, EGLint
             break;
         }
         if (attr == EGL_RENDERABLE_TYPE) {
+            // 归一化为 ES2_BIT
             if ((val & (EGL_OPENGL_ES3_BIT | EGL_OPENGL_BIT)) != 0 && (val & EGL_OPENGL_ES2_BIT) == 0) {
                 val = (val & ~(EGL_OPENGL_ES3_BIT | EGL_OPENGL_BIT)) | EGL_OPENGL_ES2_BIT;
             }
@@ -133,98 +135,160 @@ static EGLBoolean normalizeEglChooseConfigList(const EGLint *attrib_list, EGLint
     return n > 0;
 }
 
-// 部分宿主 libEGL 不识别 EGL_CONTEXT_MAJOR/MINOR_VERSION_KHR，
-// 属性表携带即报 EGL_BAD_ATTRIBUTE。此处将其剔除，仅保留 CLIENT_VERSION：
-// 对 "≥3.0" 类请求，驱动本就返回其支持的最高 3.x 版本，语义不变。
-// 返回请求的主版本号供降级重试使用（无版本属性时为 0）。
-static int normalizeEglContextAttribs(const EGLint *attrib_list, EGLint *fixed, int cap) {
+// 剔除宿主不识别的 KHR 版本属性，生成兼容重试表；返回请求的主版本号（无则 0）
+static int normalizeEglContextAttribs(const EGLint *attrib_list, EGLint *fixed, int cap, bool esSemantics) {
     int version = 0;
+    bool hasClientVersion = false;
     if (attrib_list == NULL) return 0;
     int n = 0;
     for (int i = 0; n < cap - 2; i += 2) {
         EGLint attr = attrib_list[i];
         EGLint val = attrib_list[i + 1];
-        if (attr == EGL_NONE) {
-            fixed[n] = EGL_NONE;
-            fixed[n + 1] = 0;
-            n += 2;
-            break;
-        }
-        if (attr == EGL_CONTEXT_MAJOR_VERSION_KHR) {
-            // 版本信息并入 CLIENT_VERSION 后丢弃本项
+        if (attr == EGL_NONE) break;
+        if (attr == EGL_CONTEXT_MAJOR_VERSION_KHR) { // 记录主版本后剔除
             if (version == 0) version = val;
             continue;
         }
         if (attr == EGL_CONTEXT_MINOR_VERSION_KHR) continue;
-        if (attr == EGL_CONTEXT_CLIENT_VERSION && version == 0) version = val;
-        fixed[n] = attr;
-        fixed[n + 1] = val;
-        n += 2;
+        if (attr == EGL_CONTEXT_CLIENT_VERSION) {
+            hasClientVersion = true;
+            if (version == 0) version = val;
+        }
+        if (n >= cap - 2) return 0;
+        fixed[n++] = attr;
+        fixed[n++] = val;
     }
+    // 仅 ES 语义下补写 CLIENT_VERSION（避免退化成驱动默认版本）；
+    // desktop 语义不补写——桌面 context 不使用 CLIENT_VERSION
+    if (esSemantics && version > 0 && !hasClientVersion) {
+        if (n >= cap - 2) return 0;
+        fixed[n++] = EGL_CONTEXT_CLIENT_VERSION;
+        fixed[n++] = version;
+    }
+    if (n >= cap - 2) return 0;
+    fixed[n++] = EGL_NONE;
+    fixed[n++] = 0;
     return version;
 }
 
+static bool isMobileGluesEgl(void) {
+    const char *egl = getenv("POJAVEXEC_EGL");
+    if (egl == NULL) return false;
+    const char *base = strrchr(egl, '/');
+    return strcmp(base != NULL ? base + 1 : egl, "libmobileglues.so") == 0;
+}
+
+// GLES 兼容层（强制 ES profile、RENDERABLE_TYPE 归一化、CV=2 兜底）
+// 仅对移动 ES 渲染器生效，桌面/OSMesa 路径不得被 ES 化
+static bool sdlGlesCompatEnabled(void) {
+    const char *renderer = getenv("POJAV_RENDERER");
+    if (renderer == NULL) return isMobileGluesEgl();
+    if (strstr(renderer, "desktopgl") != NULL) return false;
+    if (strncmp(renderer, "gallium_", 8) == 0) return false; // OSMesa 系
+    if (strcmp(renderer, "custom_gallium") == 0 || strcmp(renderer, "vulkan_zink") == 0) return false;
+    if (strncmp(renderer, "opengles", 8) == 0) return true; // 内置 GL4ES/NGGL4ES
+    return isMobileGluesEgl(); // MobileGlues
+}
+
+static bool sForcedEsProfile = false;
+
+static bool shouldReusePrimaryWindow(void) {
+    const char *value = getenv("POJAV_SDL_REUSE_WINDOW");
+    if (value != NULL) return strcmp(value, "1") == 0;
+    return true;
+}
+
 // --- SDL 的 EGL 函数解析接管 ---
-// SDL 经 SDL_LoadFunction 取得 EGL 函数指针后直接调用（不走 PLT），
-// 故在其解析 eglChooseConfig/eglCreateContext 时注入代理，
-// 使上述归一化对所有调用路径生效。
+// 原始指针首次解析成功后固定，避免重复解析不同 handle 时跨 loader 调用
 static eglChooseConfig_t sOrigEglChooseConfig = NULL;
 static eglCreateContext_t sOrigEglCreateContext = NULL;
 static eglSwapBuffers_t sOrigEglSwapBuffers = NULL;
 
 static void *proxyEglCreateContext(EGLDisplay dpy, EGLConfig config, void *share, const EGLint *attrib_list) {
-    EGLint fixed[64];
-    const EGLint *use_list = attrib_list;
-    int version = normalizeEglContextAttribs(attrib_list, fixed, 64);
-    if (version > 0) use_list = fixed;
-
-    void *ctx = sOrigEglCreateContext(dpy, config, share, use_list);
-    if (ctx == NULL && version > 2) {
-        // ES3 上下文创建失败时的降级重试
-        LOG_TO_W("SDL_Hook: eglCreateContext failed with CV=%d, retrying with CV=2", version);
-        EGLint es2[3] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-        ctx = sOrigEglCreateContext(dpy, config, share, es2);
+    if (sOrigEglCreateContext == NULL) {
+        LOG_TO_E("SDL_Hook: eglCreateContext was not resolved");
+        return NULL;
     }
-    return ctx;
+
+    void *ctx = sOrigEglCreateContext(dpy, config, share, attrib_list);
+    if (ctx != NULL || !sdlGlesCompatEnabled()) return ctx;
+
+    bool esSemantics = sForcedEsProfile;
+    EGLint fixed[64];
+    int version = normalizeEglContextAttribs(attrib_list, fixed, 64, esSemantics);
+    if (version == 0) return ctx;
+
+    LOG_TO_W("SDL_Hook: retrying eglCreateContext without KHR version attrs (CV=%d)", version);
+    ctx = sOrigEglCreateContext(dpy, config, share, fixed);
+    if (ctx != NULL || !esSemantics || version <= 2) return ctx; // CV=2 为移动端最后兜底
+
+    LOG_TO_W("SDL_Hook: retrying eglCreateContext with CV=2 after CV=%d failed", version);
+    EGLint es2[3] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+    return sOrigEglCreateContext(dpy, config, share, es2);
 }
 
 static EGLBoolean proxyEglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs,
                                        EGLint config_size, EGLint *num_config) {
-    // 归一化 RENDERABLE_TYPE 后转发（见 normalizeEglChooseConfigList）
-    EGLint fixed[64];
-    const EGLint *use_list = attrib_list;
-    if (normalizeEglChooseConfigList(attrib_list, fixed, 64)) {
-        use_list = fixed;
+    if (sOrigEglChooseConfig == NULL) {
+        LOG_TO_E("SDL_Hook: eglChooseConfig was not resolved");
+        return 0;
     }
-    return sOrigEglChooseConfig(dpy, use_list, configs, config_size, num_config);
+
+    EGLBoolean result = sOrigEglChooseConfig(dpy, attrib_list, configs, config_size, num_config);
+    if (result && num_config != NULL && *num_config > 0) return result;
+    if (!sdlGlesCompatEnabled()) return result; // 兼容 fallback 仅限移动 ES 渲染器
+
+    EGLint fixed[64];
+    if (!normalizeEglChooseConfigList(attrib_list, fixed, 64)) return result;
+    EGLint fallbackCount = 0;
+    EGLBoolean fallbackResult = sOrigEglChooseConfig(dpy, fixed, configs, config_size, &fallbackCount);
+    if (fallbackResult && num_config != NULL) *num_config = fallbackCount;
+    LOG_TO_W("SDL_Hook: eglChooseConfig compatibility fallback result=%d count=%d", fallbackResult, fallbackCount);
+    return fallbackResult;
 }
 
 static EGLBoolean proxyEglSwapBuffers(EGLDisplay dpy, void *surface) {
+    if (sOrigEglSwapBuffers == NULL) {
+        LOG_TO_E("SDL_Hook: eglSwapBuffers was not resolved");
+        return 0;
+    }
     calculateFPS();
     return sOrigEglSwapBuffers(dpy, surface);
 }
 
-// 接管 SDL 的 EGL 函数解析，注入上述代理
+// SDL 经 SDL_LoadFunction 解析 EGL 函数后直接调用，注入代理使兼容重试生效
 static void *custom_SDL_LoadFunction_Func(void *handle, const char *name) {
     void *r = BYTEHOOK_CALL_PREV(custom_SDL_LoadFunction_Func, SDL_LoadFunction_t, handle, name);
     BYTEHOOK_POP_STACK();
     if (name != NULL) {
         if (strcmp(name, "eglChooseConfig") == 0) {
-            if (sOrigEglChooseConfig == NULL && r != NULL) {
-                sOrigEglChooseConfig = (eglChooseConfig_t) r;
-            }
-            r = (void *) proxyEglChooseConfig;
+            if (r != NULL && sOrigEglChooseConfig == NULL) sOrigEglChooseConfig = (eglChooseConfig_t) r; // 首次解析后固定
+            if (sOrigEglChooseConfig != NULL && r != (void *) proxyEglChooseConfig) r = (void *) proxyEglChooseConfig;
         } else if (strcmp(name, "eglCreateContext") == 0) {
-            if (sOrigEglCreateContext == NULL && r != NULL) {
-                sOrigEglCreateContext = (eglCreateContext_t) r;
-            }
-            r = (void *) proxyEglCreateContext;
+            if (r != NULL && sOrigEglCreateContext == NULL) sOrigEglCreateContext = (eglCreateContext_t) r;
+            if (sOrigEglCreateContext != NULL && r != (void *) proxyEglCreateContext) r = (void *) proxyEglCreateContext;
         } else if (strcmp(name, "eglSwapBuffers") == 0) {
-            if (sOrigEglSwapBuffers == NULL && r != NULL) {
-                sOrigEglSwapBuffers = (eglSwapBuffers_t) r;
-            }
-            r = (void *) proxyEglSwapBuffers;
+            if (r != NULL && sOrigEglSwapBuffers == NULL) sOrigEglSwapBuffers = (eglSwapBuffers_t) r;
+            if (sOrigEglSwapBuffers != NULL && r != (void *) proxyEglSwapBuffers) r = (void *) proxyEglSwapBuffers;
         }
+    }
+    return r;
+}
+
+// SDL 公共 EGL 解析入口，可绕过 SDL_LoadFunction；补齐同样的代理
+static void *custom_SDL_EGLGetProcAddress_Func(const char *proc) {
+    void *r = BYTEHOOK_CALL_PREV(custom_SDL_EGLGetProcAddress_Func, SDL_EGL_GetProcAddress_t, proc);
+    BYTEHOOK_POP_STACK();
+    if (proc == NULL || r == NULL) return r;
+    if (strcmp(proc, "eglChooseConfig") == 0) {
+        if (sOrigEglChooseConfig == NULL) sOrigEglChooseConfig = (eglChooseConfig_t) r;
+        if (r != (void *) proxyEglChooseConfig) r = (void *) proxyEglChooseConfig;
+    } else if (strcmp(proc, "eglCreateContext") == 0) {
+        if (sOrigEglCreateContext == NULL) sOrigEglCreateContext = (eglCreateContext_t) r;
+        if (r != (void *) proxyEglCreateContext) r = (void *) proxyEglCreateContext;
+    } else if (strcmp(proc, "eglSwapBuffers") == 0) {
+        if (sOrigEglSwapBuffers == NULL) sOrigEglSwapBuffers = (eglSwapBuffers_t) r;
+        if (r != (void *) proxyEglSwapBuffers) r = (void *) proxyEglSwapBuffers;
     }
     return r;
 }
@@ -261,10 +325,21 @@ static void custom_SDL_UnloadObject_Func(void *handle) {
 
 // 首个成功创建的 SDL 窗口，后续创建请求将重定向到它
 static SDL_Window *sPrimaryWindow = NULL;
+static unsigned int sPrimaryWindowRefs = 0;
 
 static void custom_SDL_DestroyWindow_Func(SDL_Window *window) {
-    // 主窗口销毁后清除记录，后续创建请求恢复正常创建流程
-    if (window == sPrimaryWindow) sPrimaryWindow = NULL;
+    if (window == sPrimaryWindow && sPrimaryWindowRefs > 0) {
+        sPrimaryWindowRefs--;
+        LOG_TO_I("SDL_Hook: releasing logical window %p, refs=%u", window, sPrimaryWindowRefs);
+        if (sPrimaryWindowRefs > 0) {
+            if (window == sdlLastEventWindow) sdlLastEventWindow = NULL;
+            return;
+        }
+        sPrimaryWindow = NULL;
+        if (window == sdlLastEventWindow) sdlLastEventWindow = NULL;
+    } else if (window == sdlLastEventWindow) {
+        sdlLastEventWindow = NULL;
+    }
     BYTEHOOK_CALL_PREV(custom_SDL_DestroyWindow_Func, SDL_DestroyWindow_t, window);
     BYTEHOOK_POP_STACK();
 }
@@ -289,8 +364,7 @@ static bool custom_SDL_InitSubSystem_Func(SDL_InitFlags flags) {
     SET_DLSYM_PTR(dlopen("libSDL3.so", RTLD_NOLOAD), SDL_SetHint);
     if (SDL_SetHint_p) SDL_SetHint_p("SDL_RETURN_KEY_HIDES_IME", "true");
     // FIXME: MobileGlues has issues with passing in the proper EGL params to make this work
-    const char *egl = getenv("POJAVEXEC_EGL");
-    if (egl && strcmp(egl, "libmobileglues.so") == 0) {
+    if (isMobileGluesEgl()) {
         SDL_SetHint_p("SDL_OPENGL_FORCE_SRGB_FRAMEBUFFER", "0");
     }
     // MC 按桌面惯例设置 SDL_ENABLE_SCREEN_KEYBOARD=0 来禁用平台软键盘（改用自绘 IME UI），
@@ -312,9 +386,11 @@ static bool custom_SDL_InitSubSystem_Func(SDL_InitFlags flags) {
 // 非 ES 的 profile 请求会被宿主拒绝。因此在每次窗口创建前
 // 将 GL profile 强制为 ES。
 static void forceEglProfileEs(void) {
+    if (!sdlGlesCompatEnabled()) return;
     SET_DLSYM_PTR(dlopen("libSDL3.so", RTLD_NOLOAD), SDL_GL_SetAttribute);
     if (SDL_GL_SetAttribute_p) {
         SDL_GL_SetAttribute_p(20 /* SDL_GL_CONTEXT_PROFILE_MASK */, 4 /* SDL_GL_CONTEXT_PROFILE_ES */);
+        sForcedEsProfile = true;
     }
 }
 
@@ -334,18 +410,38 @@ static SDL_Window *reusePrimaryWindow(void) {
 
 static SDL_Window *custom_SDL_CreateWindow_Func(const char *title, int w, int h, uint32_t flags) {
     forceEglProfileEs();
-    if (sPrimaryWindow != NULL) return reusePrimaryWindow();
+    const bool reuse = shouldReusePrimaryWindow();
+    LOG_TO_I("SDL_Hook: primary window reuse=%s", reuse ? "enabled" : "disabled");
+    if (reuse && sPrimaryWindow != NULL) {
+        sPrimaryWindowRefs++;
+        LOG_TO_I("SDL_Hook: reusing primary window %p, refs=%u", sPrimaryWindow, sPrimaryWindowRefs);
+        SDL_Window *wnd = reusePrimaryWindow();
+        return wnd;
+    }
     SDL_Window *wnd = BYTEHOOK_CALL_PREV(custom_SDL_CreateWindow_Func, SDL_CreateWindow_t, title, w, h, flags);
-    if (wnd != NULL) sPrimaryWindow = wnd;
+    if (reuse && wnd != NULL) {
+        sPrimaryWindow = wnd;
+        sPrimaryWindowRefs = 1;
+    }
     BYTEHOOK_POP_STACK();
     return wnd;
 }
 
 static SDL_Window *custom_SDL_CreateWindowWithProperties_Func(uint32_t props) {
     forceEglProfileEs();
-    if (sPrimaryWindow != NULL) return reusePrimaryWindow();
+    const bool reuse = shouldReusePrimaryWindow();
+    LOG_TO_I("SDL_Hook: primary window reuse=%s", reuse ? "enabled" : "disabled");
+    if (reuse && sPrimaryWindow != NULL) {
+        sPrimaryWindowRefs++;
+        LOG_TO_I("SDL_Hook: reusing primary window %p, refs=%u", sPrimaryWindow, sPrimaryWindowRefs);
+        SDL_Window *wnd = reusePrimaryWindow();
+        return wnd;
+    }
     SDL_Window *wnd = BYTEHOOK_CALL_PREV(custom_SDL_CreateWindowWithProperties_Func, SDL_CreateWindowWithProperties_t, props);
-    if (wnd != NULL) sPrimaryWindow = wnd;
+    if (reuse && wnd != NULL) {
+        sPrimaryWindow = wnd;
+        sPrimaryWindowRefs = 1;
+    }
     BYTEHOOK_POP_STACK();
     return wnd;
 }
@@ -361,6 +457,8 @@ void create_sdl_hooks(bytehook_stub_t (*bytehook_hook_all_p)(const char *callee_
     bytehook_stub_t stub_SDL_CreateWindowWithProperties = bytehook_hook_all_p(NULL, "SDL_CreateWindowWithProperties", &custom_SDL_CreateWindowWithProperties_Func, NULL, NULL);
     // 接管 SDL 的 EGL 函数解析，注入归一化代理
     bytehook_stub_t stub_SDL_LoadFunction = bytehook_hook_all_p(NULL, "SDL_LoadFunction", &custom_SDL_LoadFunction_Func, NULL, NULL);
+    // SDL 公共 EGL 解析入口补齐同样的代理（backend callback 可绕过 LoadFunction）
+    bytehook_stub_t stub_SDL_EGLGetProcAddress = bytehook_hook_all_p(NULL, "SDL_EGL_GetProcAddress", &custom_SDL_EGLGetProcAddress_Func, NULL, NULL);
     // Vulkan 加载器一致性：SDL 侧改用启动器重定向的加载器句柄
     bytehook_stub_t stub_SDL_LoadObject = bytehook_hook_all_p(NULL, "SDL_LoadObject", &custom_SDL_LoadObject_Func, NULL, NULL);
     bytehook_stub_t stub_SDL_UnloadObject = bytehook_hook_all_p(NULL, "SDL_UnloadObject", &custom_SDL_UnloadObject_Func, NULL, NULL);
