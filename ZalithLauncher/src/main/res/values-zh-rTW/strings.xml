@@ -323,6 +323,8 @@
     <string name="download_assets_features_items">物品</string>
     <string name="download_assets_features_locale">在地化</string>
     <string name="download_assets_features_models">模型</string>
+    <!--  外部匯入  -->
+    <string name="import_rejected_busy">目前有任務正在進行，暫時無法匯入</string>
     <!--  导入模組包  -->
     <string name="import_modpack">匯入模組包</string>
     <string name="import_modpack_tip">您可以自行匯入本地模組包文件，啟動器目前支援以下格式：</string>
