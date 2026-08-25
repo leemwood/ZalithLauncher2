@@ -10,8 +10,6 @@ import static android.text.InputType.TYPE_TEXT_VARIATION_NORMAL;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.UiModeManager;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
@@ -24,22 +22,17 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.LocaleList;
+import android.os.Looper;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.SparseArray;
 import android.view.Display;
-import android.view.Gravity;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -52,21 +45,24 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Keep;
+import androidx.appcompat.app.AlertDialog;
+
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.movtery.zalithlauncher.game.sdl.SdlBridge;
 import com.movtery.zalithlauncher.ui.control.input.TouchCharInput;
+import com.movtery.zalithlauncher.utils.logging.Logger;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Locale;
-
-import androidx.annotation.Keep;
+import java.util.concurrent.CountDownLatch;
 
 
 /**
@@ -1659,8 +1655,98 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 
     // Messagebox
 
-    /** Result of current messagebox. Also used for blocking the calling thread. */
-    protected final int[] messageboxSelection = new int[1];
+    /**
+     * Static counterpart of messageboxShowMessageBox(int, String, String, int[], int[], String[], int[]).
+     * <p>
+     * The SDL native code resolves that instance method on the runtime class of whatever
+     * getContext() returns; when the host activity is not an SDLActivity instance
+     * (e.g. the launcher's VMActivity), the host can bridge the call to this variant instead
+     * of carrying its own dialog implementation.
+     * Shows a themed dialog on the host activity's UI thread and blocks the calling thread
+     * until the user picks a button.
+     * @return button id, or -1 if unavailable or interrupted.
+     */
+    public static int messageboxShowMessageBox(
+            final Activity host,
+            final int flags,
+            final String title,
+            final String message,
+            final int[] buttonFlags,
+            final int[] buttonIds,
+            final String[] buttonTexts,
+            final int[] colors
+    ) {
+        // sanity checks
+
+        if (host == null || host.isFinishing() || host.isDestroyed()) return -1;
+        if ((buttonFlags.length != buttonIds.length) && (buttonIds.length != buttonTexts.length)) {
+            return -1; // implementation broken
+        }
+
+        final int[] selection = {-1};
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        host.runOnUiThread(() -> {
+            try {
+                final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(host).setCancelable(false);
+                if (title != null) builder.setTitle(title);
+                if (message != null) builder.setTitle(message);
+
+                final int slotCount = Math.min(buttonIds.length, 3);
+                for (int i = 0; i < slotCount; ++i) {
+                    final int id = buttonIds[i];
+                    DialogInterface.OnClickListener listener = (dialog, which) -> {
+                        selection[0] = id;
+                        dialog.dismiss();
+                    };
+                    if (i == slotCount - 1) {
+                        builder.setPositiveButton(buttonTexts[i], listener);
+                    } else if (i == 0 && slotCount == 3) {
+                        builder.setNeutralButton(buttonTexts[i], listener);
+                    } else {
+                        builder.setNegativeButton(buttonTexts[i], listener);
+                    }
+                }
+
+                final ArrayList<MaterialButton> extraButtons = new ArrayList<>();
+                if (buttonIds.length > 3) {
+                    LinearLayout extraButtonsRow = new LinearLayout(host);
+                    extraButtonsRow.setOrientation(LinearLayout.VERTICAL);
+                    for (int i = 3; i < buttonIds.length; ++i) {
+                        MaterialButton button = new MaterialButton(host);
+                        button.setText(buttonTexts[i]);
+                        extraButtonsRow.addView(button);
+                        extraButtons.add(button);
+                    }
+                    builder.setView(extraButtonsRow);
+                }
+
+                AlertDialog dialog = builder.create();
+                dialog.setOnDismissListener(unused -> latch.countDown());
+                for (int i = 3; i < buttonIds.length; ++i) {
+                    final int id = buttonIds[i];
+                    extraButtons.get(i - 3).setOnClickListener(v -> {
+                        selection[0] = id;
+                        dialog.dismiss();
+                    });
+                }
+                dialog.show();
+            } catch (Throwable e) {
+                Logger.INSTANCE.error(TAG, "Failed to show SDL message box", e);
+                latch.countDown();
+            }
+        });
+
+        // block the calling thread until the dialog is dismissed
+
+        try {
+            latch.await();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+
+        return selection[0];
+    }
 
     /**
      * This method is called by SDL using JNI.
@@ -1679,183 +1765,9 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
             final int[] buttonFlags,
             final int[] buttonIds,
             final String[] buttonTexts,
-            final int[] colors) {
-
-        messageboxSelection[0] = -1;
-
-        // sanity checks
-
-        if ((buttonFlags.length != buttonIds.length) && (buttonIds.length != buttonTexts.length)) {
-            return -1; // implementation broken
-        }
-
-        // collect arguments for Dialog
-
-        final Bundle args = new Bundle();
-        args.putInt("flags", flags);
-        args.putString("title", title);
-        args.putString("message", message);
-        args.putIntArray("buttonFlags", buttonFlags);
-        args.putIntArray("buttonIds", buttonIds);
-        args.putStringArray("buttonTexts", buttonTexts);
-        args.putIntArray("colors", colors);
-
-        // trigger Dialog creation on UI thread
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                messageboxCreateAndShow(args);
-            }
-        });
-
-        // block the calling thread
-
-        synchronized (messageboxSelection) {
-            try {
-                messageboxSelection.wait();
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-                return -1;
-            }
-        }
-
-        // return selected value
-
-        return messageboxSelection[0];
-    }
-
-    protected void messageboxCreateAndShow(Bundle args) {
-
-        // TODO set values from "flags" to messagebox dialog
-
-        // get colors
-
-        int[] colors = args.getIntArray("colors");
-        int backgroundColor;
-        int textColor;
-        int buttonBorderColor;
-        int buttonBackgroundColor;
-        int buttonSelectedColor;
-        if (colors != null) {
-            int i = -1;
-            backgroundColor = colors[++i];
-            textColor = colors[++i];
-            buttonBorderColor = colors[++i];
-            buttonBackgroundColor = colors[++i];
-            buttonSelectedColor = colors[++i];
-        } else {
-            backgroundColor = Color.TRANSPARENT;
-            textColor = Color.TRANSPARENT;
-            buttonBorderColor = Color.TRANSPARENT;
-            buttonBackgroundColor = Color.TRANSPARENT;
-            buttonSelectedColor = Color.TRANSPARENT;
-        }
-
-        // create dialog with title and a listener to wake up calling thread
-
-        final AlertDialog dialog = new AlertDialog.Builder(this).create();
-        dialog.setTitle(args.getString("title"));
-        dialog.setCancelable(false);
-        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(DialogInterface unused) {
-                synchronized (messageboxSelection) {
-                    messageboxSelection.notify();
-                }
-            }
-        });
-
-        // create text
-
-        TextView message = new TextView(this);
-        message.setGravity(Gravity.CENTER);
-        message.setText(args.getString("message"));
-        if (textColor != Color.TRANSPARENT) {
-            message.setTextColor(textColor);
-        }
-
-        // create buttons
-
-        int[] buttonFlags = args.getIntArray("buttonFlags");
-        int[] buttonIds = args.getIntArray("buttonIds");
-        String[] buttonTexts = args.getStringArray("buttonTexts");
-
-        final SparseArray<Button> mapping = new SparseArray<Button>();
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setGravity(Gravity.CENTER);
-        for (int i = 0; i < buttonTexts.length; ++i) {
-            Button button = new Button(this);
-            final int id = buttonIds[i];
-            button.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    messageboxSelection[0] = id;
-                    dialog.dismiss();
-                }
-            });
-            if (buttonFlags[i] != 0) {
-                // see SDL_messagebox.h
-                if ((buttonFlags[i] & 0x00000001) != 0) {
-                    mapping.put(KeyEvent.KEYCODE_ENTER, button);
-                }
-                if ((buttonFlags[i] & 0x00000002) != 0) {
-                    mapping.put(KeyEvent.KEYCODE_ESCAPE, button); /* API 11 */
-                }
-            }
-            button.setText(buttonTexts[i]);
-            if (textColor != Color.TRANSPARENT) {
-                button.setTextColor(textColor);
-            }
-            if (buttonBorderColor != Color.TRANSPARENT) {
-                // TODO set color for border of messagebox button
-            }
-            if (buttonBackgroundColor != Color.TRANSPARENT) {
-                Drawable drawable = button.getBackground();
-                if (drawable == null) {
-                    // setting the color this way removes the style
-                    button.setBackgroundColor(buttonBackgroundColor);
-                } else {
-                    // setting the color this way keeps the style (gradient, padding, etc.)
-                    drawable.setColorFilter(buttonBackgroundColor, PorterDuff.Mode.MULTIPLY);
-                }
-            }
-            if (buttonSelectedColor != Color.TRANSPARENT) {
-                // TODO set color for selected messagebox button
-            }
-            buttons.addView(button);
-        }
-
-        // create content
-
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.addView(message);
-        content.addView(buttons);
-        if (backgroundColor != Color.TRANSPARENT) {
-            content.setBackgroundColor(backgroundColor);
-        }
-
-        // add content to dialog and return
-
-        dialog.setView(content);
-        dialog.setOnKeyListener(new Dialog.OnKeyListener() {
-            @Override
-            public boolean onKey(DialogInterface d, int keyCode, KeyEvent event) {
-                Button button = mapping.get(keyCode);
-                if (button != null) {
-                    if (event.getAction() == KeyEvent.ACTION_UP) {
-                        button.performClick();
-                    }
-                    return true; // also for ignored actions
-                }
-                return false;
-            }
-        });
-
-        dialog.show();
+            final int[] colors
+    ) {
+        return messageboxShowMessageBox(this, flags, title, message, buttonFlags, buttonIds, buttonTexts, colors);
     }
 
     private final Runnable rehideSystemUi = new Runnable() {

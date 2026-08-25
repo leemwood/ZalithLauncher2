@@ -39,6 +39,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.annotation.Keep
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
@@ -667,6 +668,19 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
         }
         return true
     }
+
+    @Keep
+    fun messageboxShowMessageBox(
+        flags: Int,
+        title: String?,
+        message: String?,
+        buttonFlags: IntArray,
+        buttonIds: IntArray,
+        buttonTexts: Array<String?>,
+        colors: IntArray?
+    ): Int = SDLActivity.messageboxShowMessageBox(
+        this, flags, title, message, buttonFlags, buttonIds, buttonTexts, colors
+    )
 
     override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
         val nativeSurface = Surface(surface)
