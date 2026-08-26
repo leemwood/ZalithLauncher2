@@ -19,12 +19,10 @@
 package com.movtery.zalithlauncher.ui.activities
 
 import android.annotation.SuppressLint
-import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,7 +38,6 @@ import com.movtery.zalithlauncher.components.UnpackComponentsTask
 import com.movtery.zalithlauncher.components.jre.Jre
 import com.movtery.zalithlauncher.components.jre.UnpackJnaTask
 import com.movtery.zalithlauncher.components.jre.UnpackJreTask
-import com.movtery.zalithlauncher.filemanager.ui.FileManagerActivity
 import com.movtery.zalithlauncher.setting.AllSettings
 import com.movtery.zalithlauncher.ui.base.BaseAppCompatActivity
 import com.movtery.zalithlauncher.ui.screens.splash.SplashScreen
@@ -64,12 +61,6 @@ const val EXTRA_IMPORT_TYPE   = "EXTRA_IMPORT_TYPE"
 const val IMPORT_TYPE_MODPACK = "modpack"
 const val IMPORT_TYPE_CONTROLS = "controls"
 const val IMPORT_TYPE_UNKNOWN = "unknown"
-
-private val nonResumableActivities = setOf(
-    SplashActivity::class.java.name,
-    MainActivity::class.java.name,
-    FileManagerActivity::class.java.name
-)
 
 @SuppressLint("CustomSplashScreen")
 @AndroidEntryPoint
@@ -265,12 +256,6 @@ class SplashActivity : BaseAppCompatActivity() {
     }
 
     private fun swapToMain() {
-        // 若启动器自有界面仍在运行，则不再打开主界面，而是回到该界面
-        if (resumeRunningActivity()) {
-            finish()
-            return
-        }
-
         val forward = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -278,46 +263,10 @@ class SplashActivity : BaseAppCompatActivity() {
         finish()
     }
 
-    /**
-     * 在本应用已有的任务栈中，查找上一次停留的界面
-     * @return 对应的任务；若启动器未打开、或停留在排除项上，返回 null
-     */
-    private fun findForegroundTask(): ActivityManager.AppTask? {
-        val activityManager = getSystemService(ACTIVITY_SERVICE) as? ActivityManager
-            ?: return null
 
-        return activityManager.appTasks.firstOrNull { task ->
-            val className = task.taskInfo?.topActivity?.className ?: return@firstOrNull false
-            className !in nonResumableActivities
-        }
-    }
 
-    /**
-     * 分析已有的任务栈，找到上一次停留的界面，将其带回前台
-     * @return true: 若有则将其带回前台
-     */
-    private fun resumeRunningActivity(): Boolean {
-        val lastTask = findForegroundTask() ?: return false
-
-        // 将该界面所在任务带回前台：跨栈时真正生效；
-        // 同栈时等价于空操作，结束自身即可露出下层界面
-        lastTask.moveToFront()
-
-        Logger.info(TAG, "Found last foreground activity (${lastTask.taskInfo?.topActivity?.className}), resuming it instead of opening MainActivity")
-        return true
-    }
-
-    /**
-     * @return 若启动器正忙于其他界面，则拒绝导入并返回 false
-     */
     private fun handleImportIntent(source: Intent): Boolean {
         if (!isImportIntent(source)) return false
-
-        findForegroundTask()?.let { busyTask ->
-            Logger.warning(TAG, "Rejected import intent, blocked by foreground activity: ${busyTask.taskInfo?.topActivity?.className}")
-            Toast.makeText(this, R.string.import_rejected_busy, Toast.LENGTH_LONG).show()
-            return false
-        }
 
         val uri: Uri? = when (source.action) {
             Intent.ACTION_SEND -> {

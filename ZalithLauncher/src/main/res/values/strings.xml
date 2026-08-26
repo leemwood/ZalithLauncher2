@@ -363,8 +363,6 @@
     <string name="download_assets_features_items">Items</string>
     <string name="download_assets_features_locale">Locale</string>
     <string name="download_assets_features_models">Models</string>
-    <!--  External Import  -->
-    <string name="import_rejected_busy">Cannot import right now: the launcher is busy with another task</string>
     <!--  Import Modpack  -->
     <string name="import_modpack">Import Modpack</string>
     <string name="import_modpack_tip">You can import local modpack files. The launcher currently supports these formats:</string>
