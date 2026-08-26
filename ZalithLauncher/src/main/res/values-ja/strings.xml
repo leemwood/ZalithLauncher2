@@ -438,10 +438,8 @@
     <string name="account_supporting_username_invalid_local_message_hint4">無効なユーザー名: Name@、N ame、name_name_name_name</string>
     <string name="account_change_skin">スキンを変更</string>
     <string name="account_label_password">パスワード</string>
-    <string name="settings_launcher_mirror_file_download_title">ファイルのダウンロードソース</string>
     <string name="settings_launcher_mirror_official_first">公式のソースを優先</string>
     <string name="settings_launcher_mirror_mirror_first">ミラーソースを優先</string>
-    <string name="settings_launcher_mirror_modloader_title">モッドローダーのバージョンソース</string>
     <string name="settings_game_java_runtime_title">Javaランタイム</string>
     <string name="settings_game_java_runtime_summary">使用するデフォルトのJava環境を指定してください</string>
     <string name="versions_overview_version_folder">バージョンフォルダ</string>
@@ -1016,8 +1014,6 @@
     <string name="upgrade_get_remote_failed">アップデートの確認に失敗しました。後ほどもう一度お試しください。</string>
     <string name="upgrade_is_latest">すでに最新バージョンです</string>
     <string name="upgrade_cloud_drive">クラウドドライブ</string>
-    <string name="settings_launcher_mirror_assets_search_title">アセットプラットフォームの検索ソース</string>
-    <string name="settings_launcher_mirror_assets_download_title">アセットプラットフォームのダウンロードソース</string>
     <string name="about_acknowledgements_mcim_text">%s はMCIMミラーソースを使っています</string>
     <string name="settings_launcher_language">言語</string>
     <string name="generic_copied">コピー済み</string>

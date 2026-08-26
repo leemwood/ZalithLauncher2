@@ -587,8 +587,6 @@
     <string name="generic_all">Tất cả</string>
     <string name="versions_manage_category_vanilla">Bản gốc</string>
     <string name="versions_manage_category_modloader">Có thể cài mod</string>
-    <string name="settings_launcher_mirror_modloader_title">Nguồn lấy mod loader</string>
-    <string name="settings_launcher_mirror_file_download_title">Nguồn tải file</string>
     <string name="settings_launcher_mirror_official_first">Ưu tiên nguồn chính</string>
     <string name="settings_launcher_mirror_mirror_first">Ưu tiên gương</string>
     <string name="about_acknowledgements_bangbang93_text">%s dùng gương BMCL API</string>
@@ -1182,8 +1180,6 @@
     <string name="settings_gamepad_config_no_items">Không cấu hình nào được tạo, không thể chuyển đổi</string>
     <string name="settings_launcher_color_theme_style">Phong cách bảng màu</string>
     <string name="settings_launcher_language">Ngôn ngữ</string>
-    <string name="settings_launcher_mirror_assets_search_title">Nguồn tìm kiếm tài nguyên nền tảng</string>
-    <string name="settings_launcher_mirror_assets_download_title">Nguồn tải tài nguyên nền tảng</string>
     <string name="settings_launcher_background_blur_summary">Điều chỉnh hiệu ứng làm mờ nền. Tùy chọn này tốn nhiều hiệu năng.</string>
     <string name="settings_launcher_festivals_effects_title">Tính năng ẩn lễ hội</string>
     <string name="settings_launcher_festivals_effects_summary">Hiển thị hiệu ứng Easter Egg liên tục trong các khoảng thời gian cụ thể</string>

@@ -31,6 +31,7 @@ import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import okhttp3.ConnectionPool
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -121,10 +122,8 @@ val GLOBAL_CLIENT = HttpClient(OkHttp) {
         header(HttpHeaders.UserAgent, URL_USER_AGENT)
     }
     engine {
-        // 使用内置的 OkHttp 客户端：遵循系统代理设置，并具备容灾 DNS 解析能力
-        preconfigured = createOkHttpClientBuilder {
-            it.protocols(listOf(Protocol.HTTP_1_1))
-        }.build()
+        // 使用内置的 OkHttp 客户端
+        preconfigured = createOkHttpClientBuilder().build()
     }
 }.apply {
     requestPipeline.intercept(HttpRequestPipeline.State) {
@@ -150,14 +149,13 @@ fun createRequestBuilder(url: String, body: RequestBody?): Request.Builder {
     return request
 }
 
-fun createOkHttpClient(): OkHttpClient = createOkHttpClientBuilder().build()
-
 /**
  * 创建一个OkHttpClient，可自定义一些内容
  */
 fun createOkHttpClientBuilder(action: (OkHttpClient.Builder) -> Unit = { }): OkHttpClient.Builder {
     return OkHttpClient.Builder()
         .dns(ResilientDns) //系统 DNS 解析失败时，自动回退到 DoH 解析
+        .protocols(listOf(Protocol.HTTP_1_1))
         .callTimeout(TIME_OUT, TimeUnit.MILLISECONDS)
         .addInterceptor(CURSEFORGE_INTERCEPTOR)
         .addInterceptor(USER_AGENT_INTERCEPTOR)
@@ -176,8 +174,10 @@ fun createOkHttpClientBuilder(action: (OkHttpClient.Builder) -> Unit = { }): OkH
 val DOWNLOAD_OKHTTP_CLIENT: OkHttpClient by lazy {
     OkHttpClient.Builder()
         .dns(ResilientDns) //系统 DNS 解析失败时，自动回退到 DoH 解析
+        .protocols(listOf(Protocol.HTTP_1_1)) //并发分段各占独立连接，并行吞吐优于单条多路复用连接
+        .connectionPool(ConnectionPool(64, 5, TimeUnit.MINUTES))
         .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .addInterceptor(CURSEFORGE_INTERCEPTOR)

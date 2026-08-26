@@ -954,8 +954,6 @@
     <string name="settings_launcher_log_share_title">Hata Kaydını Paylaş</string>
     <string name="settings_launcher_log_share_summary">Log dosyalarını geliştiriciye gönder</string>
     <string name="settings_launcher_log_share_packing">Loglar paketleniyor</string>
-    <string name="settings_launcher_mirror_modloader_title">Mod Yükleyici Aynası</string>
-    <string name="settings_launcher_mirror_file_download_title">Dosya İndirme Kaynağı</string>
     <string name="settings_launcher_mirror_official_first">Önce Resmi Kaynak</string>
     <string name="settings_launcher_mirror_mirror_first">Önce Alternatif (Mirror)</string>
     <string name="settings_launcher_background_title">Arka Plan</string>
@@ -1016,8 +1014,6 @@
     <string name="upgrade_get_remote_failed">Sunucu bilgisi alınamadı.</string>
     <string name="upgrade_is_latest">Zaten en son sürümü kullanıyorsunuz</string>
     <string name="upgrade_cloud_drive">Bulut Sürücü</string>
-    <string name="settings_launcher_mirror_assets_search_title">Varlık Platformu Arama Kaynağı</string>
-    <string name="settings_launcher_mirror_assets_download_title">Varlık Platformu İndirme Kaynağı</string>
     <string name="about_acknowledgements_mcim_text">%s, MCIM aynalama kaynağını kullanıyor</string>
     <string name="generic_copied">Kopyalandı</string>
     <string name="crash_link_share_button">Bağlantıyı Paylaş</string>

@@ -621,8 +621,6 @@
     <string name="settings_launcher_log_retention_days_title">Tempo de retenção do registro</string>
     <string name="settings_launcher_log_share_title">Compartilhar registros do launcher</string>
     <string name="settings_launcher_log_share_packing">Arquivos de registro do inicializador de pacotes</string>
-    <string name="settings_launcher_mirror_modloader_title">Versão da fonte do Mod Loader</string>
-    <string name="settings_launcher_mirror_file_download_title">Fonte do arquivo de download</string>
     <string name="settings_launcher_mirror_official_first">Preferir fonte oficial</string>
     <string name="settings_launcher_mirror_mirror_first">Preferir fonte mirror</string>
     <string name="about_acknowledgements_pojav_text">%s utiliza o backend do PojavLauncher</string>
@@ -1088,8 +1086,6 @@
     <string name="settings_launcher_color_theme_style">Estilo de paleta</string>
     <string name="settings_launcher_dark_mode_title">Modo escuro</string>
     <string name="settings_launcher_language">Idioma</string>
-    <string name="settings_launcher_mirror_assets_search_title">Fonte de pesquisa da plataforma de ativos</string>
-    <string name="settings_launcher_mirror_assets_download_title">Fonte de descarga da plataforma de ativos</string>
     <string name="settings_launcher_background_summary">Escolha uma imagem ou vídeo como plano de fundo do Launcher</string>
     <string name="settings_launcher_background_importing">A importar o ficheiro de fundo do Launcher</string>
     <string name="settings_launcher_background_reset_message">Tem certeza que deseja redefinir o fundo do launcher?</string>

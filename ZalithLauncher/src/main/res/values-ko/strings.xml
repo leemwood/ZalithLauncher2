@@ -974,8 +974,6 @@
     <string name="settings_launcher_background_title">런처 배경</string>
     <string name="settings_launcher_mirror_mirror_first">미러 소스 선호</string>
     <string name="settings_launcher_mirror_official_first">공식 소스 선호</string>
-    <string name="settings_launcher_mirror_file_download_title">파일 다운로드 소스</string>
-    <string name="settings_launcher_mirror_modloader_title">모드로더 버전 소스</string>
     <string name="settings_launcher_log_share_packing">패키지 런처 로그 파일</string>
     <string name="settings_launcher_log_share_title">런처 로그 공유</string>
     <string name="settings_launcher_log_retention_days_title">로그 보관일</string>

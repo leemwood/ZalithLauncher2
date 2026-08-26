@@ -630,8 +630,6 @@
     <string name="settings_launcher_animate_speed_summary">Atur kecepatan animasi launcher</string>
     <string name="settings_launcher_animate_extent_title">Intensitas Animasi</string>
     <string name="settings_launcher_animate_extent_summary">Atur intensitas animasi launcher</string>
-    <string name="settings_launcher_mirror_modloader_title">Sumber Versi Mod loader</string>
-    <string name="settings_launcher_mirror_file_download_title">Sumber File Unduhan</string>
     <string name="settings_launcher_mirror_official_first">Prioritaskan sumber resmi</string>
     <string name="settings_launcher_mirror_mirror_first">Prioritaskan Sumber Mirror</string>
     <string name="control_keyboard_bind_title">Ikat Tombol</string>
@@ -1016,8 +1014,6 @@
     <string name="upgrade_cloud_drive">Penyimpanan Cloud</string>
     <string name="cape_name_zombie_horse">Kuda Zombi</string>
     <string name="control_editor_edit_text_size_custom">Ukuran Teks Kustom</string>
-    <string name="settings_launcher_mirror_assets_search_title">Sumber Pencarian Platform Aset</string>
-    <string name="settings_launcher_mirror_assets_download_title">Sumber Unduhan Platform Aset</string>
     <string name="about_acknowledgements_mcim_text">%s menggunakan sumber mirror MCIM</string>
     <string name="generic_copied">Disalin</string>
     <string name="crash_link_share_button">Bagikan Tautan</string>
