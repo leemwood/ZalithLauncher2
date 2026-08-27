@@ -1205,4 +1205,18 @@
     <string name="game_vulkan_check_missing_features">Отсутствующие функции:</string>
     <string name="game_vulkan_check_unsupp">Ваше устройство не поддерживает запуск Minecraft 26.2+ с Vulkan.</string>
     <string name="game_vulkan_check_supp">Ваше устройство поддерживает запуск Minecraft 26.2+ с Vulkan.</string>
+    <string name="error_bad_request">(%s) Сервер не мог понять запрос</string>
+    <string name="error_forbidden">(%s) У вас нет прав на доступ к этому ресурсу</string>
+    <string name="error_not_acceptable">(%s) Неприемлемо</string>
+    <string name="error_gone">(%s) Запрошенный ресурс больше не доступен</string>
+    <string name="error_too_many_requests">(%s) Попробуйте позже</string>
+    <string name="download_category_by_id">Искать по ID</string>
+    <string name="download_assets_id_holder">ID проекта</string>
+    <string name="download_assets_id_not_found">Проект не найден!</string>
+    <string name="cape_name_builder">Строитель</string>
+    <string name="cape_name_crafter">Крафтер</string>
+    <string name="settings_title_blur">Эффект размытия</string>
+    <string name="settings_renderer_config_title">Конфигурация рендерера</string>
+    <string name="control_editor_menu_new_widget_joystick">Добавить джойстик</string>
+    <string name="control_editor_edit_category_joystick_config">Конфиг джойстика</string>
 </resources>
