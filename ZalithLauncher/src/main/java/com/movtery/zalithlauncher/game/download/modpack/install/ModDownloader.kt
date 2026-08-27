@@ -50,7 +50,7 @@ class ModDownloader(
     private val maxDownloadThreads: Int = 64
 ) {
     suspend fun startDownload(task: Task) {
-        task.updateMessage(androidText(R.string.download_modpack_download_mods))
+        task.updateMessage(null)
 
         val resolvedFailures = AtomicInteger(0)
         val missingMods = AtomicInteger(0)

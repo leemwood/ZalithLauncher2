@@ -235,7 +235,6 @@
     <string name="download_modpack_install_overrides">解壓模組包檔案</string>
     <string name="download_modpack_download">下載模組包所需內容</string>
     <string name="download_modpack_download_mods">下載所有模組 (%1$d/%2$d, %3$s)</string>
-    <string name="download_modpack_download_mods_retry">重試下載所有模組 (%1$d/%2$d, %3$s)</string>
     <string name="download_modpack_get_loaders">取得載入器資訊</string>
     <string name="download_modpack_final_move">正在移動模組包檔案</string>
     <!--  資源類別  -->
@@ -613,7 +612,6 @@
     <string name="versions_overview_screenshot_folder">螢幕擷圖資料夾</string>
     <string name="versions_overview_logs_folder">日誌資料夾</string>
     <string name="versions_overview_crash_report_folder">崩潰報告資料夾</string>
-    <string name="versions_overview_cant_share_folder_message">目前裝置上沒有可開啟此資料夾的第三方應用程式！</string>
     <string name="versions_overview_log">執行日誌</string>
     <string name="versions_config_version_settings">版本獨立設定</string>
     <string name="versions_config_game_settings">遊戲獨立設定</string>
@@ -716,7 +714,6 @@
     <string name="mods_update_task_loading">同步模組資料：%s</string>
     <string name="mods_update_no_mods_update">所有模組都是最新版本，無需更新</string>
     <string name="mods_update_updating">正在更新所有模組 (%1$d/%2$d, %3$s)</string>
-    <string name="mods_update_updating_retry">重試更新所有模組 (%1$d/%2$d, %3$s)</string>
     <string name="mods_update_success">更新成功</string>
     <string name="mods_update_success_text">您選擇的模組都已更新到最新版本！</string>
     <string name="mods_update_failed">更新模組失敗</string>
@@ -754,10 +751,7 @@
     <string name="minecraft_download_stat_verify_task">統計驗證任務</string>
     <string name="minecraft_download_downloading_game_files">下載遊戲檔案中 \n(%1$d/%2$d, %3$s/%4$s)</string>
     <string name="minecraft_download_verifying_and_repairing_files">驗證並補齊遊戲檔案中 \n(%1$d/%2$d, %3$s/%4$s)</string>
-    <string name="minecraft_download_progress_retry_downloading_files">重試下載遊戲檔案中 \n(%1$d/%2$d, %3$s/%4$s)</string>
-    <string name="minecraft_download_progress_retry_verifying_files">重試驗證並補齊遊戲檔案中 \n(%1$d/%2$d, %3$s/%4$s)</string>
     <string name="minecraft_download_failed">下載 Minecraft 過程中發生異常</string>
-    <string name="minecraft_download_failed_retried">在此之前，啟動器已嘗試重試一次，但仍有任務下載失敗</string>
     <string name="minecraft_download_failed_notfound">部分依賴檔案無法下載，如果多次嘗試仍失敗，可能是遊戲缺少必要的函式庫檔案，建議重新安裝遊戲。</string>
     <!--  設定  -->
     <string name="settings_title_blur">模糊效果</string>
@@ -1341,7 +1335,6 @@
     <string name="fm_editor_goto_invalid">行號超出範圍</string>
     <string name="fm_editor_replace">取代</string>
     <string name="fm_editor_replace_all">全部取代</string>
-    <string name="fm_editor_replace_hint">取代為</string>
     <string name="fm_editor_undo">復原</string>
     <string name="fm_editor_redo">重做</string>
     <string name="fm_editor_wordwrap">自動換行</string>

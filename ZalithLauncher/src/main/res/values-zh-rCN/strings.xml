@@ -276,7 +276,6 @@
     <string name="download_modpack_install_overrides">提取整合包文件</string>
     <string name="download_modpack_download">下载整合包所需内容</string>
     <string name="download_modpack_download_mods">下载所有模组 (%1$d/%2$d, %3$s)</string>
-    <string name="download_modpack_download_mods_retry">重试下载所有模组 (%1$d/%2$d, %3$s)</string>
     <string name="download_modpack_get_loaders">获取加载器信息</string>
     <string name="download_modpack_final_move">迁移整合包文件中</string>
     <!-- 资源类别 -->
@@ -665,7 +664,6 @@
     <string name="versions_overview_screenshot_folder">屏幕截图文件夹</string>
     <string name="versions_overview_logs_folder">日志文件夹</string>
     <string name="versions_overview_crash_report_folder">崩溃报告文件夹</string>
-    <string name="versions_overview_cant_share_folder_message">当前设备没有第三方应用可以打开该目录！</string>
     <string name="versions_overview_log">运行日志</string>
     <string name="versions_config_version_settings">版本独立设置</string>
     <string name="versions_config_game_settings">游戏独立设置</string>
@@ -768,7 +766,6 @@
     <string name="mods_update_task_loading">同步模组数据：%s</string>
     <string name="mods_update_no_mods_update">所有模组都是最新版本，无需更新</string>
     <string name="mods_update_updating">更新所有模组 (%1$d/%2$d, %3$s)</string>
-    <string name="mods_update_updating_retry">重试更新所有模组 (%1$d/%2$d, %3$s)</string>
     <string name="mods_update_success">更新成功</string>
     <string name="mods_update_success_text">您选择的模组都更新到了最新版本！</string>
     <string name="mods_update_failed">更新模组失败</string>
@@ -843,10 +840,7 @@
     <string name="minecraft_download_stat_verify_task">统计验证任务</string>
     <string name="minecraft_download_downloading_game_files">下载游戏文件中 \n(%1$d/%2$d, %3$s/%4$s)</string>
     <string name="minecraft_download_verifying_and_repairing_files">验证并补全游戏文件中 \n(%1$d/%2$d, %3$s/%4$s)</string>
-    <string name="minecraft_download_progress_retry_downloading_files">重试下载游戏文件中 \n(%1$d/%2$d, %3$s/%4$s)</string>
-    <string name="minecraft_download_progress_retry_verifying_files">重试验证并补全游戏文件中 \n(%1$d/%2$d, %3$s/%4$s)</string>
     <string name="minecraft_download_failed">下载 Minecraft 过程中出现异常</string>
-    <string name="minecraft_download_failed_retried">在此之前，启动器已经尝试过重试一次，但仍有任务下载失败</string>
     <string name="minecraft_download_failed_notfound">某些依赖文件无法下载，如果多次尝试仍失败，可能是游戏缺少必要的库文件，建议重新安装游戏。</string>
     <!--  设置  -->
     <string name="settings_title_blur">模糊效果</string>
@@ -1127,7 +1121,6 @@
     <string name="control_editor_edit_category_joystick_events">方向事件</string>
     <string name="control_editor_edit_category_joystick_style">摇杆样式</string>
     <string name="control_editor_edit_size_joystick">摇杆大小</string>
-    <string name="control_editor_edit_size_reference">大小参考</string>
     <string name="control_editor_edit_joystick_dead_zone">死区范围</string>
     <string name="control_editor_edit_joystick_lock_threshold">锁定阈值</string>
     <string name="control_editor_edit_joystick_can_lock">前进锁定</string>
@@ -1322,7 +1315,6 @@
     <string name="fm_editor_goto_invalid">行号超出范围</string>
     <string name="fm_editor_replace">替换</string>
     <string name="fm_editor_replace_all">全部替换</string>
-    <string name="fm_editor_replace_hint">替换为</string>
     <string name="fm_editor_undo">撤销</string>
     <string name="fm_editor_redo">重做</string>
     <string name="fm_editor_wordwrap">自动换行</string>
