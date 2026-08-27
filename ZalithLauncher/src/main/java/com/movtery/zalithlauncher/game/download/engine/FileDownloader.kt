@@ -135,7 +135,6 @@ internal class FileDownloader(
         var stalledTicks = 0
 
         while (true) {
-            delay(SPLIT_TICK_MS.milliseconds)
             workers.entries.removeAll { (_, job) -> job.isCompleted }
 
             val pending = chain.pendingSegments()
@@ -162,6 +161,9 @@ internal class FileDownloader(
                     }
                 }
             }
+
+            //等待在循环尾部：首轮分派立即发生，避免海量小文件各自空付一个调度周期
+            delay(SPLIT_TICK_MS.milliseconds)
 
             stalledTicks = if (workers.isEmpty()) stalledTicks + 1 else 0
             if (stalledTicks > STALLED_TICK_LIMIT) return@coroutineScope
