@@ -424,24 +424,14 @@ object AllSettings : SettingsRegistry() {
     val launcherLogRetentionDays = intSetting("launcherLogRetentionDays", 7, 1..14)
 
     /**
-     * 下载版本附加内容镜像源类型
+     * 游戏内容镜像源
      */
-    val fetchModLoaderSource = enumSetting("fetchModLoaderSource", MirrorSourceType.OFFICIAL_FIRST)
+    val gameDownloadSource = enumSetting("gameDownloadSource", MirrorSourceType.AUTO)
 
     /**
-     * 文件下载镜像源类型
+     * 资源平台镜像源
      */
-    val fileDownloadSource = enumSetting("fileDownloadSource", MirrorSourceType.OFFICIAL_FIRST)
-
-    /**
-     * 资源搜索镜像源类型
-     */
-    val assetSearchSource = enumSetting("assetSearchSource", MirrorSourceType.OFFICIAL_FIRST)
-
-    /**
-     * 资源下载镜像源类型
-     */
-    val assetDownloadSource = enumSetting("assetDownloadSource", MirrorSourceType.OFFICIAL_FIRST)
+    val assetPlatformSource = enumSetting("assetPlatformSource", MirrorSourceType.AUTO)
 
     //Control
     /**
