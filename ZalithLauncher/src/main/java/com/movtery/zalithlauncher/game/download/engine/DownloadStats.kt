@@ -18,6 +18,7 @@
 
 package com.movtery.zalithlauncher.game.download.engine
 
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 /** 一份批量下载的只读进度快照，供 UI 层消费 */
@@ -33,51 +34,51 @@ data class BatchProgress(
  * 跨线程的字节/文件计数器，内嵌"逐秒分块"测速：
  * 每个报表值就是刚刚完整过去的一秒里真实落盘的字节数，每秒更新一次，
  * 不做任何跨窗口平滑或外推——报出来的数字永远有对应的实际流量。
- * 热路径只有一次原子加法。
+ * 热路径只有原子加法。
+ * 文件/字节维度全部使用原子量，最多与并发连接数同量级的线程同时完成也不会丢计数。
  */
 class DownloadStats internal constructor() {
     private val downloaded = AtomicLong(0L)
+    private val totalBytesCounter = AtomicLong(-1L)
+    private val totalFilesCounter = AtomicInteger(0)
 
-    @Volatile
-    var expectedTotalBytes: Long = -1L
-        private set
+    private val downloadedFilesCounter = AtomicInteger(0)
+    val expectedTotalBytes: Long get() = totalBytesCounter.get()
 
-    @Volatile
-    var totalFiles: Int = 0
-        private set
-
-    @Volatile
-    var downloadedFiles: Int = 0
-        private set
+    val totalFiles: Int get() = totalFilesCounter.get()
+    val downloadedFiles: Int get() = downloadedFilesCounter.get()
 
     fun addBytes(count: Long) {
         downloaded.addAndGet(count)
     }
 
     internal fun registerFile(expectedSize: Long) {
-        totalFiles += 1
+        totalFilesCounter.incrementAndGet()
         if (expectedSize > 0) {
-            val previous = expectedTotalBytes
-            expectedTotalBytes = if (previous < 0) expectedSize else previous + expectedSize
+            totalBytesCounter.accumulateAndGet(expectedSize) { previous, add ->
+                if (previous < 0) add else previous + add
+            }
         }
     }
 
     internal fun markFileFinished() {
-        downloadedFiles += 1
+        downloadedFilesCounter.incrementAndGet()
     }
 
-    /** 重置文件维度计数（整批重试时使用），字节计数保持累计 */
-    internal fun resetFiles() {
-        downloadedFiles = 0
-        totalFiles = 0
-        expectedTotalBytes = -1L
+    /**
+     * 把"本地已复用文件"的字节并入已下载量
+     */
+    internal fun resetSpeedBaseline() {
+        synchronized(this) {
+            blockStartNanos = System.nanoTime()
+            blockStartBytes = downloaded.get()
+        }
     }
 
     val downloadedBytes: Long get() = downloaded.get()
 
     /**
-     * 返回上一个完整采样秒的真实平均吞吐；距上次采样不足一秒时返回原值。
-     * 进度快照内部会先经过这里，UI 以任意频率轮询都只会看到每秒一格的变化。
+     * 返回上一个完整采样秒的真实平均吞吐
      */
     fun refreshSpeed(): Long {
         val now = System.nanoTime()
@@ -111,8 +112,7 @@ class DownloadStats internal constructor() {
     companion object {
         /** 引擎判定"速度偏低需要补连接"的水位线 */
         const val LOW_SPEED_THRESHOLD_BPS: Long = 256L * 1024L
-
-        /** 速率采样周期：每个报表值统计刚刚完整过去的一秒 */
+        /** 速率采样周期 */
         private const val SAMPLE_INTERVAL_NANOS = 1_000_000_000L
         private const val NANOS_PER_SEC = 1_000_000_000L
     }

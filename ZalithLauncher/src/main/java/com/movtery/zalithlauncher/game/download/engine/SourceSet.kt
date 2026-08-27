@@ -22,10 +22,14 @@ import java.net.UnknownHostException
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * 一个下载任务的候选源集合：带失败计数与健康轮转，
- * 全部失效后由 FileDownloader 进入降级阶段逐源单流重试。
+ * 一个下载任务的候选源集合
+ * 带失败计数与健康轮转，全部失效后由 [FileDownloader] 进入降级阶段逐源单流重试。
+ * [health] 由整批共享时，超时风暴会触发主机级熔断，让后续文件直接跳到其他源，而不是逐文件各付一次超时。
  */
-internal class SourceSet(urls: List<String>) {
+internal class SourceSet(
+    urls: List<String>,
+    private val health: SourceHealth = SourceHealth()
+) {
     inner class Source internal constructor(
         @JvmField val url: String,
         @JvmField val index: Int
@@ -56,6 +60,7 @@ internal class SourceSet(urls: List<String>) {
         /** 记录一次失败；返回该源是否仍然可用 */
         fun recordFailure(error: Throwable): Boolean {
             lastReason = error.message ?: error.toString()
+            if (error.isTimeoutError()) health.recordTimeout(url)
             if (disableImmediately(error)) {
                 fatal = true
                 disabled = true
@@ -77,19 +82,29 @@ internal class SourceSet(urls: List<String>) {
     private val cursor = AtomicInteger(0)
 
     /**
-     * 从游标处轮转挑出下一个健康源；要求支持 Range 时跳过不支持的源。
-     * 全部不可用时返回 null。
+     * 从游标处轮转挑出下一个健康源，要求支持 Range 时跳过不支持的源。
+     * 第一轮会跳过处于熔断冷却中的主机
+     * 若所有源都被熔断（或不可用），退回"仅按健康状态"再扫一遍，保证极端情况下仍有源可试。
      */
     fun acquire(requireRange: Boolean): Source? {
         val size = sources.size
         repeat(size) {
             val candidate = sources[Math.floorMod(cursor.getAndAdd(1), size)]
-            if (!candidate.disabled && !candidate.fatal && !(requireRange && candidate.noRange)) {
+            if (isUsable(candidate, requireRange) && health.isViable(candidate.url)) {
+                return candidate
+            }
+        }
+        repeat(size) {
+            val candidate = sources[Math.floorMod(cursor.getAndAdd(1), size)]
+            if (isUsable(candidate, requireRange)) {
                 return candidate
             }
         }
         return null
     }
+
+    private fun isUsable(source: Source, requireRange: Boolean): Boolean =
+        !source.disabled && !source.fatal && !(requireRange && source.noRange)
 
     val hasUsable: Boolean get() = sources.any { !it.disabled && !it.fatal }
 

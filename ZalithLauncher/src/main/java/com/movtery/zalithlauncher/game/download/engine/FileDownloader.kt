@@ -57,11 +57,11 @@ internal class FileDownloader(
     private val stats: DownloadStats,
     private val allowExtraConnection: () -> Boolean = { true },
     private val maxWorkersPerFile: Int = MAX_WORKERS_PER_FILE,
-    /** 显式注入用于测试；生产环境下按请求大小自动选择传输客户端 */
-    private val client: OkHttpClient? = null
+    private val client: OkHttpClient? = null,
+    /** 整批共享的主机级熔断状态，缺省时本文件独立计数 */
+    private val sourceHealth: SourceHealth = SourceHealth()
 ) {
-    private val sources = SourceSet(request.urls)
-
+    private val sources = SourceSet(request.urls, sourceHealth)
     private val transferClient: OkHttpClient = client ?: BatchDownloader.resolveTransferClient(request)
 
     /** 本轮尝试中实际向文件写入了数据的候选源，用于校验失败时的诊断 */
@@ -127,6 +127,9 @@ internal class FileDownloader(
             workers[segment] = launch(Dispatchers.IO) {
                 connections.withPermit {
                     runInterruptible {
+                        //源在派发时刻选好，但真正建连是拿到许可之后的事
+                        //海量文件会在批次早期抢占式选源排队，停摆触发的熔断必须作用到建连时刻
+                        if (!sourceHealth.isViable(source.url)) return@runInterruptible
                         guardFailure(source) {
                             executeSegment(source, segment, chain, channel)
                         }
@@ -180,6 +183,7 @@ internal class FileDownloader(
             chain.resetForSingleStream()
             connections.withPermit {
                 runInterruptible {
+                    if (!sourceHealth.isViable(source.url)) return@runInterruptible
                     guardFailure(source) {
                         executeWhole(source, chain, channel)
                     }

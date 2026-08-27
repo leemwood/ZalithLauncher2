@@ -44,6 +44,8 @@ class BatchDownloadException internal constructor(summary: String) : IOException
  * 所有文件共享一个全局连接信号量；大文件的分块决策基于整批聚合速度，
  * 低速时才追加分块连接，避免对下载源的请求风暴。
  * 每个失败文件在所有候选源耗尽后还会参与下一轮整批重试。
+ * 文件维度的统计在 run() 之前登记（调用方可先把本地已复用文件计入），
+ * 因此 [run] 对同一实例至多调用一次。
  */
 class BatchDownloader(
     private val requests: List<DownloadRequest>,
@@ -53,6 +55,9 @@ class BatchDownloader(
     private val clientOverride: OkHttpClient? = null
 ) {
     val stats = DownloadStats()
+
+    /** 整批共享的主机级熔断：一个源停摆时，后续文件直接换源，不再逐文件付超时 */
+    private val sourceHealth = SourceHealth()
 
     /** 每 100ms 收到一次进度快照；回调运行在调度线程上，只应做轻量转发 */
     var onUpdate: (suspend (BatchProgress) -> Unit)? = null
@@ -66,14 +71,14 @@ class BatchDownloader(
     var onFailureFilter: ((DownloadRequest, Throwable) -> Boolean)? = null
 
     private val connections = Semaphore(maxConnections)
-    private val fileClient: OkHttpClient = resolveTransferClient(requests.firstOrNull())
 
     /** 最近一次 run 结束后的失败清单（目标文件路径 → 异常），供调用方诊断 */
     var lastRunFailures: Map<String, Throwable> = emptyMap()
         private set
 
     suspend fun run() {
-        stats.resetFiles()
+        // 不做任何清零
+        // 调用方可能在 run() 之前已把本地复用文件登记进 stats
         requests.forEach { stats.registerFile(it.expectedSize) }
 
         val failures = ConcurrentHashMap<String, Throwable>()
@@ -124,9 +129,9 @@ class BatchDownloader(
         }
     }
 
-    /** 小文件走可多路复用的 h2 客户端，大文件保持 HTTP/1.1 的分段并发 */
+    /** 小文件走可多路复用的 h2 客户端，大文件保持 HTTP/1.1 的分段并发；测试注入的客户端优先生效 */
     private fun fileClientFor(request: DownloadRequest): OkHttpClient =
-        if (request.expectedSize in 1 until SMALL_TRANSFER_MAX_BYTES) {
+        clientOverride ?: if (request.expectedSize in 1 until SMALL_TRANSFER_MAX_BYTES) {
             DOWNLOAD_OKHTTP_CLIENT_MULTIPLEX
         } else {
             DOWNLOAD_OKHTTP_CLIENT
@@ -140,7 +145,14 @@ class BatchDownloader(
         var lastError: Throwable? = null
         repeat(retryRounds + 1) {
             try {
-                FileDownloader(request, connections, stats, ::speedGate, client = transferClient).download()
+                FileDownloader(
+                    request = request,
+                    connections = connections,
+                    stats = stats,
+                    allowExtraConnection = ::speedGate,
+                    client = transferClient,
+                    sourceHealth = sourceHealth
+                ).download()
                 onFileSuccess?.invoke(request)
                 stats.markFileFinished()
                 return
