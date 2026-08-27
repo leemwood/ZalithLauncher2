@@ -99,6 +99,14 @@ class BatchDownloader(
             }
         }
 
+        val finished = stats.downloadedFiles
+        if (finished != requests.size) {
+            val failedCount = failures.size
+            val outcome = if (failedCount == 0) "all" else "$failedCount failed"
+            Logger.warning(TAG, "Completed-count mismatch: requests=" + requests.size
+                    + " finished=" + finished + " failures=" + outcome)
+        }
+
         if (failures.isNotEmpty()) {
             lastRunFailures = failures.toMap()
             throw BatchDownloadException(
