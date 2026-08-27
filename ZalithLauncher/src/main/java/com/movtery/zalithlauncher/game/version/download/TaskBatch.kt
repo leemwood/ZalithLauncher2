@@ -40,6 +40,9 @@ suspend fun Task.runBatchDownloads(
 ) {
     val (reusable, pending) = tasks.partition { it.existingFileValid() }
 
+    //清单里只要有未声明大小的文件，字节数就不能构成可靠的进度分母
+    val sizesFullyKnown = tasks.all { it.size > 0 }
+
     val batch = BatchDownloader(
         requests = pending.map { it.toRequest() },
         maxConnections = maxConnections,
@@ -53,11 +56,8 @@ suspend fun Task.runBatchDownloads(
     }
 
     batch.onUpdate = { snapshot ->
-        val totalBytes = if (snapshot.totalBytes < snapshot.downloadedBytes) snapshot.downloadedBytes else snapshot.totalBytes
-        updateProgress(
-            if (totalBytes > 0) (snapshot.downloadedBytes.toFloat() / totalBytes).coerceIn(0f, 1f) else -1f
-        )
-        onSnapshot(snapshot.copy(totalBytes = totalBytes))
+        updateProgress(progressFor(snapshot, sizesFullyKnown, hasFileCount = snapshot.totalFiles > 0))
+        onSnapshot(snapshot)
     }
     batch.onFileSuccess = { request ->
         (request.tag as? DownloadTask)?.runFileDownloadedTask()
@@ -77,5 +77,21 @@ suspend fun Task.runBatchDownloads(
         val failedDetail = batch.lastRunFailures.keys.joinToString("\n") { path -> path }
         throw DownloadFailedException("Failed downloads:\n$failedDetail", e)
     }
+}
+
+/**
+ * 进度条的显示策略：
+ * - 清单内所有文件都声明了大小时，按字节数计算最平滑的进度；
+ * - 存在未知大小但文件总数确定时，退化为按完成文件数计算；
+ * - 连文件总数都无法确定时，显示为不确定进度。
+ */
+private fun progressFor(snapshot: BatchProgress, sizesFullyKnown: Boolean, hasFileCount: Boolean): Float = when {
+    sizesFullyKnown && snapshot.totalBytes > 0 ->
+        (snapshot.downloadedBytes.toFloat() / snapshot.totalBytes).coerceIn(0f, 1f)
+
+    hasFileCount && snapshot.totalFiles > 0 ->
+        snapshot.downloadedFiles.toFloat() / snapshot.totalFiles
+
+    else -> -1f
 }
 
