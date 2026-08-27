@@ -103,7 +103,7 @@ class BatchDownloaderE2ETest {
                 requests = requests,
                 maxConnections = 12,
                 retryRounds = 1,
-                client = OkHttpClient()
+                clientOverride = OkHttpClient()
             )
             batch.onUpdate = { }
             batch.onFileSuccess = { request ->

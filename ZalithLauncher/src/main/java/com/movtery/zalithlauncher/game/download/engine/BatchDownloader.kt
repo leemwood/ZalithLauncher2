@@ -18,6 +18,8 @@
 
 package com.movtery.zalithlauncher.game.download.engine
 
+import com.movtery.zalithlauncher.path.DOWNLOAD_OKHTTP_CLIENT
+import com.movtery.zalithlauncher.path.DOWNLOAD_OKHTTP_CLIENT_MULTIPLEX
 import com.movtery.zalithlauncher.utils.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +30,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import okhttp3.OkHttpClient
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
@@ -46,7 +49,8 @@ class BatchDownloader(
     private val requests: List<DownloadRequest>,
     private val maxConnections: Int = DEFAULT_MAX_CONNECTIONS,
     private val retryRounds: Int = 1,
-    client: OkHttpClient = OkHttpClient()
+    /** 显式注入用于测试；生产环境下按文件大小自动选择传输客户端 */
+    private val clientOverride: OkHttpClient? = null
 ) {
     val stats = DownloadStats()
 
@@ -62,7 +66,7 @@ class BatchDownloader(
     var onFailureFilter: ((DownloadRequest, Throwable) -> Boolean)? = null
 
     private val connections = Semaphore(maxConnections)
-    private val fileClient: OkHttpClient = client
+    private val fileClient: OkHttpClient = resolveTransferClient(requests.firstOrNull())
 
     /** 最近一次 run 结束后的失败清单（目标文件路径 → 异常），供调用方诊断 */
     var lastRunFailures: Map<String, Throwable> = emptyMap()
@@ -84,7 +88,10 @@ class BatchDownloader(
             try {
                 requests.map { request ->
                     launch(Dispatchers.IO) {
-                        runOne(request, failures)
+                        //先取得一个连接许可再打开 .part 文件：
+                        //否则全部作业同时持着打开的句柄排队，海量句柄会拖垮存储层
+                        connections.withPermit { }
+                        runOne(request, failures, fileClientFor(request))
                     }
                 }.joinAll()
             } finally {
@@ -102,11 +109,23 @@ class BatchDownloader(
         }
     }
 
-    private suspend fun runOne(request: DownloadRequest, failures: MutableMap<String, Throwable>) {
+    /** 小文件走可多路复用的 h2 客户端，大文件保持 HTTP/1.1 的分段并发 */
+    private fun fileClientFor(request: DownloadRequest): OkHttpClient =
+        if (request.expectedSize in 1 until SMALL_TRANSFER_MAX_BYTES) {
+            DOWNLOAD_OKHTTP_CLIENT_MULTIPLEX
+        } else {
+            DOWNLOAD_OKHTTP_CLIENT
+        }
+
+    private suspend fun runOne(
+        request: DownloadRequest,
+        failures: MutableMap<String, Throwable>,
+        transferClient: OkHttpClient
+    ) {
         var lastError: Throwable? = null
         repeat(retryRounds + 1) {
             try {
-                FileDownloader(request, connections, stats, ::speedGate, client = fileClient).download()
+                FileDownloader(request, connections, stats, ::speedGate, client = transferClient).download()
                 onFileSuccess?.invoke(request)
                 stats.markFileFinished()
                 return
@@ -133,5 +152,13 @@ class BatchDownloader(
         private const val TAG = "BatchDownloader"
         const val DEFAULT_MAX_CONNECTIONS = 64
         const val PROGRESS_INTERVAL_MS = 100L
+
+        /** 小于该阈值的文件走 h2 多路复用客户端；更大的文件保持 1.1 分段并发 */
+        const val SMALL_TRANSFER_MAX_BYTES: Long = 4L * 1024L * 1024L
+
+        internal fun resolveTransferClient(sample: DownloadRequest?): OkHttpClient =
+            sample?.takeIf { it.expectedSize in 1 until SMALL_TRANSFER_MAX_BYTES }
+                ?.let { DOWNLOAD_OKHTTP_CLIENT_MULTIPLEX }
+                ?: DOWNLOAD_OKHTTP_CLIENT
     }
 }

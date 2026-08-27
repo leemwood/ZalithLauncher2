@@ -45,7 +45,8 @@ object DownloadEngine {
         maxConnections: Int = DEFAULT_SINGLE_CONNECTIONS,
         stats: DownloadStats = DownloadStats(),
         sizeCallback: (Long) -> Unit = {},
-        client: OkHttpClient = DOWNLOAD_OKHTTP_CLIENT
+        /** 显式注入用于测试；生产环境按请求大小自动选择传输客户端 */
+        client: OkHttpClient? = null
     ) {
         if (request.expectedSize > 0) stats.registerFile(request.expectedSize)
 

@@ -57,9 +57,12 @@ internal class FileDownloader(
     private val stats: DownloadStats,
     private val allowExtraConnection: () -> Boolean = { true },
     private val maxWorkersPerFile: Int = MAX_WORKERS_PER_FILE,
-    private val client: OkHttpClient = defaultClient()
+    /** 显式注入用于测试；生产环境下按请求大小自动选择传输客户端 */
+    private val client: OkHttpClient? = null
 ) {
     private val sources = SourceSet(request.urls)
+
+    private val transferClient: OkHttpClient = client ?: BatchDownloader.resolveTransferClient(request)
 
     /** 本轮尝试中实际向文件写入了数据的候选源，用于校验失败时的诊断 */
     private val contributedSources = LinkedHashSet<String>()
@@ -256,7 +259,7 @@ internal class FileDownloader(
     private fun executeCall(url: String, rangeFrom: Long): Response {
         val builder = createRequestBuilder(url)
         if (rangeFrom >= 0) builder.header(RANGE_HEADER, "bytes=$rangeFrom-")
-        return client.newCall(builder.build()).execute()
+        return transferClient.newCall(builder.build()).execute()
     }
 
     /**
@@ -362,7 +365,5 @@ internal class FileDownloader(
         private const val RANGE_HEADER = "Range"
         private const val CONTENT_RANGE = "Content-Range"
 
-        /** 生产环境默认客户端；测试可注入独立实例 */
-        private fun defaultClient(): OkHttpClient = DOWNLOAD_OKHTTP_CLIENT
     }
 }

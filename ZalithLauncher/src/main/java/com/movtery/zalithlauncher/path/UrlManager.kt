@@ -172,9 +172,22 @@ fun createOkHttpClientBuilder(action: (OkHttpClient.Builder) -> Unit = { }): OkH
  * HttpURLConnection 在 Android 上更加可靠，能有效避免"卡 0b/s"问题。
  */
 val DOWNLOAD_OKHTTP_CLIENT: OkHttpClient by lazy {
-    OkHttpClient.Builder()
+    buildDownloadClient(listOf(Protocol.HTTP_1_1))
+}
+
+/**
+ * 支持 HTTP/2 多路复用的孪生客户端：用于海量小文件场景，
+ * 数千次请求共享少数几条连接，消除逐文件 TCP+TLS 握手风暴。
+ * 大文件的分段并发仍走强制 HTTP/1.1 的 [DOWNLOAD_OKHTTP_CLIENT]。
+ */
+val DOWNLOAD_OKHTTP_CLIENT_MULTIPLEX: OkHttpClient by lazy {
+    buildDownloadClient(null)
+}
+
+private fun buildDownloadClient(allowedProtocols: List<Protocol>?): OkHttpClient {
+    return OkHttpClient.Builder()
         .dns(ResilientDns) //系统 DNS 解析失败时，自动回退到 DoH 解析
-        .protocols(listOf(Protocol.HTTP_1_1)) //并发分段各占独立连接，并行吞吐优于单条多路复用连接
+        .apply { allowedProtocols?.let { protocols(it) } } //不指定时默认协商 h2：单条多路复用连接承载海量小请求
         .connectionPool(ConnectionPool(64, 5, TimeUnit.MINUTES))
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
