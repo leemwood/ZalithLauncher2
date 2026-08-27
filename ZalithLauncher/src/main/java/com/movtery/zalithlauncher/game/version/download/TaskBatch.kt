@@ -21,7 +21,18 @@ package com.movtery.zalithlauncher.game.version.download
 import com.movtery.zalithlauncher.coroutine.Task
 import com.movtery.zalithlauncher.game.download.engine.BatchDownloader
 import com.movtery.zalithlauncher.game.download.engine.BatchProgress
+import com.movtery.zalithlauncher.utils.logging.Logger
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
+
+private const val TAG = "TaskBatch"
+
+/** 本地已存在文件校验的并发度 */
+private const val LOCAL_VERIFY_PARALLELISM = 4
 
 /**
  * 把一批 [DownloadTask] 交给下载引擎执行的统一入口：
@@ -38,7 +49,9 @@ suspend fun Task.runBatchDownloads(
     onSnapshot: suspend (BatchProgress) -> Unit = {},
     acceptFailure: ((task: DownloadTask, error: Throwable) -> Boolean)? = null
 ) {
-    val (reusable, pending) = tasks.partition { it.existingFileValid() }
+    val verifyStarted = System.currentTimeMillis()
+    val (reusable, pending) = verifyExistingFilesConcurrently(tasks)
+    Logger.info(TAG, "Local file check done: reusable=${reusable.size} pending=${pending.size}, took=${System.currentTimeMillis() - verifyStarted}ms")
 
     //清单里只要有未声明大小的文件，字节数就不能构成可靠的进度分母
     val sizesFullyKnown = tasks.all { it.size > 0 }
@@ -85,6 +98,21 @@ suspend fun Task.runBatchDownloads(
         throw DownloadFailedException("Failed downloads:\n$failedDetail", e)
     }
 }
+
+/**
+ * 并行校验本地已存在的文件是否可复用
+ */
+private suspend fun verifyExistingFilesConcurrently(
+    tasks: List<DownloadTask>
+): Pair<List<DownloadTask>, List<DownloadTask>> =
+    withContext(Dispatchers.IO.limitedParallelism(LOCAL_VERIFY_PARALLELISM)) {
+        coroutineScope {
+            tasks.map { task ->
+                async { task to task.existingFileValid() }
+            }.awaitAll()
+        }.partition { it.second }
+            .let { (reusable, pending) -> reusable.map { it.first } to pending.map { it.first } }
+    }
 
 /**
  * 进度条的显示策略：
