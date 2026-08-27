@@ -43,7 +43,11 @@ import java.util.concurrent.atomic.AtomicLong
 
 /**
  * 手动基准台架（默认跳过）：移除类上的 @Ignore 运行采集吞吐、测速保真与故障开销数据。
- * 数据结论见分支内评估报告；完成后勿常驻测试套件。
+ *
+ * 口径说明：MockWebServer 跑在本机回环上，所有吞吐数字都是"引擎处理上限"，
+ * 真实网络场景由带宽与 RTT 决定，远低于该值属正常；绝对值请勿直接外推到真机。
+ * 参考基线：48MiB 分块 ≈29.8MiB/s（16 连接）；2000 小文件批 ≈567-719 files/s；
+ * 20% 注入 500 的重试开销约降低一成吞吐。
  */
 @org.junit.Ignore("manual benchmark")
 class DownloadEngineBench {

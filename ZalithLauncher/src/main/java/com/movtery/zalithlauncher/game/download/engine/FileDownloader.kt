@@ -268,7 +268,9 @@ internal class FileDownloader(
      */
     private fun streamInto(input: InputStream, segment: SegmentChain.Segment, chain: SegmentChain, channel: FileChannel) {
         val unknownSize = chain.totalSize < 0
+        //每个并发读流各持一份缓冲与同底数组的写视图，整个流生命周期零增量分配
         val buffer = ByteArray(BUFFER_SIZE)
+        val bufferView = ByteBuffer.wrap(buffer)
         var position = segment.position()
 
         while (true) {
@@ -286,23 +288,22 @@ internal class FileDownloader(
                 throw IOException("Unexpected EOF at $position")
             }
 
-            writeAt(channel, buffer, read, position)
+            writeAt(channel, bufferView, read, position)
             position += read
             segment.done.addAndGet(read.toLong())
             stats.addBytes(read.toLong())
         }
     }
 
-    private fun writeAt(channel: FileChannel, buffer: ByteArray, count: Int, fromOffset: Long) {
+    private fun writeAt(channel: FileChannel, view: ByteBuffer, count: Int, fromOffset: Long) {
+        view.clear()
+        view.limit(count)
+
         var position = fromOffset
-        var offset = 0
-        var unwritten = count
-        while (unwritten > 0) {
-            val written = channel.write(ByteBuffer.wrap(buffer, offset, unwritten), position)
+        while (view.hasRemaining()) {
+            val written = channel.write(view, position)
             if (written <= 0) throw IOException("FileChannel refused write ($written)")
             position += written
-            offset += written
-            unwritten -= written
         }
     }
 

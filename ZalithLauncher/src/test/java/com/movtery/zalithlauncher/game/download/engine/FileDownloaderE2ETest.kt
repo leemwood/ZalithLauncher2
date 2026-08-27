@@ -87,6 +87,46 @@ private class FakeSource(
     }
 }
 
+/**
+ * 分区守卫源：prefixOnly=true 时仅服务起点位于文件前半段的 Range 请求，
+ * 起点越过中位的一律 500；prefixOnly=false 时拒绝起点为 0 的请求，
+ * 其余区间正常服务。两者配合可强制一次下载必然发生跨源断点拼接。
+ */
+private class GuardedHalfSource(
+    private val content: ByteArray,
+    private val prefixOnly: Boolean
+) : Dispatcher() {
+    val hits = AtomicInteger(0)
+    val servedRanges = AtomicInteger(0)
+
+    override fun dispatch(request: RecordedRequest): MockResponse {
+        hits.incrementAndGet()
+        val range = request.headers["Range"]
+            ?: return MockResponse.Builder().code(500).build()
+
+        val start = RANGE.find(range)!!.groupValues[1].toLong().toInt()
+        val servesPrefixHalf = start < content.size / 2
+
+        if (prefixOnly != servesPrefixHalf) {
+            return MockResponse.Builder().code(500).build()
+        }
+
+        //前半段源只出借到中位为止，迫使尾部区间必须由另一源承接
+        val end = if (prefixOnly) content.size / 2 else content.size
+        servedRanges.incrementAndGet()
+        return MockResponse.Builder()
+            .addHeader("Content-Length", (end - start).toString())
+            .code(206)
+            .addHeader("Content-Range", "bytes $start-${end - 1}/${content.size}")
+            .body(Buffer().write(content, start, end - start))
+            .build()
+    }
+
+    companion object {
+        private val RANGE = Regex("""bytes=(\d+)-""")
+    }
+}
+
 class FileDownloaderE2ETest {
 
     private lateinit var workDir: File
@@ -223,6 +263,37 @@ class FileDownloaderE2ETest {
         }
 
         assertArrayEquals(payload, target.readBytes())
+    }
+
+    /** 分区双源：头部段来自 A、断点后半承接自 B，拼接结果必须完整一致 */
+    @Test
+    fun `assembles spliced content across guarded half sources`() = runBlocking {
+        val guardA = GuardedHalfSource(payload, prefixOnly = true)
+        val sourceB = GuardedHalfSource(payload, prefixOnly = false)
+        val serverA = startServer(guardA)
+        val serverB = startServer(sourceB)
+
+        val target = File(newWorkDir(), "spliced.bin")
+        val request = DownloadRequest(
+            urls = listOf(serverA.url("/f").toString(), serverB.url("/f").toString()),
+            targetFile = target,
+            sha1 = sha1HexOf(payload),
+            expectedSize = payload.size.toLong()
+        )
+
+        withTimeout(TEST_TIMEOUT_MS) {
+            FileDownloader(
+                request = request,
+                connections = Semaphore(4),
+                stats = DownloadStats(),
+                allowExtraConnection = { false },
+                client = OkHttpClient()
+            ).download()
+        }
+
+        assertArrayEquals(payload, target.readBytes())
+        assertTrue("server A should have served the prefix", guardA.servedRanges.get() > 0)
+        assertTrue("server B should have served beyond midpoint", sourceB.servedRanges.get() > 0)
     }
 
     companion object {

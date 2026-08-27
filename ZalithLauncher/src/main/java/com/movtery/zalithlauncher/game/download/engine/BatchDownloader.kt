@@ -109,11 +109,18 @@ class BatchDownloader(
 
         if (failures.isNotEmpty()) {
             lastRunFailures = failures.toMap()
-            throw BatchDownloadException(
-                failures.entries.joinToString(separator = "\n") { (path, error) ->
-                    "$path: ${error.message ?: error::class.simpleName}"
-                }
-            )
+            val detail = failures.entries.joinToString(separator = "\n") { (path, error) ->
+                "$path: ${error.message ?: error::class.simpleName}"
+            }
+            //数千文件全挂时详情会淹没日志，仅保留前若干条；完整清单留在 lastRunFailures
+            val summaryLines = detail.lines()
+            val summary = if (summaryLines.size > MAX_FAILURE_DETAIL_LINES) {
+                summaryLines.take(MAX_FAILURE_DETAIL_LINES).joinToString("\n") +
+                        "\n... and ${summaryLines.size - MAX_FAILURE_DETAIL_LINES} more lines"
+            } else {
+                detail
+            }
+            throw BatchDownloadException(summary)
         }
     }
 
@@ -160,6 +167,9 @@ class BatchDownloader(
         private const val TAG = "BatchDownloader"
         const val DEFAULT_MAX_CONNECTIONS = 64
         const val PROGRESS_INTERVAL_MS = 100L
+
+        /** 异常详情中最多列出的失败条数 */
+        private const val MAX_FAILURE_DETAIL_LINES = 20
 
         /** 小于该阈值的文件走 h2 多路复用客户端；更大的文件保持 1.1 分段并发 */
         const val SMALL_TRANSFER_MAX_BYTES: Long = 4L * 1024L * 1024L
