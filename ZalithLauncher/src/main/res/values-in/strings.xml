@@ -974,7 +974,7 @@
     <string name="notification_data_terracotta_message">Saat mode multiplayer, launcher akan memakai layanan foreground untuk menampilkan status koneksi saat ini, jadi membutuh izin notifikasi.</string>
     <string name="versions_update_loader">Perbarui Loader</string>
     <string name="versions_update_loader_waiting_for_others">Menunggu tugas lain selesai</string>
-    <string name="versions_update_loader_diff_message">Apakah kamu yakin ingin mengubah loader game yang sedang dipakai?</string>
+    <string name="versions_update_loader_diff_message">Apakah Anda yakin ingin mengubah loader game yang sedang dipakai?</string>
     <string name="versions_update_loader_diff_change">Ubah: %1$s %2$s → %3$s</string>
     <string name="versions_update_loader_diff_remove">Hapus: %s</string>
     <string name="versions_update_loader_diff_load">Muat: %1$s %2$s</string>
@@ -1215,4 +1215,21 @@
     <string name="settings_launcher_color_theme_style">Gaya Palet</string>
     <string name="settings_renderer_config_title">Konfigurasi Renderer</string>
     <string name="settings_renderer_env_title">Variabel Lingkungan: %s</string>
+    <string name="control_editor_menu_new_widget_joystick">Tambahkan Joystick</string>
+    <string name="control_editor_edit_category_joystick_config">Konfigurasi Joystick</string>
+    <string name="control_editor_edit_category_joystick_style">Gaya Joystick</string>
+    <string name="control_editor_edit_size_joystick">Ukuran Joystick</string>
+    <string name="control_editor_edit_size_reference">Referensi Ukuran</string>
+    <string name="control_editor_edit_joystick_dead_zone">Dead Zone</string>
+    <string name="control_editor_edit_joystick_lock_threshold">Batas Penguncian</string>
+    <string name="control_editor_edit_joystick_can_lock">Kunci ke Depan</string>
+    <string name="control_editor_edit_joystick_trigger_mode">Mode Trigger</string>
+    <string name="control_editor_edit_joystick_trigger_mode_drag">Trigger Seret</string>
+    <string name="control_editor_edit_joystick_trigger_mode_touch">Trigger Sentuh</string>
+    <string name="control_editor_edit_joystick_lock_events">Event Penguncian</string>
+    <string name="control_editor_edit_joystick_select_area">Pilih area untuk mengatur event</string>
+    <string name="control_editor_edit_joystick_style_list">Daftar Gaya Joystick</string>
+    <string name="control_editor_edit_joystick_style_list_empty">Tidak ada gaya joystick pada layout kontrol saat ini</string>
+    <string name="control_editor_edit_joystick_style_list_name">Nama Gaya Joystick</string>
+    <string name="control_editor_edit_joystick_style_list_delete">Apakah Anda yakin ingin menghapus gaya joystick %s?</string>
 </resources>
