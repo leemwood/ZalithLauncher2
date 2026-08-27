@@ -18,7 +18,6 @@
 
 package com.movtery.zalithlauncher.game.download.engine
 
-import com.movtery.zalithlauncher.game.download.engine.DownloadStats.Companion.SAMPLE_INTERVAL_NANOS
 import java.util.concurrent.atomic.AtomicLong
 
 /** 一份批量下载的只读进度快照，供 UI 层消费 */
@@ -31,8 +30,10 @@ data class BatchProgress(
 )
 
 /**
- * 跨线程的字节/文件计数器，内嵌"滑动一秒窗口"的实时测速；
- * 热路径只有一次原子加法，采样与淘汰全部运行在复用的环形缓冲上。
+ * 跨线程的字节/文件计数器，内嵌"逐秒分块"测速：
+ * 每个报表值就是刚刚完整过去的一秒里真实落盘的字节数，每秒更新一次，
+ * 不做任何跨窗口平滑或外推——报出来的数字永远有对应的实际流量。
+ * 热路径只有一次原子加法。
  */
 class DownloadStats internal constructor() {
     private val downloaded = AtomicLong(0L)
@@ -75,37 +76,20 @@ class DownloadStats internal constructor() {
     val downloadedBytes: Long get() = downloaded.get()
 
     /**
-     * 以最近约一秒的实际吞吐返回字节数/秒；两次调用间隔不足 [SAMPLE_INTERVAL_NANOS] 时直接返回上次结果。
-     * 进度快照会先经过这里刷新，保证 UI 读到的速率始终反映当前瞬间。
+     * 返回上一个完整采样秒的真实平均吞吐；距上次采样不足一秒时返回原值。
+     * 进度快照内部会先经过这里，UI 以任意频率轮询都只会看到每秒一格的变化。
      */
     fun refreshSpeed(): Long {
         val now = System.nanoTime()
         synchronized(this) {
-            if (now - lastSampleNanos < SAMPLE_INTERVAL_NANOS) return currentSpeed
+            val elapsed = now - blockStartNanos
+            if (elapsed < SAMPLE_INTERVAL_NANOS) return currentSpeed
 
-            lastSampleNanos = now
             val bytes = downloaded.get()
-
-            //写入新样本（环形缓冲，零分配）
-            val tail = (windowHead + windowCount).let { if (it >= WINDOW_CAPACITY) it - WINDOW_CAPACITY else it }
-            windowStamps[tail] = now
-            windowBytes[tail] = bytes
-            if (windowCount == WINDOW_CAPACITY) {
-                windowHead = if (tail + 1 >= WINDOW_CAPACITY) 0 else tail + 1
-            } else {
-                windowCount++
-            }
-
-            //淘汰比窗口更旧的样本，但始终保留最新一个
-            while (windowCount > 1 && now - windowStamps[windowHead] > WINDOW_NANOS) {
-                windowHead = if (windowHead + 1 >= WINDOW_CAPACITY) 0 else windowHead + 1
-                windowCount--
-            }
-
-            val span = now - windowStamps[windowHead]
-            if (span >= MIN_SPAN_NANOS) {
-                currentSpeed = ((bytes - windowBytes[windowHead]) * NANOS_PER_SEC / span)
-            }
+            currentSpeed = ((bytes - blockStartBytes) * NANOS_PER_SEC / elapsed)
+                .coerceAtLeast(0L)
+            blockStartNanos = now
+            blockStartBytes = bytes
             return currentSpeed
         }
     }
@@ -119,12 +103,8 @@ class DownloadStats internal constructor() {
         speedBytesPerSec = refreshSpeed()
     )
 
-    private val windowStamps = LongArray(WINDOW_CAPACITY)
-    private val windowBytes = LongArray(WINDOW_CAPACITY)
-    private var windowHead = 0
-    private var windowCount = 0
-
-    private var lastSampleNanos = System.nanoTime()
+    private var blockStartNanos = System.nanoTime()
+    private var blockStartBytes = 0L
 
     private var currentSpeed: Long = 0L
 
@@ -132,10 +112,8 @@ class DownloadStats internal constructor() {
         /** 引擎判定"速度偏低需要补连接"的水位线 */
         const val LOW_SPEED_THRESHOLD_BPS: Long = 256L * 1024L
 
-        private const val WINDOW_CAPACITY = 16
-        private const val WINDOW_NANOS = 1_000_000_000L
-        private const val SAMPLE_INTERVAL_NANOS = 80_000_000L
-        private const val MIN_SPAN_NANOS = 50_000_000L
+        /** 速率采样周期：每个报表值统计刚刚完整过去的一秒 */
+        private const val SAMPLE_INTERVAL_NANOS = 1_000_000_000L
         private const val NANOS_PER_SEC = 1_000_000_000L
     }
 }
