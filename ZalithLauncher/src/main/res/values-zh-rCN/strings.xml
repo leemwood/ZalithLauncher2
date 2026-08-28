@@ -408,6 +408,7 @@
     <string name="game_menu_option_force_close_text">强制关闭正在运行的游戏可能导致存档损坏或设置无法保存，除特殊情况外请避免此操作。</string>
     <string name="game_menu_option_switch_log">日志输出</string>
     <string name="game_menu_option_input_method">切换输入法</string>
+    <string name="game_menu_option_auto_show_ime">自动唤起输入法（SDL）</string>
     <string name="game_menu_option_switch_fps">帧率显示</string>
     <string name="game_menu_option_switch_memory">内存显示</string>
     <string name="game_menu_option_menu_ball_opacity">菜单悬浮窗不透明度</string>
@@ -971,6 +972,13 @@
     <string name="settings_control_gyroscope_invert_y_summary">启用后，上下转动设备会反向控制视角</string>
     <string name="settings_gamepad_title">手柄控制</string>
     <string name="settings_gamepad_summary">启用或关闭手柄控制功能。若您的其他外设被误识别为手柄，请关闭此选项</string>
+    <string name="settings_gamepad_input_mode_title">手柄输入模式</string>
+    <string name="settings_gamepad_input_mode_mapped">映射（虚拟按键）</string>
+    <string name="settings_gamepad_input_mode_mapped_summary">手柄按键与摇杆作为虚拟键盘和鼠标使用</string>
+    <string name="settings_gamepad_input_mode_sdl">SDL 直通</string>
+    <string name="settings_gamepad_input_mode_sdl_summary">手柄输入经 SDL/GLFW gamepad API 原样交给游戏，不经过按键映射</string>
+    <string name="gamepad_mode_prompt_description">检测到手柄输入。启动器支持两种手柄输入模式，请选择您希望使用的模式。</string>
+    <string name="gamepad_mode_prompt_hint">稍后可以在游戏菜单的“手柄”分页或启动器设置中更改。</string>
     <string name="settings_gamepad_deadzone_title">手柄死区缩放</string>
     <string name="settings_gamepad_deadzone_summary">设置摇杆中心无响应区域的比例</string>
     <string name="settings_gamepad_joystick_mode_title">摇杆操作模式</string>
