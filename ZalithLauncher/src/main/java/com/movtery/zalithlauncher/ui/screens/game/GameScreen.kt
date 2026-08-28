@@ -103,6 +103,7 @@ import com.movtery.zalithlauncher.ui.control.mouse.SwitchableMouseLayout
 import com.movtery.zalithlauncher.ui.screens.game.elements.DraggableGameBall
 import com.movtery.zalithlauncher.ui.screens.game.elements.ForceCloseOperation
 import com.movtery.zalithlauncher.ui.screens.game.elements.GameMenuSubscreen
+import com.movtery.zalithlauncher.ui.screens.game.elements.GamepadModePromptDialog
 import com.movtery.zalithlauncher.ui.screens.game.elements.LogBox
 import com.movtery.zalithlauncher.ui.screens.game.elements.LogState
 import com.movtery.zalithlauncher.ui.screens.game.elements.ReplacementControlOperation
@@ -692,6 +693,14 @@ fun GameScreen(
                 gamepadViewModel = gamepadViewModel
             )
         }
+
+        //手柄输入模式选择询问
+        GamepadModePromptDialog(
+            visible = gamepadViewModel.modePromptVisible,
+            onConfirm = { mode ->
+                gamepadViewModel.confirmModePrompt(mode)
+            }
+        )
 
         if (viewModel.isEditingLayout) {
             viewModel.currentControlFile?.let {

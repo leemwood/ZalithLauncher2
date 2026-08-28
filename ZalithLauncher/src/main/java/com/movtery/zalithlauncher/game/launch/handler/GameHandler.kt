@@ -161,6 +161,10 @@ class GameHandler(
         if (event.action == KeyEvent.ACTION_UP && (event.flags and KeyEvent.FLAG_CANCELED) != 0) return false
 
         if (event.isGamepadKeyEvent()) {
+            if (AllSettings.gamepadControl.state && gamepadViewModel.checkModePrompt()) {
+                //模式选择询问完成前，吞掉所有手柄按键输入
+                return false
+            }
             if (AllSettings.gamepadControl.state && AllSettings.gamepadInputMode.state == GamepadInputMode.SdlDirect) {
                 //SDL 直通模式下，按键原样交给 SDL native
                 if (SdlBridge.sdlEnabled) {

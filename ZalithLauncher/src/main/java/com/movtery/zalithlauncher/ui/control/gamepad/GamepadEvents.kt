@@ -109,7 +109,10 @@ fun SimpleGamepadCapture(
 
     DisposableEffect(view, gamepadViewModel) {
         val motionListener = View.OnGenericMotionListener { motionView, event ->
-            if (isBinding()) {
+            if (event.isGamepadEvent() && AllSettings.gamepadControl.state && gamepadViewModel.checkModePrompt()) {
+                //模式选择询问优先级最高
+                true
+            } else if (isBinding()) {
                 remapperViewModel.sendEvent(
                     GamepadRemapperViewModel.Event.Axis(event)
                 )

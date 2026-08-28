@@ -259,6 +259,11 @@ object AllSettings : SettingsRegistry() {
     val gamepadInputMode = enumSetting("gamepadInputMode", GamepadInputMode.Mapped)
 
     /**
+     * 是否已完成手柄输入模式的选择询问
+     */
+    val gamepadInputModePrompted = boolSetting("gamepadInputModePrompted", false)
+
+    /**
      * 摇杆死区缩放
      */
     val gamepadDeadZoneScale = intSetting("gamepadDeadZoneScale", 100, 50..200)

@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.core.util.set
 import androidx.lifecycle.ViewModel
 import com.movtery.zalithlauncher.setting.AllSettings
+import com.movtery.zalithlauncher.setting.enums.GamepadInputMode
 import com.movtery.zalithlauncher.ui.control.gamepad.DpadDirection
 import com.movtery.zalithlauncher.ui.control.gamepad.GamepadMap
 import com.movtery.zalithlauncher.ui.control.gamepad.GamepadMapping
@@ -118,6 +119,32 @@ class GamepadViewModel : ViewModel() {
 
     init {
         reloadAllMappings()
+    }
+
+    /**
+     * 手柄输入模式选择询问是否正在显示
+     */
+    var modePromptVisible by mutableStateOf(false)
+        private set
+
+    /**
+     * 手柄活动上报：尚未完成选择询问时弹出对话框
+     * @return true 表示询问未完成，调用方应吞掉本次手柄输入，
+     * 保证选择确认前映射、SDL 直通、绑定向导均不响应手柄
+     */
+    fun checkModePrompt(): Boolean {
+        if (AllSettings.gamepadInputModePrompted.state) return false
+        modePromptVisible = true
+        return true
+    }
+
+    /**
+     * 用户确认了模式选择，保存并关闭
+     */
+    fun confirmModePrompt(selected: GamepadInputMode) {
+        AllSettings.gamepadInputMode.save(selected)
+        AllSettings.gamepadInputModePrompted.save(true)
+        modePromptVisible = false
     }
 
     /**
