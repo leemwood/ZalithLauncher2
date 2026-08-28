@@ -67,6 +67,7 @@ import com.movtery.zalithlauncher.ui.screens.NormalNavKey
 import com.movtery.zalithlauncher.ui.screens.content.elements.Background
 import com.movtery.zalithlauncher.ui.screens.content.elements.LaunchGameOperation
 import com.movtery.zalithlauncher.ui.screens.content.navigateToLogView
+import com.movtery.zalithlauncher.ui.screens.content.navigateToWeb
 import com.movtery.zalithlauncher.ui.screens.main.MainScreen
 import com.movtery.zalithlauncher.ui.screens.main.crashlogs.LogShareMenu
 import com.movtery.zalithlauncher.ui.screens.main.crashlogs.LogShareMenuOperation
@@ -368,6 +369,15 @@ class MainActivity : BaseAppCompatActivity() {
                                 remove = NestedNavKey.VersionSettings::class,
                                 screenKey = NormalNavKey.VersionsManager
                             )
+                        },
+                        navigateToWeb = { url ->
+                            screenBackStackModel.mainScreen.backStack.navigateToWeb(url)
+                        },
+                        backToMain = {
+                            screenBackStackModel.mainScreen.clearWith(NormalNavKey.LauncherMain)
+                        },
+                        checkIfInWebScreen = {
+                            screenBackStackModel.mainScreen.currentKey is NormalNavKey.WebScreen
                         }
                     )
                 }

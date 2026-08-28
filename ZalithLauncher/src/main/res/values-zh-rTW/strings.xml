@@ -412,6 +412,14 @@
     <string name="account_logging_in_saving">獲取玩家皮膚、儲存帳號資訊</string>
     <string name="account_logging_time_out">網路連線逾時，請檢查網路環境。</string>
     <string name="account_logging_not_purchased_minecraft">未偵測到 Minecraft 購買資訊，請前往 Minecraft 官方網站購買。</string>
+    <string name="account_relogin_title">需要重新登入</string>
+    <string name="account_relogin_microsoft_message">啟動器無法重新整理該 Microsoft 帳號的登入憑證，帳號密碼可能已被修改，或登入授權已失效，需要重新登入 Microsoft 帳號。</string>
+    <string name="account_relogin_password_message">驗證伺服器拒絕了目前登入，密碼可能已被修改，請重新輸入 %s 的密碼。</string>
+    <string name="account_relogin">重新登入</string>
+    <string name="account_refresh_failed_title">帳戶重新整理失敗</string>
+    <string name="account_refresh_failed_skip_message">無法連線驗證伺服器。可以跳過帳戶重新整理，使用目前憑證繼續啟動遊戲，但需要線上驗證的伺服器可能會拒絕本次登入。</string>
+    <string name="account_refresh_failed_skip">跳過重新整理</string>
+    <string name="account_refresh_failed_retry">再次重新整理</string>
     <string name="account_type_microsoft">Microsoft 帳號</string>
     <string name="account_type_local">離線帳號</string>
     <string name="account_add_new_server">新增驗證伺服器</string>

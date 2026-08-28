@@ -25,12 +25,12 @@ import com.movtery.zalithlauncher.coroutine.Task
 import com.movtery.zalithlauncher.coroutine.TaskSystem
 import com.movtery.zalithlauncher.game.account.Account
 import com.movtery.zalithlauncher.game.account.AccountsManager
-import com.movtery.zalithlauncher.game.account.auth_server.ResponseException
+import com.movtery.zalithlauncher.game.account.auth_server.AuthServerHelper
 import com.movtery.zalithlauncher.game.account.isLocalAccount
-import com.movtery.zalithlauncher.game.account.microsoft.MinecraftProfileException
-import com.movtery.zalithlauncher.game.account.microsoft.NotPurchasedMinecraftException
-import com.movtery.zalithlauncher.game.account.microsoft.XboxLoginException
-import com.movtery.zalithlauncher.game.account.microsoft.toLocal
+import com.movtery.zalithlauncher.game.account.isMicrosoftAccount
+import com.movtery.zalithlauncher.game.account.isReloginRequired
+import com.movtery.zalithlauncher.game.account.microsoft.validateAccessToken
+import com.movtery.zalithlauncher.game.account.refreshMicrosoft
 import com.movtery.zalithlauncher.game.version.download.DownloadMode
 import com.movtery.zalithlauncher.game.version.download.MinecraftDownloader
 import com.movtery.zalithlauncher.game.version.installed.GraphicsApi
@@ -38,21 +38,16 @@ import com.movtery.zalithlauncher.game.version.installed.Version
 import com.movtery.zalithlauncher.game.version.installed.VersionFolders
 import com.movtery.zalithlauncher.game.version.mod.AllModReader
 import com.movtery.zalithlauncher.setting.AllSettings
-import com.movtery.zalithlauncher.ui.AndroidStringText
-import com.movtery.zalithlauncher.ui.activities.runGame
 import com.movtery.zalithlauncher.ui.androidText
+import com.movtery.zalithlauncher.ui.activities.runGame
 import com.movtery.zalithlauncher.utils.GSON
 import com.movtery.zalithlauncher.utils.file.readText
 import com.movtery.zalithlauncher.utils.logging.Logger
 import com.movtery.zalithlauncher.utils.network.isNetworkAvailable
-import com.movtery.zalithlauncher.utils.network.toLocal
 import com.movtery.zalithlauncher.viewmodel.ErrorViewModel
-import io.ktor.client.plugins.HttpRequestTimeoutException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.ConnectException
-import java.net.UnknownHostException
-import java.nio.channels.UnresolvedAddressException
 import java.util.zip.ZipFile
 
 private const val TAG = "LaunchGame"
@@ -66,7 +61,10 @@ object LaunchGame {
         version: Version,
         exitActivity: () -> Unit,
         waitForVulkanChecker: suspend () -> Unit,
-        submitError: (ErrorViewModel.ThrowableMessage) -> Unit
+        submitError: (ErrorViewModel.ThrowableMessage) -> Unit,
+        onReloginRequired: (Account) -> Unit = {},
+        onRefreshFailed: (Account, Throwable) -> Unit = { _, _ -> },
+        skipAccountRefresh: Boolean = false
     ) {
         if (isLaunching) return
         val account = AccountsManager.currentAccountFlow.value ?: return
@@ -92,10 +90,17 @@ object LaunchGame {
             context = context,
             hasNetwork = hasNetwork,
             account = account,
-            submitError = submitError
-        ) {
-            startDownloadTask()
-        }
+            skipRefresh = skipAccountRefresh,
+            onLoginSuccess = { startDownloadTask() },
+            onReloginRequired = {
+                isLaunching = false
+                onReloginRequired(account)
+            },
+            onRefreshFailed = { th ->
+                isLaunching = false
+                onRefreshFailed(account, th)
+            }
+        )
 
         if (loginTask != null) {
             TaskSystem.submitTask(loginTask)
@@ -200,47 +205,78 @@ object LaunchGame {
         context: Context,
         hasNetwork: Boolean,
         account: Account,
-        submitError: (ErrorViewModel.ThrowableMessage) -> Unit,
-        onFinally: () -> Unit
+        skipRefresh: Boolean,
+        onLoginSuccess: () -> Unit,
+        onReloginRequired: () -> Unit,
+        onRefreshFailed: (Throwable) -> Unit
     ): Task? {
-        val needsRefresh = hasNetwork && System.currentTimeMillis() > account.expiresAt - 5 * 60 * 1000
+        if (!hasNetwork || skipRefresh) return null
+        if (!AccountsManager.isLaunchCheckNeeded(account)) return null
 
-        return if (needsRefresh) {
-            AccountsManager.performLoginTask(
-                context = context,
-                account = account,
-                onSuccess = { acc, _ ->
-                    AccountsManager.suspendSaveAccount(acc)
-                },
-                onFailed = { error ->
-                    val message: AndroidStringText = when (error) {
-                        is NotPurchasedMinecraftException -> toLocal()
-                        is MinecraftProfileException -> error.toLocal()
-                        is XboxLoginException -> error.toLocal()
-                        is ResponseException -> androidText(error.responseMessage)
-                        is HttpRequestTimeoutException -> androidText(R.string.error_timeout)
-                        is UnknownHostException, is UnresolvedAddressException -> androidText(R.string.error_network_unreachable)
-                        is ConnectException -> androidText(R.string.error_connection_failed)
-                        is io.ktor.client.plugins.ResponseException -> error.toLocal()
-                        else -> {
-                            Logger.error(TAG, "An unknown exception was caught!", error)
-                            androidText(
-                                error.localizedMessage ?: error.message ?: error::class.qualifiedName ?: "Unknown error"
-                            )
-                        }
-                    }
+        //账号管理页已在刷新该账号时，直接使用现有凭据启动
+        val runningTaskId = if (account.isMicrosoftAccount()) account.profileId else account.uniqueUUID
+        if (TaskSystem.containsTask(runningTaskId)) return null
 
-                    submitError(
-                        ErrorViewModel.ThrowableMessage(
-                            title = androidText(R.string.account_logging_in_failed),
-                            message = message
-                        )
-                    )
-                },
-                onFinally = onFinally
-            )
+        val onCheckFailed: (Throwable) -> Unit = { error ->
+            if (error.isReloginRequired()) onReloginRequired()
+            else onRefreshFailed(error)
+        }
+
+        return if (account.isMicrosoftAccount()) {
+            createMicrosoftCheckTask(account, onLoginSuccess, onCheckFailed)
         } else {
-            null
+            createOtherCheckTask(context, account, onLoginSuccess, onCheckFailed)
         }
     }
+
+    private fun createMicrosoftCheckTask(
+        account: Account,
+        onLoginSuccess: () -> Unit,
+        onCheckFailed: (Throwable) -> Unit
+    ): Task = Task.runTask(
+        id = account.profileId,
+        dispatcher = Dispatchers.IO,
+        task = { task ->
+            val expired = System.currentTimeMillis() > account.expiresAt - 5 * 60 * 1000
+            if (expired || !validateAccessToken(account)) {
+                account.refreshMicrosoft(task, coroutineContext)
+                AccountsManager.suspendSaveAccount(account)
+            }
+            AccountsManager.markSessionValidated(account)
+            onLoginSuccess()
+        },
+        onError = { e ->
+            if (e !is CancellationException) onCheckFailed(e)
+        },
+        onCancel = { isLaunching = false }
+    )
+
+    private fun createOtherCheckTask(
+        context: Context,
+        account: Account,
+        onLoginSuccess: () -> Unit,
+        onCheckFailed: (Throwable) -> Unit
+    ): Task = Task.runTask(
+        id = account.uniqueUUID,
+        dispatcher = Dispatchers.IO,
+        task = { task ->
+            task.updateMessage(androidText(R.string.account_logging_in, account.username))
+            val helper = AuthServerHelper(
+                baseUrl = account.otherBaseUrl!!,
+                serverName = account.accountType!!,
+                email = account.otherAccount!!,
+                password = account.otherPassword!!
+            )
+            if (!helper.validateOrRefresh(context, account)) {
+                helper.passwordLogin(context, account)
+            }
+            AccountsManager.suspendSaveAccount(account)
+            AccountsManager.markSessionValidated(account)
+            onLoginSuccess()
+        },
+        onError = { e ->
+            if (e !is CancellationException) onCheckFailed(e)
+        },
+        onCancel = { isLaunching = false }
+    )
 }

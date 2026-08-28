@@ -21,11 +21,25 @@ package com.movtery.zalithlauncher.ui.screens.content.elements
 import android.app.Activity
 import android.net.Uri
 import android.os.Parcelable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -34,6 +48,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.ui.window.Dialog
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.gif.GifDecoder
@@ -41,7 +61,12 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.request.crossfade
 import com.movtery.zalithlauncher.R
+import com.movtery.zalithlauncher.game.account.Account
 import com.movtery.zalithlauncher.game.account.AccountsManager
+import com.movtery.zalithlauncher.game.account.accountErrorText
+import com.movtery.zalithlauncher.game.account.isMicrosoftAccount
+import com.movtery.zalithlauncher.game.account.auth_server.AuthServerHelper
+import com.movtery.zalithlauncher.game.account.microsoftLogin
 import com.movtery.zalithlauncher.game.launch.LaunchGame
 import com.movtery.zalithlauncher.game.plugin.ApkPlugin
 import com.movtery.zalithlauncher.game.plugin.natives.NativePluginManager
@@ -51,10 +76,15 @@ import com.movtery.zalithlauncher.game.renderer.Renderers
 import com.movtery.zalithlauncher.game.version.installed.Version
 import com.movtery.zalithlauncher.setting.AllSettings
 import com.movtery.zalithlauncher.setting.enums.BackgroundBlur
+import com.movtery.zalithlauncher.ui.AndroidStringText
 import com.movtery.zalithlauncher.ui.androidText
+import com.movtery.zalithlauncher.ui.components.MarqueeText
 import com.movtery.zalithlauncher.ui.components.SimpleAlertDialog
 import com.movtery.zalithlauncher.ui.components.VideoPlayer
+import com.movtery.zalithlauncher.ui.components.rememberDialogMaxHeight
 import com.movtery.zalithlauncher.ui.screens.content.FirstLoginMenu
+import com.movtery.zalithlauncher.ui.theme.cardColor
+import com.movtery.zalithlauncher.ui.theme.onCardColor
 import com.movtery.zalithlauncher.utils.canHandlePermission
 import com.movtery.zalithlauncher.utils.checkStoragePermissions
 import com.movtery.zalithlauncher.utils.file.InvalidFilenameException
@@ -126,10 +156,28 @@ sealed interface LaunchGameOperation {
         val quickPlay: QuickPlay? = null
     ) : LaunchGameOperation
 
+    /** 账号凭据已被服务端拒绝，需要重新登录 */
+    data class AccountRelogin(
+        val account: Account,
+        val version: Version,
+        val quickPlay: QuickPlay?,
+        val logging: Boolean = false,
+        val error: Throwable? = null
+    ) : LaunchGameOperation
+
+    /** 账号刷新失败，可选择跳过刷新继续启动 */
+    data class AccountRefreshFailed(
+        val account: Account,
+        val error: Throwable,
+        val version: Version,
+        val quickPlay: QuickPlay?
+    ) : LaunchGameOperation
+
     /** 正式启动 */
     data class RealLaunch(
         val version: Version,
-        val quickPlay: QuickPlay?
+        val quickPlay: QuickPlay?,
+        val skipAccountRefresh: Boolean = false
     ) : LaunchGameOperation
 }
 
@@ -143,7 +191,10 @@ fun LaunchGameOperation(
     waitForVulkanChecker: suspend () -> Unit,
     submitError: (ErrorViewModel.ThrowableMessage) -> Unit,
     toAccountManageScreen: (FirstLoginMenu) -> Unit = {},
-    toVersionManageScreen: () -> Unit = {}
+    toVersionManageScreen: () -> Unit = {},
+    navigateToWeb: (String) -> Unit = {},
+    backToMain: () -> Unit = {},
+    checkIfInWebScreen: () -> Boolean = { false }
 ) {
     when (launchGameOperation) {
         is LaunchGameOperation.None -> {}
@@ -288,6 +339,94 @@ fun LaunchGameOperation(
                 updateOperation(LaunchGameOperation.RealLaunch(version, quickPlay))
             }
         }
+        is LaunchGameOperation.AccountRelogin -> {
+            if (launchGameOperation.account.isMicrosoftAccount()) {
+                MicrosoftReloginDialog(
+                    onDismissRequest = {
+                        updateOperation(LaunchGameOperation.None)
+                    },
+                    onConfirm = {
+                        updateOperation(LaunchGameOperation.None)
+                        microsoftLogin(
+                            context = activity,
+                            toWeb = navigateToWeb,
+                            backToMain = backToMain,
+                            checkIfInWebScreen = checkIfInWebScreen,
+                            updateOperation = {},
+                            showToast = { text, duration -> eventViewModel.sendToast(text, duration) },
+                            submitError = submitError
+                        ) {
+                            activity.runOnUiThread {
+                                updateOperation(
+                                    LaunchGameOperation.RealLaunch(
+                                        launchGameOperation.version,
+                                        launchGameOperation.quickPlay)
+                                )
+                            }
+                        }
+                    }
+                )
+            } else {
+                OtherAccountReloginDialog(
+                    account = launchGameOperation.account,
+                    logging = launchGameOperation.logging,
+                    error = launchGameOperation.error,
+                    onDismissRequest = {
+                        updateOperation(LaunchGameOperation.None)
+                    },
+                    onConfirm = { password ->
+                        updateOperation(launchGameOperation.copy(logging = true, error = null))
+                        AuthServerHelper(
+                            baseUrl = launchGameOperation.account.otherBaseUrl!!,
+                            serverName = launchGameOperation.account.accountType!!,
+                            email = launchGameOperation.account.otherAccount!!,
+                            password = password,
+                            onSuccess = { acc, _ ->
+                                AccountsManager.markSessionValidated(acc)
+                                AccountsManager.suspendSaveAccount(acc)
+                                activity.runOnUiThread {
+                                    updateOperation(
+                                        LaunchGameOperation.RealLaunch(
+                                            launchGameOperation.version,
+                                            launchGameOperation.quickPlay)
+                                    )
+                                }
+                            },
+                            onFailed = { th ->
+                                activity.runOnUiThread {
+                                    updateOperation(
+                                        launchGameOperation.copy(
+                                            logging = false,
+                                            error = th
+                                        ))
+                                }
+                            }
+                        ).justLogin(activity, launchGameOperation.account)
+                    }
+                )
+            }
+        }
+        is LaunchGameOperation.AccountRefreshFailed -> {
+            val state = launchGameOperation
+            AccountRefreshFailedDialog(
+                error = state.error,
+                onSkip = {
+                    updateOperation(
+                        LaunchGameOperation.RealLaunch(
+                            state.version,
+                            state.quickPlay,
+                            skipAccountRefresh = true
+                        )
+                    )
+                },
+                onRetry = {
+                    updateOperation(LaunchGameOperation.RealLaunch(state.version, state.quickPlay))
+                },
+                onCancel = {
+                    updateOperation(LaunchGameOperation.None)
+                }
+            )
+        }
         is LaunchGameOperation.RealLaunch -> {
             LaunchedEffect(Unit) {
                 val version = launchGameOperation.version
@@ -301,9 +440,106 @@ fun LaunchGameOperation(
                     version = version,
                     exitActivity = exitActivity,
                     waitForVulkanChecker = waitForVulkanChecker,
-                    submitError = submitError
+                    submitError = submitError,
+                    onReloginRequired = { account ->
+                        activity.runOnUiThread {
+                            updateOperation(
+                                LaunchGameOperation.AccountRelogin(account, version, quickPlay)
+                            )
+                        }
+                    },
+                    onRefreshFailed = { account, th ->
+                        activity.runOnUiThread {
+                            updateOperation(
+                                LaunchGameOperation.AccountRefreshFailed(account, th, version, quickPlay)
+                            )
+                        }
+                    },
+                    skipAccountRefresh = launchGameOperation.skipAccountRefresh
                 )
                 updateOperation(LaunchGameOperation.None)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountRefreshFailedDialog(
+    error: Throwable,
+    onSkip: () -> Unit,
+    onRetry: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onCancel
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .heightIn(max = rememberDialogMaxHeight())
+                .fillMaxHeight(),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                modifier = Modifier
+                    .padding(all = 6.dp)
+                    .heightIn(max = (maxHeight - 12.dp).coerceAtMost(rememberDialogMaxHeight()))
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = cardColor(false),
+                contentColor = onCardColor(),
+                shadowElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.account_refresh_failed_title),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.size(12.dp))
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .verticalScroll(rememberScrollState())
+                            .fillMaxWidth()
+                    ) {
+                        AndroidStringText(
+                            text = accountErrorText(error),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(
+                            text = stringResource(R.string.account_refresh_failed_skip_message),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    Spacer(modifier = Modifier.size(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        FilledTonalButton(
+                            modifier = Modifier.weight(1f),
+                            onClick = onCancel
+                        ) {
+                            MarqueeText(text = stringResource(R.string.generic_cancel))
+                        }
+                        FilledTonalButton(
+                            modifier = Modifier.weight(1f),
+                            onClick = onRetry
+                        ) {
+                            MarqueeText(text = stringResource(R.string.account_refresh_failed_retry))
+                        }
+                        Button(
+                            modifier = Modifier.weight(1f),
+                            onClick = onSkip
+                        ) {
+                            MarqueeText(text = stringResource(R.string.account_refresh_failed_skip))
+                        }
+                    }
+                }
             }
         }
     }
