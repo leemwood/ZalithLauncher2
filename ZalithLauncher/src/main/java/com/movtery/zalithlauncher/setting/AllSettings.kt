@@ -568,22 +568,22 @@ object AllSettings : SettingsRegistry() {
     /**
      * 搜索模组的初始搜索平台
      */
-    val searchModPlatform = enumSetting("searchModPlatform", Platform.MODRINTH)
+    val searchModPlatform = enumSetting("searchModPlatform", Platform.CURSEFORGE)
 
     /**
      * 搜索整合包的初始搜索平台
      */
-    val searchModpackPlatform = enumSetting("searchModpackPlatform", Platform.MODRINTH)
+    val searchModpackPlatform = enumSetting("searchModpackPlatform", Platform.CURSEFORGE)
 
     /**
      * 搜索资源包的初始搜索平台
      */
-    val searchResourcePackPlatform = enumSetting("searchResourcePackPlatform", Platform.MODRINTH)
+    val searchResourcePackPlatform = enumSetting("searchResourcePackPlatform", Platform.CURSEFORGE)
 
     /**
      * 搜索光影的初始搜索平台
      */
-    val searchShadersPlatform = enumSetting("searchShadersPlatform", Platform.MODRINTH)
+    val searchShadersPlatform = enumSetting("searchShadersPlatform", Platform.CURSEFORGE)
 
     /**
      * 启动 MC26.2+ 时，自动检查 Vulkan
