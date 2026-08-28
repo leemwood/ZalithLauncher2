@@ -785,8 +785,6 @@
     <string name="settings_renderer_zink_driver_adreno">啟動器偵測到您的裝置為 Adreno GPU，開啟此選項可能會導致 Zink 渲染器無法正常運作，您確定要開啟此選項嗎？</string>
     <string name="settings_renderer_vsync_in_zink_title">啟用 Zink 垂直同步</string>
     <string name="settings_renderer_vsync_in_zink_summary">透過系統介面為 Zink 渲染器啟用垂直同步</string>
-    <string name="settings_renderer_force_big_core_title">強制在高效能核心執行</string>
-    <string name="settings_renderer_force_big_core_summary">將 Minecraft 的渲染執行緒綁定到 CPU 的高效能核心（大核）上，啟用後可能增加功耗與發熱</string>
     <string name="settings_renderer_surface_title">使用 SurfaceView 渲染</string>
     <string name="settings_renderer_surface_summary">使用獨立於介面之外的圖層進行渲染</string>
     <string name="settings_game_version_isolation_title">全域版本隔離</string>
