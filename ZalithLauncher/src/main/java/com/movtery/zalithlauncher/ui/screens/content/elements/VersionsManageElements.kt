@@ -706,7 +706,7 @@ fun VersionItemLayout(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape = MaterialTheme.shapes.large)
-                .padding(all = 8.dp),
+                .padding(all = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             RadioButton(
