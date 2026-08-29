@@ -177,16 +177,18 @@ class GameLaunchFlow(scope: CoroutineScope) {
                 }
             }
 
-            //校验并修复游戏文件
-            addTask(
-                icon = R.drawable.ic_assignment_filled,
-                title = androidText(R.string.minecraft_download_stat_verify_task),
-                task = createGameDownloadTask(
-                    context = context,
-                    version = version,
-                    submitError = submitError
+            if (!version.skipGameIntegrityCheck()) {
+                //校验并修复游戏文件
+                addTask(
+                    icon = R.drawable.ic_assignment_filled,
+                    title = androidText(R.string.minecraft_download_stat_verify_task),
+                    task = createGameDownloadTask(
+                        context = context,
+                        version = version,
+                        submitError = submitError
+                    )
                 )
-            )
+            }
 
             //启动游戏
             addTask(
@@ -238,7 +240,6 @@ class GameLaunchFlow(scope: CoroutineScope) {
             context = context,
             version = version.getVersionInfo()?.minecraftVersion ?: version.getVersionName(),
             customName = version.getVersionName(),
-            verifyIntegrity = !version.skipGameIntegrityCheck(),
             mode = DownloadMode.VERIFY_AND_REPAIR,
             onError = { message ->
                 submitError(

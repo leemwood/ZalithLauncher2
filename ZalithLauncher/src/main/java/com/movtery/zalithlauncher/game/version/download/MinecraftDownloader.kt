@@ -47,8 +47,7 @@ class MinecraftDownloader(
     private val context: Context,
     private val version: String,
     private val customName: String = version,
-    private val verifyIntegrity: Boolean,
-    private val downloader: BaseMinecraftDownloader = BaseMinecraftDownloader(verifyIntegrity = verifyIntegrity),
+    private val downloader: BaseMinecraftDownloader = BaseMinecraftDownloader(),
     private val mode: DownloadMode = DownloadMode.DOWNLOAD,
     private val onCompletion: suspend (Task) -> Unit = {},
     private val onError: (message: String) -> Unit = {},
@@ -212,7 +211,7 @@ class MinecraftDownloader(
         allDownloadTasks.add(
             DownloadTask(
                 urls = urls,
-                verifyIntegrity = verifyIntegrity,
+                verifyIntegrity = true,
                 targetFile = targetFile,
                 sha1 = sha1,
                 size = size,
