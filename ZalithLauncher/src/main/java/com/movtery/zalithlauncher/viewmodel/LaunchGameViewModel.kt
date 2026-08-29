@@ -66,6 +66,7 @@ class LaunchGameViewModel : ViewModel() {
                                 LaunchGameOperation.AccountRelogin(account, version, quickPlay)
                             )
                         }
+                        cancel()
                     },
                     onRefreshFailed = { account, th ->
                         activity.runOnUiThread {
@@ -73,6 +74,7 @@ class LaunchGameViewModel : ViewModel() {
                                 LaunchGameOperation.AccountRefreshFailed(account, th, version, quickPlay)
                             )
                         }
+                        cancel()
                     },
                     onComplete = {
                         _launchFlow.update { null }
