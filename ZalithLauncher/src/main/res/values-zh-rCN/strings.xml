@@ -276,7 +276,6 @@
     <string name="download_modpack_install_overrides">提取整合包文件</string>
     <string name="download_modpack_download">下载整合包所需内容</string>
     <string name="download_modpack_download_mods">下载所有模组 (%1$d/%2$d, %3$s)</string>
-    <string name="download_modpack_download_mods_retry">重试下载所有模组 (%1$d/%2$d, %3$s)</string>
     <string name="download_modpack_get_loaders">获取加载器信息</string>
     <string name="download_modpack_final_move">迁移整合包文件中</string>
     <!-- 资源类别 -->
@@ -465,6 +464,14 @@
     <string name="account_logging_blocked_ip">当前 IP 地址已被禁止登陆。</string>
     <string name="account_logging_profile_not_exists">请先创建 Minecraft 玩家档案，然后再重新登陆！</string>
     <string name="account_logging_not_purchased_minecraft">未检查到 Minecraft 配置信息，请前往 Minecraft 的官方网站购买。</string>
+    <string name="account_relogin_title">需要重新登录</string>
+    <string name="account_relogin_microsoft_message">启动器无法刷新该微软账号的登录凭据，账号密码可能已被修改，或登录授权已失效，需要重新登录微软账号。</string>
+    <string name="account_relogin_password_message">验证服务器拒绝了当前登录，密码可能已被修改，请重新输入 %s 的密码。</string>
+    <string name="account_relogin">重新登录</string>
+    <string name="account_refresh_failed_title">账户刷新失败</string>
+    <string name="account_refresh_failed_skip_message">无法访问验证服务器。可以跳过账户刷新，使用当前凭据继续启动游戏，但需要在线验证的服务器可能会拒绝本次登录。</string>
+    <string name="account_refresh_failed_skip">跳过刷新</string>
+    <string name="account_refresh_failed_retry">重新刷新</string>
     <string name="account_type_microsoft">微软账号</string>
     <string name="account_type_local">离线账号</string>
     <string name="account_add_new_server">添加认证服务器</string>
@@ -666,7 +673,6 @@
     <string name="versions_overview_screenshot_folder">屏幕截图文件夹</string>
     <string name="versions_overview_logs_folder">日志文件夹</string>
     <string name="versions_overview_crash_report_folder">崩溃报告文件夹</string>
-    <string name="versions_overview_cant_share_folder_message">当前设备没有第三方应用可以打开该目录！</string>
     <string name="versions_overview_log">运行日志</string>
     <string name="versions_config_version_settings">版本独立设置</string>
     <string name="versions_config_game_settings">游戏独立设置</string>
@@ -769,7 +775,6 @@
     <string name="mods_update_task_loading">同步模组数据：%s</string>
     <string name="mods_update_no_mods_update">所有模组都是最新版本，无需更新</string>
     <string name="mods_update_updating">更新所有模组 (%1$d/%2$d, %3$s)</string>
-    <string name="mods_update_updating_retry">重试更新所有模组 (%1$d/%2$d, %3$s)</string>
     <string name="mods_update_success">更新成功</string>
     <string name="mods_update_success_text">您选择的模组都更新到了最新版本！</string>
     <string name="mods_update_failed">更新模组失败</string>
@@ -844,10 +849,7 @@
     <string name="minecraft_download_stat_verify_task">统计验证任务</string>
     <string name="minecraft_download_downloading_game_files">下载游戏文件中 \n(%1$d/%2$d, %3$s/%4$s)</string>
     <string name="minecraft_download_verifying_and_repairing_files">验证并补全游戏文件中 \n(%1$d/%2$d, %3$s/%4$s)</string>
-    <string name="minecraft_download_progress_retry_downloading_files">重试下载游戏文件中 \n(%1$d/%2$d, %3$s/%4$s)</string>
-    <string name="minecraft_download_progress_retry_verifying_files">重试验证并补全游戏文件中 \n(%1$d/%2$d, %3$s/%4$s)</string>
     <string name="minecraft_download_failed">下载 Minecraft 过程中出现异常</string>
-    <string name="minecraft_download_failed_retried">在此之前，启动器已经尝试过重试一次，但仍有任务下载失败</string>
     <string name="minecraft_download_failed_notfound">某些依赖文件无法下载，如果多次尝试仍失败，可能是游戏缺少必要的库文件，建议重新安装游戏。</string>
     <!--  设置  -->
     <string name="settings_title_blur">模糊效果</string>
@@ -880,8 +882,6 @@
     <string name="settings_renderer_zink_driver_adreno">启动器检测到您的设备为 Adreno GPU，开启这个选项可能会导致 Zink 渲染器无法正常工作，您确定要打开这个选项吗？</string>
     <string name="settings_renderer_vsync_in_zink_title">启用 Zink 垂直同步</string>
     <string name="settings_renderer_vsync_in_zink_summary">通过系统接口为 Zink 渲染器启用垂直同步</string>
-    <string name="settings_renderer_force_big_core_title">强制在高性能核心运行</string>
-    <string name="settings_renderer_force_big_core_summary">将 Minecraft 的渲染线程绑定到 CPU 的高性能核心（大核）上，启用后可能增加功耗与发热</string>
     <string name="settings_renderer_surface_title">使用 SurfaceView 渲染</string>
     <string name="settings_renderer_surface_summary">使用独立于界面之外的图层进行渲染</string>
     <string name="settings_game_version_isolation_title">全局版本隔离</string>
@@ -1045,10 +1045,9 @@
     <string name="settings_launcher_log_share_title">分享启动器日志</string>
     <string name="settings_launcher_log_share_summary">点击以分享启动器的日志文件，以供开发者定位并修复启动器的问题</string>
     <string name="settings_launcher_log_share_packing">打包启动器日志文件</string>
-    <string name="settings_launcher_mirror_modloader_title">模组加载器版本获取源</string>
-    <string name="settings_launcher_mirror_file_download_title">文件下载源</string>
-    <string name="settings_launcher_mirror_assets_search_title">资源平台搜索源</string>
-    <string name="settings_launcher_mirror_assets_download_title">资源平台文件下载源</string>
+    <string name="settings_launcher_mirror_game_source_title">游戏内容下载源</string>
+    <string name="settings_launcher_mirror_asset_platform_source_title">资源平台下载源</string>
+    <string name="settings_launcher_mirror_auto">自动</string>
     <string name="settings_launcher_mirror_official_first">优先使用官方源</string>
     <string name="settings_launcher_mirror_mirror_first">优先使用镜像源</string>
     <string name="settings_launcher_background_title">启动器背景</string>
@@ -1136,7 +1135,6 @@
     <string name="control_editor_edit_category_joystick_events">方向事件</string>
     <string name="control_editor_edit_category_joystick_style">摇杆样式</string>
     <string name="control_editor_edit_size_joystick">摇杆大小</string>
-    <string name="control_editor_edit_size_reference">大小参考</string>
     <string name="control_editor_edit_joystick_dead_zone">死区范围</string>
     <string name="control_editor_edit_joystick_lock_threshold">锁定阈值</string>
     <string name="control_editor_edit_joystick_can_lock">前进锁定</string>
@@ -1331,7 +1329,6 @@
     <string name="fm_editor_goto_invalid">行号超出范围</string>
     <string name="fm_editor_replace">替换</string>
     <string name="fm_editor_replace_all">全部替换</string>
-    <string name="fm_editor_replace_hint">替换为</string>
     <string name="fm_editor_undo">撤销</string>
     <string name="fm_editor_redo">重做</string>
     <string name="fm_editor_wordwrap">自动换行</string>

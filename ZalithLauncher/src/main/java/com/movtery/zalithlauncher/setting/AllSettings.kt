@@ -92,11 +92,6 @@ object AllSettings : SettingsRegistry() {
     val vsyncInZink = boolSetting("vsyncInZink", false)
 
     /**
-     * 强制在高性能核心运行
-     */
-    val bigCoreAffinity = boolSetting("bigCoreAffinity", false)
-
-    /**
      * 启用着色器日志输出
      */
     val dumpShaders = boolSetting("dumpShaders", false)
@@ -440,24 +435,14 @@ object AllSettings : SettingsRegistry() {
     val launcherLogRetentionDays = intSetting("launcherLogRetentionDays", 7, 1..14)
 
     /**
-     * 下载版本附加内容镜像源类型
+     * 游戏内容镜像源
      */
-    val fetchModLoaderSource = enumSetting("fetchModLoaderSource", MirrorSourceType.OFFICIAL_FIRST)
+    val gameDownloadSource = enumSetting("gameDownloadSource", MirrorSourceType.AUTO)
 
     /**
-     * 文件下载镜像源类型
+     * 资源平台镜像源
      */
-    val fileDownloadSource = enumSetting("fileDownloadSource", MirrorSourceType.OFFICIAL_FIRST)
-
-    /**
-     * 资源搜索镜像源类型
-     */
-    val assetSearchSource = enumSetting("assetSearchSource", MirrorSourceType.OFFICIAL_FIRST)
-
-    /**
-     * 资源下载镜像源类型
-     */
-    val assetDownloadSource = enumSetting("assetDownloadSource", MirrorSourceType.OFFICIAL_FIRST)
+    val assetPlatformSource = enumSetting("assetPlatformSource", MirrorSourceType.AUTO)
 
     //Control
     /**
@@ -594,22 +579,22 @@ object AllSettings : SettingsRegistry() {
     /**
      * 搜索模组的初始搜索平台
      */
-    val searchModPlatform = enumSetting("searchModPlatform", Platform.MODRINTH)
+    val searchModPlatform = enumSetting("searchModPlatform", Platform.CURSEFORGE)
 
     /**
      * 搜索整合包的初始搜索平台
      */
-    val searchModpackPlatform = enumSetting("searchModpackPlatform", Platform.MODRINTH)
+    val searchModpackPlatform = enumSetting("searchModpackPlatform", Platform.CURSEFORGE)
 
     /**
      * 搜索资源包的初始搜索平台
      */
-    val searchResourcePackPlatform = enumSetting("searchResourcePackPlatform", Platform.MODRINTH)
+    val searchResourcePackPlatform = enumSetting("searchResourcePackPlatform", Platform.CURSEFORGE)
 
     /**
      * 搜索光影的初始搜索平台
      */
-    val searchShadersPlatform = enumSetting("searchShadersPlatform", Platform.MODRINTH)
+    val searchShadersPlatform = enumSetting("searchShadersPlatform", Platform.CURSEFORGE)
 
     /**
      * 启动 MC26.2+ 时，自动检查 Vulkan
