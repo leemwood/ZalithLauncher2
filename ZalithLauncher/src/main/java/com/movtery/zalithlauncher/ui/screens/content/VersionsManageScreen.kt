@@ -480,31 +480,47 @@ private fun VersionsLayout(
             val density = LocalDensity.current
             val topAppBarState = rememberTopAppBarState()
             val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
+            val headerTopPaddingPx = with(density) { 12.dp.toPx() }
             var headerHeightPx by remember { mutableIntStateOf(0) }
+
+            // 操作栏阴影跟随滚动线性过渡
+            val listState = rememberLazyListState()
+            val topShadowRampPx = with(density) { 100.dp.toPx() } // 列表滚离顶部超过该距离后阴影达到最大
+            val listScrolledFraction = remember(listState, topShadowRampPx) {
+                derivedStateOf {
+                    if (listState.firstVisibleItemIndex > 0) 1f
+                    else (listState.firstVisibleItemScrollOffset / topShadowRampPx).coerceIn(0f, 1f)
+                }
+            }
+            val barShownFraction = remember(topAppBarState) {
+                derivedStateOf { 1f - topAppBarState.collapsedFraction }
+            }
+            val actionBarShadowElevation = 5.dp * barShownFraction.value * listScrolledFraction.value
 
             Box(modifier = Modifier.fillMaxSize()) {
                 if (versions.isNotEmpty()) {
-                    val scrollState = rememberLazyListState()
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
                             .nestedScroll(scrollBehavior.nestedScrollConnection)
                             .nonInteractiveScrollbar(
-                                state = scrollState.scrollIndicatorState!!,
+                                state = listState.scrollIndicatorState!!,
                                 orientation = Orientation.Vertical,
                             )
                             .clipToBounds(),
-                        // 顶部内边距随操作栏收起高度联动，操作栏隐藏时列表内容平滑填补其位置
+                        // 顶部内边距随操作栏收起高度联动：
+                        // 基础 24dp = 操作栏顶部边距 12dp + 间距 12dp，
+                        // 残差允许为负（下限为顶部边距），使完全收起时首项正好回落到 12dp
                         contentPadding = PaddingValues(
                             start = 12.dp,
-                            top = 12.dp + with(density) {
-                                (headerHeightPx + topAppBarState.heightOffset).coerceAtLeast(0f).toDp()
+                            top = 24.dp + with(density) {
+                                (headerHeightPx + topAppBarState.heightOffset).coerceAtLeast(-headerTopPaddingPx).toDp()
                             },
                             end = 12.dp,
                             bottom = 12.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        state = scrollState,
+                        state = listState,
                     ) {
                         items(versions, key = { it.toString() }) { version ->
                             VersionItemLayout(
@@ -546,10 +562,10 @@ private fun VersionsLayout(
                         .fillMaxWidth()
                         .height(IntrinsicSize.Min)
                         .zIndex(1f)
-                        .padding(horizontal = 12.dp)
+                        .padding(start = 12.dp, end = 12.dp, top = 12.dp)
                         .onSizeChanged {
                             headerHeightPx = it.height
-                            topAppBarState.heightOffsetLimit = -it.height.toFloat()
+                            topAppBarState.heightOffsetLimit = -(it.height + headerTopPaddingPx)
                         }
                         .offset { IntOffset(x = 0, y = topAppBarState.heightOffset.roundToInt()) },
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -559,6 +575,7 @@ private fun VersionsLayout(
                         color = cardColor(false),
                         contentColor = onCardColor(),
                         shape = MaterialTheme.shapes.large,
+                        shadowElevation = actionBarShadowElevation,
                     ) {
                         Row(
                             modifier = Modifier.padding(all = 8.dp),
@@ -588,6 +605,7 @@ private fun VersionsLayout(
                         color = cardColor(false),
                         contentColor = onCardColor(),
                         shape = MaterialTheme.shapes.large,
+                        shadowElevation = actionBarShadowElevation,
                     ) {
                         val scrollState = rememberScrollState()
                         Row(

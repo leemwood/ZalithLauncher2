@@ -96,8 +96,8 @@ import com.movtery.zalithlauncher.ui.components.SimpleTaskDialog
 import com.movtery.zalithlauncher.ui.components.TextRailItem
 import com.movtery.zalithlauncher.ui.components.fadeEdge
 import com.movtery.zalithlauncher.ui.components.verticalScrollWithBar
-import com.movtery.zalithlauncher.ui.theme.itemColor
-import com.movtery.zalithlauncher.ui.theme.onItemColor
+import com.movtery.zalithlauncher.ui.theme.cardColor
+import com.movtery.zalithlauncher.ui.theme.onCardColor
 import com.movtery.zalithlauncher.utils.animation.getAnimateTween
 import com.movtery.zalithlauncher.utils.logging.Logger
 import com.movtery.zalithlauncher.utils.string.getMessageOrToString
@@ -678,8 +678,8 @@ fun VersionItemLayout(
     selected: Boolean,
     submitError: (ErrorViewModel.ThrowableMessage) -> Unit,
     modifier: Modifier = Modifier,
-    color: Color = itemColor(),
-    contentColor: Color = onItemColor(),
+    color: Color = cardColor(),
+    contentColor: Color = onCardColor(),
     onSelected: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onRenameClick: () -> Unit = {},
