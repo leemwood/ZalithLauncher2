@@ -66,6 +66,7 @@ import com.movtery.zalithlauncher.ui.screens.NestedNavKey
 import com.movtery.zalithlauncher.ui.screens.NormalNavKey
 import com.movtery.zalithlauncher.ui.screens.content.elements.Background
 import com.movtery.zalithlauncher.ui.screens.content.elements.LaunchGameOperation
+import com.movtery.zalithlauncher.ui.screens.content.elements.TitleTaskFlowDialog
 import com.movtery.zalithlauncher.ui.screens.content.navigateToLogView
 import com.movtery.zalithlauncher.ui.screens.content.navigateToWeb
 import com.movtery.zalithlauncher.ui.screens.main.MainScreen
@@ -350,8 +351,7 @@ class MainActivity : BaseAppCompatActivity() {
                     LaunchGameOperation(
                         activity = this@MainActivity,
                         eventViewModel = eventViewModel,
-                        launchGameOperation = launchGameViewModel.launchGameOperation,
-                        updateOperation = { launchGameViewModel.updateOperation(it) },
+                        launchGameViewModel = launchGameViewModel,
                         exitActivity = {
                             this@MainActivity.finish()
                         },
@@ -380,6 +380,20 @@ class MainActivity : BaseAppCompatActivity() {
                             screenBackStackModel.mainScreen.currentKey is NormalNavKey.WebScreen
                         }
                     )
+
+                    //启动游戏流程展示
+                    val launchFlow by launchGameViewModel.launchFlow.collectAsStateWithLifecycle()
+                    val flow = launchFlow
+                    if (flow != null) {
+                        val launchTasks by flow.tasksFlow.collectAsStateWithLifecycle()
+                        TitleTaskFlowDialog(
+                            title = stringResource(R.string.main_launch_game),
+                            tasks = launchTasks,
+                            onCancel = {
+                                launchGameViewModel.cancel()
+                            }
+                        )
+                    }
                 }
 
                 //显示赞助支持的小弹窗
