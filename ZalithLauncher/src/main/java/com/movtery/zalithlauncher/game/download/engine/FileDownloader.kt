@@ -18,10 +18,10 @@
 
 package com.movtery.zalithlauncher.game.download.engine
 
-import com.movtery.zalithlauncher.path.DOWNLOAD_OKHTTP_CLIENT
 import com.movtery.zalithlauncher.path.createRequestBuilder
 import com.movtery.zalithlauncher.utils.file.calculateFileSha1
 import com.movtery.zalithlauncher.utils.file.ensureParentDirectory
+import com.movtery.zalithlauncher.utils.logging.Logger
 import com.movtery.zalithlauncher.utils.network.isInterruptedIOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -196,6 +196,7 @@ internal class FileDownloader(
 
     /** 统一的失败归类：换源由调度循环在下一拍自动发生 */
     private fun guardFailure(source: SourceSet.Source, block: () -> Unit) {
+        Logger.info(TAG, "Downloading: ${source.url}")
         try {
             block()
             source.recordSuccess()
@@ -206,6 +207,7 @@ internal class FileDownloader(
             throw cancellationOf(e)
         } catch (e: Exception) {
             if (e.isInterruptedIOException()) throw cancellationOf(e)
+            Logger.warning(TAG, "Failed: ${source.url}")
             source.recordFailure(e)
         }
     }
@@ -360,6 +362,8 @@ internal class FileDownloader(
     })
 
     companion object {
+        private const val TAG = "FileDownloader"
+
         const val BUFFER_SIZE = 64 * 1024
         const val MIN_SPLIT_TAIL = 256L * 1024L
         const val MIN_FILE_SIZE_FOR_SPLIT = 1024L * 1024L
