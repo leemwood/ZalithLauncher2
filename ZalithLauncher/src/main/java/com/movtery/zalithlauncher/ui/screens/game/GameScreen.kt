@@ -18,7 +18,6 @@
 
 package com.movtery.zalithlauncher.ui.screens.game
 
-import android.view.KeyEvent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -76,12 +75,9 @@ import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.bridge.CURSOR_DISABLED
 import com.movtery.zalithlauncher.bridge.ZLBridgeStates
 import com.movtery.zalithlauncher.bridge.ZLNativeInvoker
-import com.movtery.zalithlauncher.game.input.EfficientAndroidLWJGLKeycode
 import com.movtery.zalithlauncher.game.input.LWJGLCharSender
-import com.movtery.zalithlauncher.game.input.SdlTextSender
 import com.movtery.zalithlauncher.game.keycodes.mapToKeycode
 import com.movtery.zalithlauncher.game.launch.handler.GameHandler
-import com.movtery.zalithlauncher.game.sdl.SdlBridge
 import com.movtery.zalithlauncher.game.support.touch_controller.touchControllerInputModifier
 import com.movtery.zalithlauncher.game.support.touch_controller.touchControllerTouchModifier
 import com.movtery.zalithlauncher.game.version.installed.Version
@@ -133,7 +129,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import org.libsdl.app.SDLActivity
 import org.lwjgl.glfw.CallbackBridge
 import java.io.File
 import kotlin.time.Duration.Companion.milliseconds
@@ -434,11 +429,7 @@ private class GameTextSender(private val scope: CoroutineScope) {
         withContext(Dispatchers.Main) {
             fun sendText() {
                 for (ch in text) {
-                    if (SdlBridge.sdlEnabled) {
-                        SdlTextSender.sendChar(ch)
-                    } else {
-                        LWJGLCharSender.sendChar(ch)
-                    }
+                    LWJGLCharSender.sendChar(ch)
                 }
             }
 
@@ -446,23 +437,11 @@ private class GameTextSender(private val scope: CoroutineScope) {
                 //根据options.txt中的配置，找到打开聊天栏的键
                 //如果找不到，则忽略这次事件
                 mapToKeycode(OPEN_CHAT, OPEN_CHAT_VALUE)?.let { openChat ->
-                    if (SdlBridge.sdlEnabled) {
-                        val androidKey = EfficientAndroidLWJGLKeycode.getSdlAndroidKeycode(openChat)
-                        if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
-                            SDLActivity.onNativeKeyDown(androidKey)
-                            SDLActivity.onNativeKeyUp(androidKey)
-                        }
-                        delay(50L.milliseconds)
-                        sendText()
-                        delay(50L.milliseconds)
-                        SdlTextSender.sendEnter()
-                    } else {
-                        CallbackBridge.sendKeyPress(openChat)
-                        delay(50L.milliseconds)
-                        sendText()
-                        delay(50L.milliseconds)
-                        LWJGLCharSender.sendEnter()
-                    }
+                    CallbackBridge.sendKeyPress(openChat)
+                    delay(50L.milliseconds)
+                    sendText()
+                    delay(50L.milliseconds)
+                    LWJGLCharSender.sendEnter()
                 }
             } else {
                 //如果当前不在游戏内，则直接发送文本
