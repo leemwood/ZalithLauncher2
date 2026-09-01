@@ -770,7 +770,9 @@ class AccountManageViewModel @Inject constructor(
                     )
                 )
             }
-        ).justLogin(context, account)
+        ).let { helper ->
+            TaskSystem.submitTask(helper.justLogin(context, account))
+        }
     }
 
     /** 保存离线账号皮肤到本地存储 */
