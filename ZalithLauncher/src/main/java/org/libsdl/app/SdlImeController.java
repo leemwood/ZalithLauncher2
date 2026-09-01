@@ -98,6 +98,7 @@ final class SdlImeController {
      * @param visible IME 可见性
      */
     static void notifyVisibilityChanged(boolean visible) {
+        if (!SdlBridge.getSdlEnabled()) return;
         if (visible && isUnwantedImeVisible()) {
             // IME 在通道关闭后自行弹出时强制按回
             Log.w(TAG, "IME: unwanted visibility while text input channel is closed, forcing hide");

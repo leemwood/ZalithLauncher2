@@ -25,17 +25,20 @@ import org.libsdl.app.SDLActivity
 object SdlTextSender {
     @JvmStatic
     fun sendChar(character: Char) {
+        if (!SdlBridge.sdlEnabled) return
         SDLActivity.onNativeTextInput(character.toString())
     }
 
     @JvmStatic
     fun sendEnter() {
+        if (!SdlBridge.sdlEnabled) return
         SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
         SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_ENTER)
     }
 
     @JvmStatic
     fun sendKey(lwjglGlfwKeycode: Int) {
+        if (!SdlBridge.sdlEnabled) return
         val keyCode = EfficientAndroidLWJGLKeycode.getSdlAndroidKeycode(lwjglGlfwKeycode)
         if (keyCode == KeyEvent.KEYCODE_UNKNOWN) return
         SDLActivity.onNativeKeyDown(keyCode)

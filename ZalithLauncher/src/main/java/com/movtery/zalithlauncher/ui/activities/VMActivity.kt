@@ -833,7 +833,7 @@ class VMActivity : BaseAppCompatActivity(), SurfaceTextureListener, SurfaceHolde
                     }
                     SdlBridge.registerGameSurfaceView(view)
                     view.setOnApplyWindowInsetsListener { v, insets ->
-                        if (android.os.Build.VERSION.SDK_INT >= 30) {
+                        if (SdlBridge.sdlEnabled && android.os.Build.VERSION.SDK_INT >= 30) {
                             SDLActivity.notifyImeVisibilityChanged(
                                 insets.isVisible(android.view.WindowInsets.Type.ime())
                             )
