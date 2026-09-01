@@ -383,6 +383,10 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         return SdlImeController.isEditAvailable();
     }
 
+    public static boolean isSDLTextInputActive(){
+        return SdlImeController.isTextInputActive();
+    }
+
     public static void enableSDLEditKeyboard(){
         SdlImeController.requestShow(SdlImeController.Source.LAUNCHER);
     }
